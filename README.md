@@ -17,11 +17,15 @@ scenarios can be composed together; for example an NFL play scenario contains a 
 
 ML models will probably need to be trained at scale in the cloud (AWS).
 
+scenarios should generally be defined as units that need to be reusable in our system; for example, a play is a very common component of a game, and can be broken down into discrete steps, but there's no point in having a separate "snap scenario" and "play scenario", because the two are always tied together.
+
 in general a simulator’s “simulation” step should happen at the highest level possible; a game simulator should play through a game timeline composed of concrete snap timelines, then repeat many times, rather than simulating many snap timelines at each step and attempting to average them together or something.
 
 the core model is a snap event predictor, which takes in the overall state of the game, including: teams playing, game location, weather, time of day, stadium turf type, coaching staff, referee team, player rosters (including injuries and depth charts), individual players’ information (position, aggregate statistics for the season so far, and draft capital for rookies), field location, game score, game clock time, play clock time, team timeouts remaining, all previous snaps for the game (or a condensation of relevant information from those snaps, or just the outcomes of previous snaps), players on field for both teams, and general team formations, and predicts the outcome of the snap: the type of play, how long the play takes, players involved in the play, relevant outcomes for those players, both offensive and defensive (rushing yards, receiving yards, passes, receptions, first downs, touchdowns, kick yards, return yards, field goal makes and misses, fumbles, interceptions, sacks, tackles, and pressures), penalties (type, players involved, yardage outcome, and initiating referee if available), injuries (including how much time they cause the player to miss during the game, up to the rest of the game).
 
 layered on top of the snap predictor is a formation event predictor, which takes all of the same inputs as the snap predictor except for the players on field and formations, and predicts players on field and formations. this model should have some hard-coded features, like guarantees that formations are legal and that players are lined up in appropriate positions.
+
+we will need to handle complex logic like changes in NFL rules over the years (the kickoff rule in 2024, for example).
 
 Phase 0 is the play simulator. The play scenario is composed of the formation event and snap event described above, predicted by ML models. The play scenario’s logic is simple; predict a formation, then feed that formation into a snap predictor.
 
