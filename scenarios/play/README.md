@@ -1,10 +1,43 @@
 # play scenario
 
-Simulates a single NFL play: takes the state of the game before the play and returns everything that happens on it. The root README.md lists the scenario's inputs, outputs, and consistency guarantees. This file covers how it works inside.
+Simulates a single NFL play: takes the state of the game before the play and returns everything that happens on it.
 
 There's no code yet; this is the design.
 
 API (planned): a single entry point that runs one play from the play context (the inputs) with a seeded random number generator, and returns the play result (the outputs).
+
+## inputs
+
+Provided by the game scenario:
+
+- **game**: teams playing, game location, weather, time of day, stadium turf type, coaching staffs, referee crew, and season (which selects the rulebook).
+- **players**: rosters (including injuries, depth charts, and disqualifications) and each player's information (position, jersey number, aggregate statistics for the season so far, and draft capital for rookies).
+- **situation**: kind of play (scrimmage down, try after a touchdown, or kickoff/safety kick), possession, field location, down and distance, score, quarter, game clock time, whether the game clock is running, play clock time, and team timeouts remaining.
+- **history**: all previous plays in the game (or a condensation of the relevant information, or just their outcomes).
+
+Each event's predictor is handed only the slice of these inputs (plus earlier events' outputs) that it plausibly needs.
+
+## outputs
+
+- **the play record**: the ordered list of events and their outcomes (the play's timeline). The single source of truth for everything below.
+- the type of play, how long it took, and the players involved.
+- player outcomes, offensive and defensive: rushing yards, receiving yards, passes, receptions, first downs, touchdowns, kick yards, return yards, field goal makes and misses, fumbles, interceptions, sacks, tackles, and pressures. Team totals are the sum of player outcomes.
+- penalties: type, players involved, yardage outcome, accepted or declined, and initiating referee if available.
+- injuries and disqualifications, including how much of the game they cost the player, up to the rest of it.
+- the new situation: possession, field location, down and distance, score, and the kind of the next play (a try after a touchdown, a kickoff after a try or field goal, a safety kick after a safety, otherwise a scrimmage down).
+- clock: game time used (pre-snap runoff plus the play itself), what the clock does afterward (keeps running, stopped until the snap, or restarts on the ready-for-play signal), and flags the game scenario needs (10-second runoff, untimed down owed).
+
+## split of responsibilities
+
+Predictors predict what the players do: who comes on the field, how they line up, who gets the ball, where the pass goes, where the ball carrier is brought down, who recovers a fumble. The play scenario decides what that means under the rules: whether it was a touchdown, first down, safety, or touchback, where the ball is spotted, who has possession, how penalties are enforced, what the clock does, and what every player's stat line is. A predictor never predicts something the rules determine.
+
+## consistency guarantees
+
+Every play the scenario produces is legal and internally consistent.
+
+- **one source of truth**: the play record stores only facts (who had the ball, where each carry started and ended, where each pass was caught, who recovered each loose ball, which fouls were called). Field position, possession, score, and every stat line are computed from those facts by deterministic code; no predictor outputs a stat. Passing yards equal receiving yards because both come from the same "caught at X, tackled at Y" facts.
+- **rules as a failsafe**: predictors should output valid state, but the scenario also masks illegal choices before sampling (an ineligible receiver can't be targeted) and clamps continuous outputs to the field (a carry can't end past the end line). It never silently accepts an illegal state.
+- **invariants**: checked on every play in tests (see [invariants](#invariants)).
 
 ## the event chain
 
@@ -162,7 +195,7 @@ Checked by one validation function after every simulated play in tests:
 - Lost fumbles equal opponent recoveries; forced fumbles never exceed fumbles.
 - 11 players per side (unless too many men was called), down between 1 and 4, distance positive and never past the goal line, ball inside the field, elapsed time never negative.
 
-Rule-specific behavior (a 4th-down fumble recovered by a teammate, a dynamic kickoff landing short of the landing zone) gets hand-built tests that script the predictors' outputs.
+Simulating millions of plays with cheap random predictors and checking every invariant is the core of the automated testing. Rule-specific behavior (a 4th-down fumble recovered by a teammate, a dynamic kickoff landing short of the landing zone) gets hand-built tests that script the predictors' outputs.
 
 ## implementation notes
 
