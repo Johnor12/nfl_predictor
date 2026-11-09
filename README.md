@@ -46,3 +46,23 @@ Phase 1 is the evaluator, then iterative predictor improvement. the evaluator co
 Phase 2 is a season simulator. the season scenario contains all game scenarios across an NFL season and layers between-game events on top of them (practice injuries, trades, depth chart changes, free agent transactions, coaching personnel changes, and IR moves). aggregates statistics across all games. this is further out and therefore less developed.
 
 Phase 3 is a multi-season simulator. the multi-season scenario chains multiple season scenarios together with between-season events (many of the same events from the season scenario, but including drafted players and the NFL schedule). even further out.
+
+architecture: the project should be structured to match our terminology and model; a /events folder with subfolders for each individual event that we are modeling (the inputs and outputs for the event). within each event folder, we should have a folder for predictors. each subfolder in the predictors folder should be an implementation of a predictor for that event, allowing us to store multiple predictors and swap between them easily. a separate top level folder for each scenario we model; a game, a play, etc. individual events/predictors can be reused across different scenarios. a separate top level folder for our simulators, which orchestrate our scenarios. a separate top level folder for evaluators, which score the output of simulators. a top level folder /shared, for shared business logic (rulebooks)
+
+finished (11/8/26):
+initial implementation of the play scenario, audited using 2026 data from nflverse. open:
+- Not built yet:
+  - Laterals.
+  - Re-kick options on kicking-team fouls.
+  - Illegal touching.
+  - Ejections.
+  - Some clock subtleties after penalties.
+  - No 2026 on-field personnel data yet: nflverse hasn't published who was on the field for 2026 (2025's is available). Personnel groupings, depth-chart lineups and formations are hand-set for now.
+
+current goals:
+
+1. refactor the play scenario + existing codebase to match our architecture
+
+2. follow up on our initial play scenario: build the edge cases we haven't built yet, add data from prior years (starting with just 2025). a way to handle on-field personnel (maybe gathering directly from team websites/other sources)
+
+3. gather prediction priors (betting lines, both game and individual player) and set up our evaluator, with the goal of comparing our prediction performance to bettings lines. will require a random sampling of "up to now" games from this season.

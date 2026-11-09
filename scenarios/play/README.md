@@ -2,9 +2,17 @@
 
 Simulates a single NFL play: takes the state of the game before the play and returns everything that happens on it.
 
-There's no code yet; this is the design.
+This file is the design; [current implementation](#current-implementation) lists where the code still simplifies it.
 
-API (planned): a single entry point that runs one play from the play context (the inputs) with a seeded random number generator, and returns the play result (the outputs).
+API (`from scenarios.play import ...`):
+
+- `run_play(ctx, predictors, rng) -> PlayResult`: runs one play from a `PlayContext` with a `random.Random`. Raises `IllegalChoice` if a predictor returns something the rules don't allow.
+- `validate_play(result) -> list[str]`: the broken [invariants](#invariants) (empty if the play is valid).
+- `validate_context(ctx) -> list[str]`: problems with an input.
+- `describe_play(result)` / `describe_situation(situation)`: human-readable narration.
+- Inputs: `PlayContext(game, situation, players, history)` with `Game`, `Situation`, `Player`, `PlaySummary`. Spots are yard lines from the offense's own goal line (the kicking team's on free kicks); a try's `x` is the two-point spot, and a kicked try is snapped 13 yards farther back.
+- Predictors: `Predictors` bundles one function per event (signatures and output types in `events.py`); replace one with `dataclasses.replace(predictors, carry=my_carry)`. Baseline implementations live in `predictors/baseline/`; random legal ones for fuzzing in `testing.py`.
+- `PlayResult`: the record (facts), live and final dead-ball results, accepted/declined fouls, scores, `next` situation, player and team stats, elapsed time, what the clock does next, untimed-down and 10-second-runoff flags, injuries.
 
 ## inputs
 
@@ -201,3 +209,16 @@ Simulating millions of plays with cheap random predictors and checking every inv
 
 - Suggested module boundaries: the rulebook (season constants and pure rule functions), the play record and stat crediting (pure, no predictors), the events (an interface plus predictors for each), and the play scenario (the chain that connects them). None of them need to know about games or seasons.
 - Left to the implementer: whether some fouls are better predicted inside the event they belong to (pass interference in pass result, for example); whether lineups pick packages or specific players; how much of the passer's position to model (it separates forward passes from laterals, and decides grounding); and many more micro-decisions like these.
+
+## current implementation
+
+Everything above is implemented except where listed here. Each item is a known gap, not a design change.
+
+- **laterals and backward passes**: not yet. The carry predictor can't end a carry with a lateral, so there's no backward-pass loose ball either. Only one forward pass per play is possible, so there's no illegal forward pass.
+- **penalties**: 23 foul types (`fouls.CATALOG`). One accepted foul per team per play, and both teams fouling during the down replays it (no change-of-possession exceptions). A kicking team's fouls on kicks are added to the end of the play, with no re-kick option. On a scoring play, only after-the-play fouls carry over to the try or kickoff. Not modeled yet: illegal touching of kicks, offensive too many men, and ejections after two unsportsmanlike fouls (the game scenario should track disqualifications).
+- **accept/decline**: the offended team takes whichever result is worth more by a rough expected-points formula (`outcome.value`).
+- **clock**: after any accepted penalty the clock restarts on the ready signal. Injury stoppages aren't charged. The untimed down and 10-second runoff are only reported as flags for the game scenario.
+- **kickoffs**: 2026 uses the 2025 dynamic kickoff values (touchback to the 35, landing-zone touchback to the 20, short or out of bounds to the 40). These need checking against the 2026 rulebook. Safety kicks use the traditional rules (fair catch allowed, touchback to the 20). The 2023 fair-catch-to-the-25 rule isn't modeled.
+- **momentum rule**: applied to any return whose possession began inside the 5 and ended in the end zone, even if the carrier ran back on purpose.
+- **lineups**: always exactly 11 per side, so too-many-men is only possible as a foul.
+- **injuries**: reported in the result. The game scenario applies them.
