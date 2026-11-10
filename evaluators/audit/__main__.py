@@ -4,16 +4,8 @@
 # END
 import argparse
 
+from evaluators import parse_weeks
 from evaluators.audit import metrics, run_audit, write_report
-
-
-def _weeks(text):
-    if not text:
-        return None
-    if "-" in text:
-        low, high = map(int, text.split("-"))
-        return list(range(low, high + 1))
-    return [int(w) for w in text.split(",")]
 
 
 def main():
@@ -24,7 +16,7 @@ def main():
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--out", default=None)
     args = parser.parse_args()
-    audit = run_audit(args.season, _weeks(args.weeks), args.sims, args.seed)
+    audit = run_audit(args.season, parse_weeks(args.weeks), args.sims, args.seed)
     path = write_report(audit, args.out)
     print(path)
     print("\n".join(path.read_text(encoding="utf-8").splitlines()[2:8]))

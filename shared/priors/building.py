@@ -9,6 +9,8 @@
 # - flag(sample) -> (foul name, "offense" | "defense") | None: the flag on the play, in the play scenario's
 #   foul names (FOULS maps nflverse's). PRESNAP: the fouls that belong to the pre-snap event.
 # - kickoff_result(sample) -> (zone, result) | None: a kickoff that came down in the landing zone or end zone.
+# - nullified(sample) -> run, pass, punt, field_goal, or kickoff: what a play wiped out by a penalty was
+#   (nflverse labels it no_play; its description still says).
 # END
 from collections import Counter, defaultdict
 from dataclasses import dataclass
@@ -87,3 +89,16 @@ def kickoff_result(sample):
         return None
     result = "touchback" if row.touchback == 1 else "muff" if row.fumble == 1 and row.return_yards == 0 else "return"
     return "end_zone" if land >= 100 else "landing_zone", result
+
+
+def nullified(sample) -> str:
+    play = str(sample.row.desc).lower().split("penalty")[0]
+    if "punt" in play:
+        return "punt"
+    if "field goal" in play or "extra point" in play:
+        return "field_goal"
+    if " kicks " in play:
+        return "kickoff"
+    if " pass " in play or "sacked" in play or "scrambles" in play:
+        return "pass"
+    return "run"

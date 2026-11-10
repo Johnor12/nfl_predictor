@@ -2,6 +2,9 @@
 # Simulating the play scenario many times.
 # - simulate_plays(contexts, predictors, sims=1, seed=0, examples=30) -> PlaySimulation: runs every context
 #   `sims` times (each run has its own seed, so any play can be rerun), validates every play, and summarizes it.
+# - simulate_play(ctx, predictors, sims=1, seed=0, index=0) -> (results, failures): one context's runs as
+#   PlayResults, for callers that work through a season one play at a time. `index` is the context's
+#   position in the simulation (it is part of each run's seed).
 # - summarize(result) -> dict: a simulated play with the same keys as a real one (shared/nflverse/contexts.py
 #   _actual): action, yards, points, touchdown, turnover, penalty, first_down, ... plus seconds.
 # - PlaySimulation: outcomes (context, summary) for every play that ran; failures (context index, message,
@@ -56,8 +59,9 @@ def summarize(r) -> dict:
         "touchdown": any(how == "touchdown" for _, _, how in r.scores),
         "turnover": any(t.get("int_thrown", 0) or t.get("fumbles_lost", 0) for t in teams),
         "penalty": bool(r.accepted or r.declined),
-        "first_down": (s.kind == "scrimmage" and r.next.kind == "scrimmage" and r.next.offense == s.offense
-                       and r.next.down == 1),
+        "first_down": s.kind == "scrimmage" and (
+            (r.next.kind == "scrimmage" and r.next.offense == s.offense and r.next.down == 1)
+            or any(team == s.offense and how == "touchdown" for team, _, how in r.scores)),  # a touchdown counts
         "complete": any(p.result == "complete" for p in facts(r.record, Pass)),
         "field_goal_result": FIELD_GOAL_RESULTS.get(kick.result) if place_kick == "field_goal" else None,
         "extra_point_result": EXTRA_POINT_RESULTS.get(kick.result) if place_kick == "pat" else None,
@@ -68,21 +72,29 @@ def summarize(r) -> dict:
     }
 
 
+def simulate_play(ctx, predictors, sims: int = 1, seed: int = 0, index: int = 0) -> tuple[list, list]:
+    results, failures = [], []
+    for k in range(sims):
+        rng = random.Random(seed * 1_000_003 + index * 101 + k)
+        try:
+            result = run_play(ctx, predictors, rng)
+        except Exception as e:
+            failures.append((index, f"{type(e).__name__}: {e}", traceback.format_exc()))
+            continue
+        errors = validate_play(result)
+        if errors:
+            failures.append((index, "; ".join(errors), describe_play(result)))
+        results.append(result)
+    return results, failures
+
+
 def simulate_plays(contexts, predictors, sims: int = 1, seed: int = 0, examples: int = 30) -> PlaySimulation:
     sim = PlaySimulation()
     kept = set(range(0, len(contexts), max(1, len(contexts) // examples))) if examples else set()
     for i, ctx in enumerate(contexts):
-        for k in range(sims):
-            rng = random.Random(seed * 1_000_003 + i * 101 + k)
-            try:
-                result = run_play(ctx, predictors, rng)
-            except Exception as e:
-                sim.failures.append((i, f"{type(e).__name__}: {e}", traceback.format_exc()))
-                continue
-            errors = validate_play(result)
-            if errors:
-                sim.failures.append((i, "; ".join(errors), describe_play(result)))
-            sim.outcomes.append((ctx, summarize(result)))
-            if k == 0 and i in kept:
-                sim.examples.append((i, result))
+        results, failures = simulate_play(ctx, predictors, sims, seed, i)
+        sim.failures += failures
+        sim.outcomes += [(ctx, summarize(result)) for result in results]
+        if results and i in kept:
+            sim.examples.append((i, results[0]))
     return sim

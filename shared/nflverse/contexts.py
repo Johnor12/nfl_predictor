@@ -2,6 +2,8 @@
 # Real play contexts from nflverse data: every real snap or free kick as a play scenario input.
 # - real_plays(season, weeks=None) -> list[RealPlay]: in game order; each has the PlayContext, a dict of what
 #   actually happened (actual), and the pbp row index (row).
+# - real_samples(season, weeks=None) -> iterator of shared.priors.Sample: each real play with its nflverse
+#   rows (the pbp row and the FTN charting row, or None), for code that reads what an event's output was.
 # Pipeline: _Rosters (active players per team-week: weekly roster status ACT minus injury-report Outs, plus
 #   anyone who appears in the game's pbp; depth chart slots from the last snapshot before gameday, draft
 #   pick, season-to-date stats from earlier weeks),
@@ -18,6 +20,7 @@ import pandas as pd
 
 from shared.nflverse.download import load
 from scenarios.play import Game, PlayContext, PlaySummary, Player, Situation
+from shared.priors import Sample
 from shared.rulebook import rules_for
 
 SNAPPED = {"run", "pass", "punt", "field_goal", "extra_point", "qb_kneel", "qb_spike"}
@@ -235,6 +238,15 @@ def real_plays(season: int, weeks=None) -> list[RealPlay]:
             score, prev = after, row
         _seconds_to_next(plays[len(plays) - len(history):])
     return plays
+
+
+def real_samples(season: int, weeks=None):
+    pbp = load("pbp", season)
+    ftn = load("ftn", season).set_index(["nflverse_game_id", "nflverse_play_id"])
+    for play in real_plays(season, weeks):
+        row = pbp.loc[play.row]
+        key = (row.game_id, int(row.play_id))
+        yield Sample(play.context, play.actual, row, ftn.loc[key] if key in ftn.index else None)
 
 
 def _seconds_to_next(game_plays):

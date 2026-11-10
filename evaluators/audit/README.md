@@ -9,4 +9,4 @@ API (`from evaluators.audit import ...`):
 - `write_report(audit, path=None)`: markdown report at `audit_output/report_<season>.md` (gitignored), with example plays narrated next to the real play.
 - CLI: `python -m evaluators.audit --season 2026 [--weeks 1-3] [--sims 1]`.
 
-A metric compares one simulated play per real input against the real outcome, aggregated over all inputs. It measures whether the predictors are reasonable, not whether they're calibrated. Calibration against betting lines belongs to the phase 1 evaluator.
+A metric compares one simulated play per real input against the real outcome, aggregated over all inputs. It measures whether the predictors are reasonable on average. Scoring each play's forecast (and calibration) is `evaluators/play`'s job.

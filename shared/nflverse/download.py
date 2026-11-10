@@ -2,7 +2,8 @@
 # Downloading and caching nflverse files under .cache/nflverse/ (gitignored).
 # - load(name, season=None, refresh=False) -> DataFrame: read a cached file, downloading it first if missing.
 # - FILES: the nflverse release files we use, by name. "games" is the schedule (with referees, weather,
-#   coaches, and betting lines) from the nfldata repo and covers all seasons.
+#   coaches, and betting lines) from the nfldata repo and covers all seasons. "player_stats" is every
+#   player's stat line per game.
 # END
 import urllib.request
 from pathlib import Path
@@ -17,6 +18,7 @@ FILES = {
     "rosters": RELEASES + "weekly_rosters/roster_weekly_{season}.parquet",
     "depth_charts": RELEASES + "depth_charts/depth_charts_{season}.parquet",
     "injuries": RELEASES + "injuries/injuries_{season}.parquet",
+    "player_stats": RELEASES + "stats_player/stats_player_week_{season}.parquet",
     "games": "https://github.com/nflverse/nfldata/raw/master/data/games.csv",
 }
 

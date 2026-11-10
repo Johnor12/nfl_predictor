@@ -1,8 +1,8 @@
 # MAINTAINER
 
-- __init__.py: exports `load`, `real_plays`, `RealPlay`.
+- __init__.py: exports `load`, `real_plays`, `real_samples`, `RealPlay`.
 - download.py: `load` and the file URLs (`FILES`); caches under `.cache/nflverse/`.
-- contexts.py: `real_plays` and its pipeline (`_Rosters`, `_game`, `_kind`, `_clock_state`, `_situation`, `_actual`, `_summary`, `_seconds_to_next`).
+- contexts.py: `real_samples`, and `real_plays` and its pipeline (`_Rosters`, `_game`, `_kind`, `_clock_state`, `_situation`, `_actual`, `_summary`, `_seconds_to_next`).
 - test_contexts.py: week 1 contexts are valid; conventions (kickoff orientation, try spots, clock inference). Skipped if the cache is missing.
 
 Notes:
@@ -11,4 +11,5 @@ Notes:
 - The pre-play score is the previous row's `total_home_score`/`total_away_score` (those columns are post-play).
 - Weekly rosters can lag the current week's game-day inactives (week 9 had none marked when built), so a few contexts carry extra players.
 - 2026 participation data (who was on the field, personnel, formation) isn't published yet; 2025's is.
-- `_actual` and `simulators.play.summarize` must produce the same keys (the audit compares them). Change them together.
+- `_actual` and `simulators.play.summarize` must produce the same keys with the same meaning (the audit and `evaluators/play` compare them). Change them together.
+- A cached file doesn't refresh itself: `load(name, season, refresh=True)` after new games are played.

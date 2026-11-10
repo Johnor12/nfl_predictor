@@ -9,8 +9,8 @@ import sys
 from importlib import import_module
 from pathlib import Path
 
-from shared.nflverse import load, real_plays
-from shared.priors import Sample, Tally, save_priors
+from shared.nflverse import real_samples
+from shared.priors import Tally, save_priors
 
 HERE = Path(__file__).resolve().parent
 
@@ -23,12 +23,7 @@ def _builders() -> dict:
 def build(season: int, weeks=None) -> dict[str, dict]:
     builders = _builders()
     tallies = {event: Tally() for event in builders}
-    pbp = load("pbp", season)
-    ftn = load("ftn", season).set_index(["nflverse_game_id", "nflverse_play_id"])
-    for play in real_plays(season, weeks):
-        row = pbp.loc[play.row]
-        key = (row.game_id, int(row.play_id))
-        sample = Sample(play.context, play.actual, row, ftn.loc[key] if key in ftn.index else None)
+    for sample in real_samples(season, weeks):
         for event, builder in builders.items():
             builder.observe(tallies[event], sample)
     return {event: tally.priors() for event, tally in tallies.items()}

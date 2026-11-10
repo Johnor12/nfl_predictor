@@ -6,4 +6,4 @@
 
 Notes:
 - Pre-snap fouls are counted by the pre-snap event's priors, not here.
-- nflverse labels a play wiped out by a penalty `no_play`; `priors.py` reads the kind of play from its description (`_nullified`).
+- nflverse labels a play wiped out by a penalty `no_play`; `priors.py` reads the kind of play from its description (`shared.priors.nullified`).

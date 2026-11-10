@@ -19,4 +19,6 @@ Inputs common to every play event's predictor:
 
 Choosing implementations: `play.load_predictors("baseline")` loads every event's `baseline`, and `play.load_predictors("baseline", carry="other")` swaps in `events/carry/predictors/other/`.
 
+Scoring implementations: `python -m evaluators.play --swap carry=other` scores each event's predictor against what really happened (see `evaluators/play/README.md`).
+
 Baseline priors: `python -m events.baseline_priors 2026` rebuilds every baseline predictor's `priors_2026.json` from that season's real plays (downloading nflverse data on first use). `from events.baseline_priors import build, save` does the same from code.
