@@ -3,15 +3,16 @@
 # - next_situation(ctx, rules, los, dead) -> (Situation, scores): scoring, downs and distance, possession,
 #   and the kind of the next play (try after a touchdown, kickoff after a try or field goal, safety kick).
 # - expected_points(situation) / value(ctx, rules, los, dead, team): a rough worth of a result for a team,
-#   used only by the hardcoded accept/decline rule in fouls.py.
+#   used only by the hardcoded accept/decline rule in penalties.py.
 # - finish(ctx, rules, los, record, live, enforcement, injuries) -> PlayResult: adds stats, elapsed time,
 #   what the clock does next, and the untimed-down / 10-second-runoff flags.
 # END
 import dataclasses
 
+from events.pass_rush import PassRush
+from events.pre_snap import PreSnap
 from scenarios.play import stats
 from scenarios.play.context import FREE_KICKS
-from scenarios.play.events import PassRush, PreSnap
 from scenarios.play.field import other, rel
 from scenarios.play.record import Carry, Kick, LooseBall, PlayResult, facts
 

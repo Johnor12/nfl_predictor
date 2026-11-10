@@ -1,0 +1,241 @@
+{
+ "pass_rate": {
+  "bleed|1|1": {
+   "run": 2
+  },
+  "bleed|1|11+": {
+   "pass": 4,
+   "run": 2
+  },
+  "bleed|1|2-3": {
+   "run": 4
+  },
+  "bleed|1|4-6": {
+   "run": 2
+  },
+  "bleed|1|7-10": {
+   "pass": 18,
+   "run": 157
+  },
+  "bleed|2|1": {
+   "run": 7
+  },
+  "bleed|2|11+": {
+   "pass": 16,
+   "run": 17
+  },
+  "bleed|2|2-3": {
+   "run": 10
+  },
+  "bleed|2|4-6": {
+   "pass": 3,
+   "run": 43
+  },
+  "bleed|2|7-10": {
+   "pass": 28,
+   "run": 57
+  },
+  "bleed|3|1": {
+   "run": 17
+  },
+  "bleed|3|11+": {
+   "pass": 7,
+   "run": 11
+  },
+  "bleed|3|2-3": {
+   "pass": 9,
+   "run": 15
+  },
+  "bleed|3|4-6": {
+   "pass": 23,
+   "run": 16
+  },
+  "bleed|3|7-10": {
+   "pass": 23,
+   "run": 18
+  },
+  "bleed|4|1": {
+   "run": 8
+  },
+  "bleed|4|7-10": {
+   "run": 1
+  },
+  "hurry|1|1": {
+   "pass": 5,
+   "run": 15
+  },
+  "hurry|1|11+": {
+   "pass": 33,
+   "run": 10
+  },
+  "hurry|1|2-3": {
+   "pass": 7,
+   "run": 5
+  },
+  "hurry|1|4-6": {
+   "pass": 17,
+   "run": 11
+  },
+  "hurry|1|7-10": {
+   "pass": 715,
+   "run": 167
+  },
+  "hurry|2|1": {
+   "pass": 39,
+   "run": 17
+  },
+  "hurry|2|11+": {
+   "pass": 98,
+   "run": 10
+  },
+  "hurry|2|2-3": {
+   "pass": 65,
+   "run": 25
+  },
+  "hurry|2|4-6": {
+   "pass": 113,
+   "run": 34
+  },
+  "hurry|2|7-10": {
+   "pass": 311,
+   "run": 34
+  },
+  "hurry|3|1": {
+   "pass": 31,
+   "run": 31
+  },
+  "hurry|3|11+": {
+   "pass": 92,
+   "run": 13
+  },
+  "hurry|3|2-3": {
+   "pass": 57,
+   "run": 15
+  },
+  "hurry|3|4-6": {
+   "pass": 104,
+   "run": 12
+  },
+  "hurry|3|7-10": {
+   "pass": 106,
+   "run": 10
+  },
+  "hurry|4|1": {
+   "pass": 12,
+   "run": 12
+  },
+  "hurry|4|11+": {
+   "pass": 31
+  },
+  "hurry|4|2-3": {
+   "pass": 18,
+   "run": 1
+  },
+  "hurry|4|4-6": {
+   "pass": 18
+  },
+  "hurry|4|7-10": {
+   "pass": 18
+  },
+  "normal|1|1": {
+   "pass": 17,
+   "run": 49
+  },
+  "normal|1|11+": {
+   "pass": 188,
+   "run": 82
+  },
+  "normal|1|2-3": {
+   "pass": 17,
+   "run": 50
+  },
+  "normal|1|4-6": {
+   "pass": 45,
+   "run": 100
+  },
+  "normal|1|7-10": {
+   "pass": 2511,
+   "run": 2926
+  },
+  "normal|2|1": {
+   "pass": 70,
+   "run": 203
+  },
+  "normal|2|11+": {
+   "pass": 560,
+   "run": 115
+  },
+  "normal|2|2-3": {
+   "pass": 128,
+   "run": 328
+  },
+  "normal|2|4-6": {
+   "pass": 515,
+   "run": 569
+  },
+  "normal|2|7-10": {
+   "pass": 1396,
+   "run": 647
+  },
+  "normal|3|1": {
+   "pass": 77,
+   "run": 269
+  },
+  "normal|3|11+": {
+   "pass": 502,
+   "run": 35
+  },
+  "normal|3|2-3": {
+   "pass": 312,
+   "run": 147
+  },
+  "normal|3|4-6": {
+   "pass": 649,
+   "run": 57
+  },
+  "normal|3|7-10": {
+   "pass": 741,
+   "run": 32
+  },
+  "normal|4|1": {
+   "pass": 25,
+   "run": 101
+  },
+  "normal|4|11+": {
+   "pass": 5,
+   "run": 1
+  },
+  "normal|4|2-3": {
+   "pass": 66,
+   "run": 7
+  },
+  "normal|4|4-6": {
+   "pass": 39
+  },
+  "normal|4|7-10": {
+   "pass": 17,
+   "run": 1
+  }
+ },
+ "run_carrier": {
+  "DL": 2,
+  "FB": 13,
+  "P": 3,
+  "QB1": 278,
+  "QB2": 31,
+  "QB3": 6,
+  "RB1": 3757,
+  "RB2": 1557,
+  "RB3": 686,
+  "TE1": 22,
+  "TE2": 8,
+  "TE3": 6,
+  "WR1": 50,
+  "WR2": 45,
+  "WR3": 64
+ },
+ "two_point_play": {
+  "pass": 53,
+  "run": 12
+ }
+}

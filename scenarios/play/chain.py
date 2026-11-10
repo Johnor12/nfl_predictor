@@ -9,20 +9,21 @@
 #   after_kick (shared kick results), and the shared building blocks carry and loose_ball, which end in
 #   dead_at (end-zone rules: safety or touchback) or a touchdown.
 # Live-ball methods return a Dead (how/where the ball died and who gets it). Penalty enforcement is in
-# fouls.py, the next situation and clock in outcome.py, stats in stats.py.
+# penalties.py, the next situation and clock in outcome.py, stats in stats.py.
 # END
 import dataclasses
 
-from rulebook import rules_for
-from scenarios.play import fouls as foul_rules
-from scenarios.play import outcome
+from events.carry import ENDS as CARRY_ENDS
+from events.kick_attempt import RESULTS as KICK_ATTEMPT_RESULTS
+from events.pass_result import RESULTS as PASS_RESULTS
+from events.pass_rush import RESULTS as RUSH_RESULTS
+from scenarios.play import outcome, penalties
 from scenarios.play.context import FREE_KICKS
-from scenarios.play.field import (clamp_x, eligible_receivers, field_goal_distance, formation_errors,
-                                  line_of_scrimmage, lineup_errors, other, rel, to_x)
+from scenarios.play.field import (clamp_x, eligible_receivers, field_goal_distance, formation_errors, line_of_scrimmage,
+                        lineup_errors, other, rel, to_x)
 from scenarios.play.record import Carry, Dead, Kick, LooseBall, Pass, Sack
+from shared.rulebook import rules_for
 
-RUSH_RESULTS = ("throw", "sack", "scramble", "throwaway", "strip_sack")
-CARRY_ENDS = ("tackled", "out_of_bounds", "fumble", "down")
 UNIT_ACTIONS = {
     "offense": ("run", "pass", "kneel", "spike"),
     "victory": ("kneel",),
@@ -78,7 +79,8 @@ class _Play:
     def run(self):
         ctx, p, rng = self.ctx, self.p, self.rng
         self.lineups = self.add(p.lineups(ctx, rng))
-        _require(not lineup_errors(ctx, self.lineups), lineup_errors(ctx, self.lineups))
+        errors = lineup_errors(ctx, self.lineups)
+        _require(not errors, errors)
         _require(self.lineups.offense.unit in allowed_units(ctx, self.rules), f"unit {self.lineups.offense.unit}")
         self.los = line_of_scrimmage(ctx, self.rules, self.lineups)
         fouls = []
@@ -86,10 +88,10 @@ class _Play:
             live = self.free_kick()
         else:
             self.formation = self.add(p.offensive_formation(ctx, self.lineups, rng))
-            _require(not formation_errors(ctx, self.lineups, self.formation),
-                     formation_errors(ctx, self.lineups, self.formation))
+            errors = formation_errors(ctx, self.lineups, self.formation)
+            _require(not errors, errors)
             self.defense = self.add(p.defensive_formation(ctx, self.lineups, self.formation, rng))
-            allowed = foul_rules.presnap_fouls(ctx)
+            allowed = penalties.presnap_fouls(ctx)
             pre = p.pre_snap(ctx, self.lineups, self.formation, allowed, rng)
             _require(pre.seconds >= 0, "negative pre-snap time")
             self.add(dataclasses.replace(pre, foul=None))
@@ -98,13 +100,13 @@ class _Play:
                 fouls.append(pre.foul)
             live = None if pre.foul and pre.foul.timing == "presnap" else self.scrimmage()
         if live is not None:
-            allowed = foul_rules.live_fouls(ctx, tuple(self.record), live)
+            allowed = penalties.live_fouls(ctx, tuple(self.record), live)
             for foul in p.fouls(ctx, self.lineups, tuple(self.record), allowed, rng):
                 self.check_foul(foul, allowed)
                 fouls.append(foul)
         for foul in fouls:
             self.add(foul)
-        enforcement = foul_rules.enforce(ctx, self.rules, self.los, live, tuple(fouls))
+        enforcement = penalties.enforce(ctx, self.rules, self.los, live, tuple(fouls))
         injuries = tuple(p.injuries(ctx, self.lineups, tuple(self.record), rng))
         for injury in injuries:
             _require(injury.player in self.lineups.offense.players + self.lineups.defense.players,
@@ -162,7 +164,7 @@ class _Play:
         spot = min(109.5, max(-9.5, los + target.air_yards))  # a pass caught beyond the end line is incomplete
         target = dataclasses.replace(target, air_yards=spot - los)
         result = self.p.pass_result(ctx, self.lineups, target, self.rng)
-        _require(result.result in ("complete", "incomplete", "intercepted"), f"pass result {result}")
+        _require(result.result in PASS_RESULTS, f"pass result {result}")
         _require(result.result != "intercepted" or result.defender, "interception without a defender")
         if result.defender:
             self.check_player(result.defender, de, "pass defender")
@@ -196,7 +198,7 @@ class _Play:
         spot = los - rules.field_goal_snap_depth
         distance = field_goal_distance(rules, los)
         attempt = self.p.kick_attempt(ctx, self.lineups, kicker, distance, self.rng)
-        _require(attempt.result in ("good", "no_good", "blocked"), f"kick attempt {attempt}")
+        _require(attempt.result in KICK_ATTEMPT_RESULTS, f"kick attempt {attempt}")
         if attempt.result == "blocked":
             self.check_player(attempt.blocked_by, de, "blocker")
             self.add(Kick(kind, kicker, los, None, "blocked", attempt.blocked_by, attempt.seconds))

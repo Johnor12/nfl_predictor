@@ -1,7 +1,7 @@
 # START
 # The play record (facts) and the play result (everything computed from them).
-# - Sack, Pass, Carry, LooseBall, Kick: facts the chain records alongside the predictor outputs it keeps as-is
-#   (Lineups, Formation, DefensiveFormation, PreSnap, Snap, PassRush, Foul, Injury from events.py).
+# - Sack, Pass, Carry, LooseBall, Kick: facts the chain records alongside the event outputs it keeps as-is
+#   (Lineups, Formation, DefensiveFormation, PreSnap, Snap, PassRush, Foul, Injury from events/).
 # - Dead: how and where the ball became dead and who is entitled to it (also used for penalty-adjusted results).
 # - PlayResult: the record plus enforcement, scores, stats, clock, and the next situation.
 # - facts(record, type): the record's facts of one type, in order.
@@ -9,8 +9,9 @@
 # END
 from dataclasses import dataclass, field
 
+from events.fouls import Foul
+from events.injuries import Injury
 from scenarios.play.context import PlayContext, Situation
-from scenarios.play.events import Foul, Injury
 
 
 @dataclass(frozen=True)
@@ -62,7 +63,8 @@ class Kick:
     kicker: str
     x: float                       # spot of the kick (line of scrimmage, or free kick line)
     land: float | None             # where it was caught, downed, landed, or went out (None for place kicks)
-    result: str                    # punt/free kick: KickOutcome results, out_of_bounds, short, blocked; place kick: good, no_good, blocked
+    result: str                    # punt/free kick: the PuntResult / KickResult result, or out_of_bounds, short, blocked;
+                                   # place kick: good, no_good, blocked
     player: str | None = None      # returner / blocker / recovering player
     seconds: float = 0.0
 

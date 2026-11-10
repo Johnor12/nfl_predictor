@@ -7,9 +7,23 @@
 # END
 import random
 
-from scenarios.play import run_play, validate_play
-from scenarios.play.events import (CarryEnd, DefensiveFormation, Foul, Formation, FreeKick, KickAttempt, KickOutcome,
-                                   Lineup, Lineups, PassResult, PassRush, PreSnap, PuntKick, Recovery, Snap, Target)
+from events.carry import CarryEnd
+from events.defensive_formation import DefensiveFormation
+from events.fouls import Foul
+from events.free_kick import FreeKick
+from events.kick_attempt import KickAttempt
+from events.kick_result import KickResult
+from events.lineups import Lineup, Lineups
+from events.loose_ball import Recovery
+from events.offensive_formation import Formation
+from events.pass_result import PassResult
+from events.pass_rush import PassRush
+from events.pre_snap import PreSnap
+from events.punt_kick import PuntKick
+from events.punt_result import PuntResult
+from events.snap import Snap
+from events.target import Target
+from scenarios.play import PlayContext, run_play, validate_play
 from scenarios.play.testing import chaos_predictors, scripted, synthetic_context
 
 H, A = "HOME", "AWAY"
@@ -134,17 +148,17 @@ def test_forward_fumble_out_of_bounds_comes_back():
 
 def test_punt_into_end_zone_is_a_touchback():
     r = play(situation(x=55, down=4), lineups=Lineups(PUNT, DEFENSE), offensive_formation=PUNT_FORMATION,
-             snap=Snap("punt"), punt_kick=PuntKick(50, seconds=4.5), punt_result=KickOutcome("touchback"))
+             snap=Snap("punt"), punt_kick=PuntKick(50, seconds=4.5), punt_result=PuntResult("touchback"))
     assert (r.next.offense, r.next.x) == (A, 20) and r.stats["HOME-P1"]["punt_yds"] == 45
 
 
 def test_punt_return_and_fair_catch():
     r = play(situation(x=30, down=4), lineups=Lineups(PUNT, DEFENSE), offensive_formation=PUNT_FORMATION,
-             snap=Snap("punt"), punt_kick=PuntKick(45), punt_result=KickOutcome("return", "AWAY-DB4"),
+             snap=Snap("punt"), punt_kick=PuntKick(45), punt_result=PuntResult("return", "AWAY-DB4"),
              carry=CarryEnd(12, "tackled", ("HOME-LB2",)))
     assert (r.next.offense, r.next.x) == (A, 37) and r.stats["AWAY-DB4"]["punt_ret_yds"] == 12
     r = play(situation(x=30, down=4), lineups=Lineups(PUNT, DEFENSE), offensive_formation=PUNT_FORMATION,
-             snap=Snap("punt"), punt_kick=PuntKick(45), punt_result=KickOutcome("fair_catch", "AWAY-DB4"))
+             snap=Snap("punt"), punt_kick=PuntKick(45), punt_result=PuntResult("fair_catch", "AWAY-DB4"))
     assert (r.next.offense, r.next.x) == (A, 25)
 
 
@@ -173,7 +187,7 @@ def test_penalty_on_a_kicked_try_carries_to_the_retry():
     r = play(situation("try", x=98, down=None, distance=None), **kick,
              pre_snap=PreSnap(10.0, Foul("false_start", H, "HOME-OL1", 85, "presnap")))
     assert (r.next.kind, r.next.x) == ("try", 93)
-    r = play(r.context.__class__(r.context.game, r.next, r.context.players), **kick, snap=Snap("field_goal"),
+    r = play(PlayContext(r.context.game, r.next, r.context.players), **kick, snap=Snap("field_goal"),
              kick_attempt=KickAttempt("good"))
     assert r.record[-1].x == 80 and r.scores == ((H, 1, "extra_point"),)  # kicked from the 20
 
@@ -181,13 +195,13 @@ def test_penalty_on_a_kicked_try_carries_to_the_retry():
 def test_dynamic_kickoff_rules():
     ko = dict(lineups=Lineups(KICKOFF, RETURN))
     ctx = situation("kickoff", x=35, down=None, distance=None)
-    r = play(ctx, **ko, free_kick=FreeKick("HOME-K1", 40), kick_result=KickOutcome("return", "AWAY-DB1"))
+    r = play(ctx, **ko, free_kick=FreeKick("HOME-K1", 40), kick_result=KickResult("return", "AWAY-DB1"))
     assert (r.next.offense, r.next.x) == (A, 40)  # short of the landing zone
-    r = play(ctx, **ko, free_kick=FreeKick("HOME-K1", 70), kick_result=KickOutcome("touchback"))
+    r = play(ctx, **ko, free_kick=FreeKick("HOME-K1", 70), kick_result=KickResult("touchback"))
     assert (r.next.offense, r.next.x) == (A, 35)  # in the end zone in the air
-    r = play(ctx, **ko, free_kick=FreeKick("HOME-K1", 60), kick_result=KickOutcome("touchback"))
+    r = play(ctx, **ko, free_kick=FreeKick("HOME-K1", 60), kick_result=KickResult("touchback"))
     assert (r.next.offense, r.next.x) == (A, 20)  # landing zone, then into the end zone
-    r = play(ctx, **ko, free_kick=FreeKick("HOME-K1", 62), kick_result=KickOutcome("return", "AWAY-DB1"),
+    r = play(ctx, **ko, free_kick=FreeKick("HOME-K1", 62), kick_result=KickResult("return", "AWAY-DB1"),
              carry=CarryEnd(25, "tackled", ("HOME-LB1",)))
     assert (r.next.offense, r.next.x) == (A, 28) and r.stats["AWAY-DB1"]["kick_ret_yds"] == 25
     r = play(ctx, **ko, free_kick=FreeKick("HOME-K1", 50, out_of_bounds=True))

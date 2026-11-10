@@ -1,3 +1,3 @@
 # START
-# Scenario packages (see README.md). Nothing is exported at this level.
+# Scenario packages, one per scenario (see README.md). Nothing is exported at this level.
 # END

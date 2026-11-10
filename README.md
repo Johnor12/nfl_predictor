@@ -61,8 +61,6 @@ initial implementation of the play scenario, audited using 2026 data from nflver
 
 current goals:
 
-1. refactor the play scenario + existing codebase to match our architecture
+1. follow up on our initial play scenario: build the edge cases we haven't built yet, add data from prior years (starting with just 2025). a way to handle on-field personnel (maybe gathering directly from team websites/other sources)
 
-2. follow up on our initial play scenario: build the edge cases we haven't built yet, add data from prior years (starting with just 2025). a way to handle on-field personnel (maybe gathering directly from team websites/other sources)
-
-3. gather prediction priors (betting lines, both game and individual player) and set up our evaluator, with the goal of comparing our prediction performance to bettings lines. will require a random sampling of "up to now" games from this season.
+2. gather prediction priors (betting lines, both game and individual player) and set up our evaluator, with the goal of comparing our prediction performance to bettings lines. will require a random sampling of "up to now" games from this season.

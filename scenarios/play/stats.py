@@ -10,7 +10,7 @@
 # END
 from collections import defaultdict
 
-from scenarios.play.events import PassRush
+from events.pass_rush import PassRush
 from scenarios.play.field import rel
 from scenarios.play.record import Carry, Kick, LooseBall, Pass, Sack, facts
 

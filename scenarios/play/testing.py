@@ -8,14 +8,29 @@
 #   in order), for hand-built rule tests.
 # END
 import dataclasses
-import random
 
-from scenarios.play.chain import RUSH_RESULTS, allowed_units
+from events.carry import CarryEnd
+from events.defensive_formation import DefensiveFormation
+from events.fouls import Foul
+from events.free_kick import FreeKick
+from events.injuries import Injury
+from events.kick_attempt import KickAttempt
+from events.kick_result import KickResult
+from events.lineups import Lineup, Lineups
+from events.loose_ball import Recovery
+from events.offensive_formation import Formation
+from events.pass_result import PassResult
+from events.pass_rush import RESULTS as RUSH_RESULTS
+from events.pass_rush import PassRush
+from events.pre_snap import PreSnap
+from events.punt_kick import PuntKick
+from events.punt_result import PuntResult
+from events.snap import Snap
+from events.target import Target
+from scenarios.play.chain import allowed_units
 from scenarios.play.context import Game, PlayContext, Player, Situation
-from scenarios.play.events import (CarryEnd, DefensiveFormation, Foul, Formation, FreeKick, Injury, KickAttempt,
-                                   KickOutcome, Lineup, Lineups, PassResult, PassRush, Predictors, PreSnap,
-                                   PuntKick, Recovery, Snap, Target)
-from rulebook import rules_for
+from scenarios.play.predictors import Predictors
+from shared.rulebook import rules_for
 
 ROSTER = [("QB", 2, 1), ("RB", 3, 20), ("WR", 5, 10), ("TE", 3, 80), ("OL", 8, 60), ("DL", 7, 90),
           ("LB", 6, 40), ("DB", 9, 21), ("K", 1, 3), ("P", 1, 5), ("LS", 1, 47)]
@@ -48,11 +63,6 @@ def _team_players(ctx, lineups, team):
     return lineups.offense.players if team == ctx.situation.offense else lineups.defense.players
 
 
-def _pick(ctx, rng, team, *positions, exclude=()):
-    pool = [p.id for p in ctx.roster(team) if p.position in positions and p.id not in exclude]
-    return rng.choice(pool)
-
-
 def chaos_predictors() -> Predictors:
     def lineups(ctx, rng):
         s = ctx.situation
@@ -70,7 +80,8 @@ def chaos_predictors() -> Predictors:
             core = by_pos["K"] + by_pos["P"] + by_pos["LS"]
         else:
             core = by_pos["K"]
-        rest = [pid for pid in roster if pid not in core and ctx.by_id[pid].position not in ("QB", "OL", "K", "P", "LS")]
+        rest = [pid for pid in roster if pid not in core
+                and ctx.by_id[pid].position not in ("QB", "OL", "K", "P", "LS")]
         offense = tuple(core + rng.sample(rest, 11 - len(core)))
         defense = tuple(rng.sample([p.id for p in ctx.roster(s.defense)], 11))
         return Lineups(Lineup(unit, None, offense), Lineup("defense", None, defense))
@@ -122,7 +133,8 @@ def chaos_predictors() -> Predictors:
 
     def carry(ctx, lineups, kind, carrier, yard_line, rng):
         team = ctx.by_id[carrier].team
-        opponents = _team_players(ctx, lineups, ctx.situation.defense if team == ctx.situation.offense else ctx.situation.offense)
+        s = ctx.situation
+        opponents = _team_players(ctx, lineups, s.defense if team == s.offense else s.offense)
         how = rng.choice(["tackled", "tackled", "out_of_bounds", "fumble", "down"])
         yards = rng.choice([rng.uniform(-10, 15), rng.uniform(-110, 110)])
         forced = rng.choice(opponents + (None,)) if how == "fumble" else None
@@ -138,10 +150,12 @@ def chaos_predictors() -> Predictors:
         blocked = rng.choice(lineups.defense.players) if rng.random() < 0.05 else None
         return PuntKick(rng.uniform(10, 75), blocked, rng.uniform(3, 6))
 
-    def kick_result(ctx, lineups, landing_x, allowed, rng):
-        result = rng.choice(allowed)
-        team_players = lineups.offense.players if result == "kicking_recovery" else lineups.defense.players
-        return KickOutcome(result, rng.choice(team_players))
+    def after_kick(output):  # punt_result and kick_result
+        def predict(ctx, lineups, landing_x, allowed, rng):
+            result = rng.choice(allowed)
+            team_players = lineups.offense.players if result == "kicking_recovery" else lineups.defense.players
+            return output(result, rng.choice(team_players))
+        return predict
 
     def kick_attempt(ctx, lineups, kicker, distance, rng):
         result = rng.choice(["good", "no_good", "blocked"])
@@ -163,8 +177,8 @@ def chaos_predictors() -> Predictors:
         return ()
 
     return Predictors(lineups, offensive_formation, defensive_formation, pre_snap, snap, pass_rush, target,
-                      pass_result, carry, loose_ball, punt_kick, kick_result, kick_attempt, free_kick,
-                      kick_result, fouls, injuries)
+                      pass_result, carry, loose_ball, punt_kick, after_kick(PuntResult), kick_attempt, free_kick,
+                      after_kick(KickResult), fouls, injuries)
 
 
 def scripted(base: Predictors, **outputs) -> Predictors:

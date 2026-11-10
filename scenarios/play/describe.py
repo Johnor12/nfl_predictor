@@ -4,10 +4,15 @@
 # - describe_situation(situation) -> str: e.g. "Q1 14:56 ARI 1&10 at ARI 30".
 # - yard_line(offense, defense, x) -> str: e.g. "ARI 30" for x=30, "LAC 43" for x=57.
 # END
-from rulebook import rules_for
-from scenarios.play.events import Foul, Formation, Injury, Lineups, PassRush, Snap
+from events.fouls import Foul
+from events.injuries import Injury
+from events.lineups import Lineups
+from events.offensive_formation import Formation
+from events.pass_rush import PassRush
+from events.snap import Snap
 from scenarios.play.field import field_goal_distance
 from scenarios.play.record import Carry, Kick, LooseBall, Pass, Sack
+from shared.rulebook import rules_for
 
 
 def yard_line(offense, defense, x):

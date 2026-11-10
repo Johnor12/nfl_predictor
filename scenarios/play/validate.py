@@ -7,8 +7,9 @@
 # bookkeeping; team stats = player sums; scores only through scoring events; possession changes explained;
 # field position reconciles with the yardage (plays without loose balls); the next situation is legal.
 # END
+from events.lineups import Lineups
+from events.offensive_formation import Formation
 from scenarios.play.context import FREE_KICKS, KINDS
-from scenarios.play.events import Formation, Lineups
 from scenarios.play.field import formation_errors, lineup_errors, other, rel
 from scenarios.play.record import Carry, Kick, LooseBall, Pass, facts
 
@@ -71,7 +72,7 @@ def validate_play(result) -> list[str]:
 
 
 def _scoring_errors(result):
-    ctx, s, nxt = result.context, result.context.situation, result.next
+    s, nxt = result.context.situation, result.next
     errors = []
     for team in (s.offense, s.defense):
         if nxt.score[team] - s.score[team] != sum(p for t, p, _ in result.scores if t == team):

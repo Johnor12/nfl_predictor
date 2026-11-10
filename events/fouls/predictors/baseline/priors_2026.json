@@ -1,0 +1,69 @@
+{
+ "fouls": {
+  "field_goal": {
+   "defensive_holding|defense": 1,
+   "unnecessary_roughness|defense": 3,
+   "unnecessary_roughness|offense": 3,
+   "unsportsmanlike_conduct|defense": 1,
+   "unsportsmanlike_conduct|offense": 1
+  },
+  "kickoff": {
+   "face_mask|defense": 1,
+   "face_mask|offense": 6,
+   "illegal_block_in_the_back|defense": 15,
+   "offensive_holding|defense": 77,
+   "unnecessary_roughness|defense": 4,
+   "unnecessary_roughness|offense": 6
+  },
+  "pass": {
+   "defensive_holding|defense": 68,
+   "defensive_pass_interference|defense": 158,
+   "face_mask|defense": 20,
+   "face_mask|offense": 4,
+   "illegal_block_in_the_back|defense": 1,
+   "illegal_block_in_the_back|offense": 5,
+   "illegal_contact|defense": 36,
+   "ineligible_downfield_pass|offense": 21,
+   "intentional_grounding|offense": 19,
+   "offensive_holding|offense": 131,
+   "offensive_pass_interference|offense": 35,
+   "roughing_the_passer|defense": 61,
+   "unnecessary_roughness|defense": 41,
+   "unnecessary_roughness|offense": 13,
+   "unsportsmanlike_conduct|defense": 7,
+   "unsportsmanlike_conduct|offense": 11
+  },
+  "punt": {
+   "face_mask|offense": 3,
+   "fair_catch_interference|offense": 3,
+   "illegal_block_in_the_back|defense": 17,
+   "offensive_holding|defense": 38,
+   "offensive_holding|offense": 6,
+   "roughing_the_kicker|defense": 3,
+   "running_into_the_kicker|defense": 2,
+   "unnecessary_roughness|defense": 11,
+   "unnecessary_roughness|offense": 4,
+   "unsportsmanlike_conduct|defense": 3,
+   "unsportsmanlike_conduct|offense": 2
+  },
+  "run": {
+   "defensive_holding|defense": 29,
+   "face_mask|defense": 17,
+   "face_mask|offense": 4,
+   "illegal_block_in_the_back|offense": 3,
+   "illegal_contact|defense": 1,
+   "offensive_holding|offense": 168,
+   "unnecessary_roughness|defense": 26,
+   "unnecessary_roughness|offense": 8,
+   "unsportsmanlike_conduct|defense": 2,
+   "unsportsmanlike_conduct|offense": 3
+  }
+ },
+ "snaps": {
+  "field_goal": 1182,
+  "kickoff": 1389,
+  "pass": 10048,
+  "punt": 1026,
+  "run": 7368
+ }
+}
