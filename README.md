@@ -37,6 +37,12 @@ predictors sample, they don't average: each predictor returns a sample from its 
 one interface per event: any predictor behind an event (base rate, hand-tuned, ML model, or a script in a test) is interchangeable, so predictors can be upgraded one at a time.
 cut events along what historical data records: each predictor needs a training set, so events should line up with what play-by-play and participation data actually label (nflverse, for example, records personnel, formation, box count, pass rushers, air yards, yards after the catch, tacklers, and fumble recoveries).
 
+our general strategy for evaluating accuracy should be: run our simulator, which provides a distribution of outcomes. check the real outcome against that distribution using fair CRPS for numberic stats, multiclass (fair) Brier for categorical outputs, and, for binary outcomes, Brier score (main metric) + smoothed log loss for moneyline comparisons. fair crps on a binary outcome is equivalent to fair brier, so a single implementation should work for both. evaluation should happen at every level of the system; individual event predictors, and every scenario, and should apply to every system output. in addition to comparing to what actually happened, we should evaluate our outputs against other predictors: moneylines (encodes win probability +vig), spreads (median-like), and prop lines (P(X > line)), be computing the same values from our distributions. those predictors can help as establish a baseline accuracy goal.
+
+for CRPS in specific, scoring the same predictor twice with different seeds gives sim noise, which can be used to estimate the number of simulations we need to run to extract real changes when comparing different predictor versions (ceiling of around 10,000)
+
+for diagnostics, we shoud output PIT histograms for numerical values and reliability diagrams for probabilities.
+
 phases
 
 Phase 0 is the game simulator, built rules-first. The game scenario broadly takes in all information available at the start of an NFL game, then composes: coin toss scenario -> a sequence of play scenarios (starting with the opening kickoff; each play tells the game what kind of play comes next), potentially with timeouts and coach’s challenge flags between them, keeps track of all game statistics (the sum of each play's stat lines) and the game clock (quarters, the two-minute warning, timeouts, untimed downs), and continues until the game concludes (including overtime if applicable, under the season's overtime rules). The simulator simulates the game scenario 1000’s of times, then presents aggregated statistical distributions across those simulations. the football logic (event chains, rulebook, play record, stat crediting, invariants) should be comprehensive from the start, since it's limited only by knowledge and effort, not data or cost. the predictors behind the events start out extremely simple: statistical priors from previous seasons.
@@ -61,6 +67,10 @@ initial implementation of the play scenario, audited using 2026 data from nflver
 
 current goals:
 
-1. follow up on our initial play scenario: build the edge cases we haven't built yet, add data from prior years (starting with just 2025). a way to handle on-field personnel (maybe gathering directly from team websites/other sources)
+1. follow up on our initial play scenario: build the edge cases we haven't built yet, add data from prior years (starting with just 2025). a way to handle on-field personnel (maybe gathering directly from team websites/other sources). build the predictor in such a way that it takes advantage of the most information as possible (if we only have on-field info for 2025, it should use that on-field info when predicting for 2025)
 
-2. gather prediction priors (betting lines, both game and individual player) and set up our evaluator, with the goal of comparing our prediction performance to bettings lines. will require a random sampling of "up to now" games from this season.
+2. gather prediction priors (betting lines, both game and individual player) and set up our evaluation system, which will be used for evaluating each of our individual event predictors and scenarios (this framework should be largely reusable, since our evaluation methods should be resusable across different outputs). as part of developing the evaluator, you should evaluate our existing events and play scenario
+
+3. add the game scenario and related evaluation framework.
+
+4. extend to prior seasons (past 10 years? as much data as possible? (may not improve predictors) probably worth having as much data as possible, as it could be helpful for some predictors and detrimental for others)
