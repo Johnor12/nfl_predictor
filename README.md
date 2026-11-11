@@ -66,14 +66,12 @@ initial implementation of the play scenario, audited using 2026 data from nflver
   - No 2026 on-field personnel data yet: nflverse hasn't published who was on the field for 2026 (2025's is available). Personnel groupings, depth-chart lineups and formations are hand-set for now.
 
 current goals:
-
-1. gather prediction priors (betting lines, both game and individual player) and set up our evaluation system, which will be used for evaluating each of our individual event predictors and scenarios (this framework should be largely reusable, since our evaluation methods should be resusable across different outputs). as part of developing the evaluator, you should evaluate our existing events and play scenario
-   
+ 
+1. add the game scenario and related evaluation framework.
+ 
 2. follow up on our initial play scenario: build the edge cases we haven't built yet, add data from prior years (starting with just 2025). a way to handle on-field personnel (maybe gathering directly from team websites/other sources). build the predictor in such a way that it takes advantage of the most information as possible (if we only have on-field info for 2025, it should use that on-field info when predicting for 2025)
 
-3. add the game scenario and related evaluation framework.
-
-4. extend to prior seasons (past 10 years? as much data as possible? (may not improve predictors) probably worth having as much data as possible, as it could be helpful for some predictors and detrimental for others)
+3. extend to prior seasons (past 10 years? as much data as possible? (may not improve predictors) probably worth having as much data as possible, as it could be helpful for some predictors and detrimental for others)
 
 notes:
 Do you want a priced source for player props? Without prices a prop can only be treated as a coin flip at the line, and priced history most likely means a paid odds API.
