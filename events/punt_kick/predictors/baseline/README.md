@@ -10,4 +10,4 @@ From data: the block rate (`punt_blocked`) and gross distance by field position 
 
 Hand-set: who blocks punts, and hang time.
 
-The priors come from the `priors_<season>.json` for the game's season (the latest earlier one if it has none). Rebuild every event's with `python -m events.baseline_priors 2026`.
+The priors come from the `priors_<season>.json` files next to the code: each key from the latest season that has it and isn't after the game's (see `shared/priors/README.md`). Rebuild every event's with `python -m events.baseline_priors 2026`.

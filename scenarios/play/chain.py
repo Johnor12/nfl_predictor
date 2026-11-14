@@ -6,8 +6,8 @@
 # - _Play: one play in progress. Methods in chain order:
 #   run (lineups, formations, pre-snap, action, fouls, enforcement, injuries, then outcome.finish),
 #   scrimmage (snap and action), dropback (rush, target, pass result), punt, place_kick, free_kick,
-#   after_kick (shared kick results), and the shared building blocks carry and loose_ball, which end in
-#   dead_at (end-zone rules: safety or touchback) or a touchdown.
+#   after_kick (shared kick results), and the shared building blocks carry (which follows laterals) and
+#   loose_ball, which end in dead_at (end-zone rules: safety or touchback) or a touchdown.
 # Live-ball methods return a Dead (how/where the ball died and who gets it). Penalty enforcement is in
 # penalties.py, the next situation and clock in outcome.py, stats in stats.py.
 # END
@@ -111,7 +111,7 @@ class _Play:
         for injury in injuries:
             _require(injury.player in self.lineups.offense.players + self.lineups.defense.players,
                      f"injured player {injury.player} was not on the field")
-        return outcome.finish(ctx, self.rules, self.los, tuple(self.record), live, enforcement, injuries)
+        return outcome.finish(ctx, self.rules, self.los, tuple(self.record), live, enforcement, injuries, tuple(fouls))
 
     # --- scrimmage downs ---
 
@@ -220,8 +220,7 @@ class _Play:
         spot = self.los
         kick = self.p.free_kick(ctx, self.lineups, onside, self.rng)
         self.check_player(kick.kicker, off, "kicker")
-        distance = max(kick.distance, rules.onside_min_distance if onside else 0.0)
-        land = min(110.0, spot + distance)
+        land = min(110.0, spot + max(0.0, kick.distance))
         dynamic = rules.dynamic_kickoff and s.kind == "kickoff"
         if kick.out_of_bounds:
             line = rules.kickoff_out_of_bounds_line if dynamic else rel(ctx, de, spot + 25)
@@ -242,6 +241,10 @@ class _Play:
             allowed = ("return", "muff")
         result = self.p.kick_result(ctx, self.lineups, land, allowed, self.rng)
         _require(result.result in allowed, f"kick result {result.result} not in {allowed}")
+        if result.result == "kicking_recovery" and land - spot < rules.onside_min_distance:
+            self.check_player(result.player, off, "recovering player")  # illegal touching: the receiving team's ball there
+            self.add(Kick(kind, kick.kicker, spot, land, "illegal_touch", result.player, kick.seconds))
+            return Dead(de, land, "illegal_touch", kick=True)
         self.add(Kick(kind, kick.kicker, spot, land, result.result, result.player, kick.seconds))
         if dynamic:
             touchback = rules.kickoff_touchback_line if land >= 100 else rules.landing_zone_touchback_line
@@ -270,29 +273,34 @@ class _Play:
 
     # --- shared building blocks ---
 
-    def carry(self, kind, player, team, start, impetus=None, touchback_line=None):
+    def carry(self, kind, player, team, start, impetus=None, touchback_line=None, lateral=False):
         ctx = self.ctx
         self.check_player(player, team, "ball carrier")
         goal = to_x(ctx, team, 100)
         r0 = rel(ctx, team, start)
         if r0 >= 100:  # possession gained in the opponent's end zone
-            self.add(Carry(player, team, kind, goal, goal, "touchdown"))
+            self.add(Carry(player, team, kind, goal, goal, "touchdown", lateral=lateral))
             return Dead(team, goal, "touchdown")
         out = self.p.carry(ctx, self.lineups, kind, player, r0, self.rng)
         _require(out.how in CARRY_ENDS and out.seconds >= 0, f"carry {out}")
         _require(out.forced_by is None or out.how == "fumble", "forced fumble without a fumble")
         for pid in out.tacklers + ((out.forced_by,) if out.forced_by else ()):
             self.check_player(pid, other(ctx, team), "tackler")
+        if out.how == "lateral":
+            _require(out.lateral_to != player and not out.tacklers, f"lateral {out}")
+            self.check_player(out.lateral_to, team, "lateral receiver")
         r1 = min(110.0, max(-10.0, r0 + out.yards))
         if r1 <= 0 < r0 <= 5 and impetus not in (None, team):
             r1 = r0  # momentum: possession gained inside the 5 and carried into the end zone stays at the spot
         if r1 >= 100:
-            self.add(Carry(player, team, kind, start, goal, "touchdown", seconds=out.seconds))
+            self.add(Carry(player, team, kind, start, goal, "touchdown", seconds=out.seconds, lateral=lateral))
             return Dead(team, goal, "touchdown")
         end = to_x(ctx, team, r1)
-        self.add(Carry(player, team, kind, start, end, out.how, out.tacklers, out.forced_by, out.seconds))
+        self.add(Carry(player, team, kind, start, end, out.how, out.tacklers, out.forced_by, out.seconds, lateral))
         if out.how == "fumble":
             return self.loose_ball("fumble", end, team, impetus=team, fumbler=player, forced_by=out.forced_by)
+        if out.how == "lateral":  # the same kind of carry goes on from here; in the field of play it's the team's own impetus
+            return self.carry(kind, out.lateral_to, team, end, impetus if r1 <= 0 else team, touchback_line, True)
         return self.dead_at(team, end, out.how, start, impetus or team, touchback_line)
 
     def loose_ball(self, cause, x, last_team, impetus, fumbler=None, forced_by=None):

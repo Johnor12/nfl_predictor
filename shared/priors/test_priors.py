@@ -2,7 +2,8 @@
 # Tests for the priors toolkit.
 # - test_blend_is_ordered: sampling a blend can't depend on set order (plays must be reproducible).
 # - test_tally: counts, nested sub-keys, and histograms.
-# - test_priors_of_picks_the_season: the latest file not after the season, else the earliest.
+# - test_priors_of_picks_the_season: each key from the latest file that has it and isn't after the season,
+#   else the earliest file; NFL_PRIORS_THROUGH ignores later files.
 # END
 import random
 
@@ -26,9 +27,12 @@ def test_tally():
                               "yards_goal": {"1-2": {"1": 1}}}
 
 
-def test_priors_of_picks_the_season(tmp_path):
+def test_priors_of_picks_the_season(tmp_path, monkeypatch):
     file = tmp_path / "predictor.py"
-    for season in (2024, 2026):
-        save_priors({"season": season}, file, season)
+    save_priors({"season": 2024, "personnel": {"11": 7}}, file, 2024)  # 2026's data can't say the personnel
+    save_priors({"season": 2026}, file, 2026)
     load = priors_of(file)
     assert [load(s)["season"] for s in (2023, 2024, 2025, 2026, 2030)] == [2024, 2024, 2024, 2026, 2026]
+    assert load(2026) == {"season": 2026, "personnel": {"11": 7}}
+    monkeypatch.setenv("NFL_PRIORS_THROUGH", "2025")
+    assert priors_of(file)(2026)["season"] == 2024

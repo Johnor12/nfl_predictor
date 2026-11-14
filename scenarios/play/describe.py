@@ -66,7 +66,8 @@ def describe_play(result) -> str:
         elif isinstance(f, Carry):
             sign = 1 if f.team == s.offense else -1
             tackle = f" ({', '.join(map(name, f.tacklers))})" if f.tacklers else ""
-            lines.append(f"  {name(f.player)} {f.kind.replace('_', ' ')} from {at(f.start)} to {at(f.end)} "
+            what = "takes the lateral" if f.lateral else f.kind.replace("_", " ")
+            lines.append(f"  {name(f.player)} {what} from {at(f.start)} to {at(f.end)} "
                          f"({sign * (f.end - f.start) + 0.0:+.0f}), {f.how.replace('_', ' ')}{tackle}")
         elif isinstance(f, LooseBall):
             got = (f"recovered by {name(f.player)} ({f.team}) at {at(f.recovery_x)}" if f.team
@@ -81,6 +82,8 @@ def describe_play(result) -> str:
             lines.append(f"  FLAG {f.type.replace('_', ' ')} on {f.team} {name(f.player)} ({f.timing}), {verdict}")
         elif isinstance(f, Injury):
             lines.append(f"  injury: {name(f.player)} out {f.plays_out} plays")
+    for pid in result.disqualified:
+        lines.append(f"  DISQUALIFIED {name(pid)}")
     for team, points, how in result.scores:
         lines.append(f"  SCORE {team} +{points} ({how.replace('_', ' ')})")
     if result.no_play:

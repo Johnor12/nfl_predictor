@@ -1,7 +1,8 @@
 # START
 # The fouls event: fouls during and after the play (see README.md).
 # - Predictor: predict(ctx, lineups, record, allowed_fouls, rng) -> tuple[Foul, ...].
-# - Foul: type, team, player, spot, and timing. Also the type of a pre-snap foul (events/pre_snap).
+# - Foul: type, team, player, spot, timing, and whether it was flagrant (the player is disqualified). Also the
+#   type of a pre-snap foul (events/pre_snap).
 # END
 from dataclasses import dataclass
 
@@ -13,3 +14,4 @@ class Foul:
     player: str
     x: float                       # spot of the foul
     timing: str                    # presnap, snap, live, return, after (see scenarios/play/penalties.py)
+    flagrant: bool = False         # the officials disqualified the player for it

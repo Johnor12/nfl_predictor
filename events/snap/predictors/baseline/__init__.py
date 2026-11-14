@@ -1,5 +1,6 @@
 # START
-# Baseline snap predictor: run or pass by game script, down, and distance; the ball carrier by depth chart role.
+# Baseline snap predictor: run or pass by game script, down, and distance; the ball carrier by how often each
+# back on the field carries when he is out there (by depth chart role).
 # - predict(ctx, lineups, formation, defense, allowed, rng) -> Snap.
 # Hand-set: the bad snap rate, kneels from the victory formation, and spikes late in a half with no timeouts.
 # Internals: _pass_rate (the script's rate backed off to the normal script's).
@@ -26,7 +27,7 @@ def predict(ctx, lineups, formation, defense, allowed, rng):
     if rng.random() < _pass_rate(s, p):
         return Snap("pass", bad_snap=bad)
     backs = list(formation.backfield)
-    weights = [p["run_carrier"].get(role(ctx.by_id[pid]), 1) for pid in backs]
+    weights = [rate(p["carry_rate"].get(role(ctx.by_id[pid]), {}), "carried") or 0.001 for pid in backs]
     return Snap("run", rng.choices(backs, weights)[0], bad)
 
 

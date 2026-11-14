@@ -7,7 +7,7 @@ Predictor: `predict(ctx, rng) -> Lineups`
 Output (`from events.lineups import ...`):
 
 - `Lineups(offense, defense)`: one `Lineup` per team.
-- `Lineup(unit, personnel, players)`: the unit (offense: `offense`, `punt`, `field_goal`, `victory`, `kickoff`, `onside_kickoff`; defense: `defense`, `punt_return`, `field_goal_block`, `kick_return`), a personnel label (`"11"`, `"nickel"`) or None, and 11 player ids.
+- `Lineup(unit, personnel, players)`: the unit (offense: `offense`, `punt`, `field_goal`, `victory`, `kickoff`, `onside_kickoff`; defense: `defense`, `punt_return`, `field_goal_block`, `kick_return`), a personnel label or None, and 11 player ids. An offense's label is its backs and tight ends (`"11"`, `"12"`), with a `+` for each lineman past five (`"12+"`); a defense's is its package by defensive backs (`goal_line`, `base`, `nickel`, `dime`).
 
 The play scenario raises `IllegalChoice` unless each side has exactly 11 distinct active players of its own team, and the offense's unit is one of `play.allowed_units(ctx, rules)` (scrimmage: offense, punt, field_goal, victory; try: offense, field_goal; free kick: kickoff, plus onside_kickoff when the season's rules allow declaring one).
 

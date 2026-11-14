@@ -1,10 +1,15 @@
 # MAINTAINER
 
-- __init__.py: `predict`, the unit choice (`_unit`, `_kneel`, `_two_point_rate`, `_onside`).
-- depth_chart.py: the personnel mix, the defense's matching package, and 11 players for any unit by depth chart rank (base/nickel/dime, 4-3 or 3-4 aware) with position fallbacks.
-- test_lineups.py: spot checks (depth chart, kneel rule, 4th-and-long punts).
+- __init__.py: `predict`, the unit choice (`_unit`, `_kneel`, `_two_point_rate`, `_onside`), `_personnel`, and `_package`.
+- depth_chart.py: 11 players for any unit: position quotas for the personnel group or package, filled by recent snaps in the unit and then by depth chart rank, with position fallbacks.
+- test_lineups.py: spot checks (depth chart, kneel rule, 4th-and-long punts, recent snaps).
 - priors.py: `observe(tally, sample)`, which counts one real play into this predictor's priors.
-- priors_2026.json: the built priors (raw counts and histograms).
+- priors_<season>.json: the built priors (raw counts and histograms), one file per season. `personnel` and `package` are only in seasons with participation data (2025).
 
 Notes:
-- Priors are keyed `down|distance bucket|field bucket`; a cell with fewer than 20 samples is blended with the down and field bucket's total.
+- Unit priors are keyed `down|distance bucket|field bucket`; a cell with fewer than 20 samples is blended with the down and field bucket's total. Personnel priors are keyed `script|down|distance bucket` and blended with the normal script's.
+- Measured on 2025's real lineups (players missed of 11, and the Brier score of each player's chance of being on the field, summed over players; lower is better): the depth chart alone misses 1.8 on offense, 3.0 on defense, and 5.6 to 7.7 on the kicking units. Taking the players with the most recent snaps misses about as many on offense, 2.6 on defense, and 1.3 to 2.9 on the kicking units with per-unit snaps (2.5 to 3.7 with snap counts). Drawing in proportion to snaps misses a few more but is better calibrated: the Brier score falls from 3.5 to 3.0 on offense and from 5.9 to 3.9 on defense.
+- The quarterback is the depth chart's: it named the real one on 96.7% of 2025's plays, his recent snaps on 90.7% (a starter back from an injury has none). For linemen the two were level.
+- A window of two to four weeks of snaps scored best; longer ones lag changes in who plays. The window is `shared.nflverse`'s (`SNAP_WEEKS`).
+- Lineups are drawn independently on every play: nothing keeps a back on the field for a whole series.
+- `_ranked` draws without replacement by sorting on an exponential draw divided by the player's snaps to the power `SHARPEN`. Plain shares (1.0) leave the regulars out too often, because a tight end's or third receiver's snaps come mostly from the personnel groups that add him, not from taking the starter's place. On 2025, 1.5 missed fewer players than 1.0 at the same Brier score on offense and defense (2.1 against 2.25, 3.2 against 3.5) and scored better on the kicking units with snap counts; 2.0 and up cost calibration. The cleaner fix is snaps by personnel group, which only the participation data has.

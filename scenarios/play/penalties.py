@@ -6,9 +6,11 @@
 #   possession), after (dead ball, after the play).
 # - presnap_fouls(ctx) / live_fouls(ctx, record, live): the (type, team, timing) triples a predictor may return.
 # - enforce(ctx, rules, los, live, fouls) -> Enforcement: accept/decline (hardcoded: the offended team takes
-#   whichever result is worth more, see outcome.value), offsetting fouls, and enforcement spots.
-# Simplifications: one accepted foul per team per play; kicking-team fouls on kicks are always tacked on to
-# the end of the play (no re-kick option); fouls on a score's ensuing kickoff only for dead-ball fouls.
+#   whichever result is worth more, see outcome.value), offsetting fouls, and enforcement spots. A kicking
+#   team's foul on a kick gives the receiving team two ways to accept: added to the end of the play, or a
+#   re-kick from the previous spot.
+# Simplifications: one accepted foul per team per play; fouls on a score's ensuing kickoff only for dead-ball
+# fouls; an illegal forward pass from beyond the line is enforced from the previous spot.
 # END
 import dataclasses
 from dataclasses import dataclass
@@ -26,7 +28,8 @@ class FoulRule:
     yards: int                    # 0 for a spot foul
     by: str                       # ball (team with the ball), no_ball, or either
     timings: tuple[str, ...]
-    needs: str = "scrimmage"      # play feature required: scrimmage, any, dropback, target, throwaway, scrimmage_kick, kick_catch
+    needs: str = "scrimmage"      # play feature a live foul requires: scrimmage, any, dropback, target, throwaway,
+                                  # scrimmage_kick, kick_catch, kick_downfield
     auto_first: bool = False      # automatic first down (when committed by the team without the ball)
     loss_of_down: bool = False
     from_spot: bool = False       # enforced from the spot of the foul when that's behind the enforcement spot
@@ -41,6 +44,7 @@ CATALOG = {
     "defensive_too_many_men": FoulRule(5, "no_ball", ("snap",)),
     "illegal_formation": FoulRule(5, "ball", ("snap",)),
     "illegal_shift": FoulRule(5, "ball", ("snap",)),
+    "offensive_too_many_men": FoulRule(5, "ball", ("snap",)),
     "offensive_holding": FoulRule(10, "ball", ("live", "return"), needs="any", from_spot=True),
     "illegal_block_in_the_back": FoulRule(10, "ball", ("live", "return"), needs="any", from_spot=True),
     "defensive_holding": FoulRule(5, "no_ball", ("live",), auto_first=True),
@@ -48,11 +52,14 @@ CATALOG = {
     "defensive_pass_interference": FoulRule(0, "no_ball", ("live",), needs="target", auto_first=True),
     "offensive_pass_interference": FoulRule(10, "ball", ("live",), needs="target"),
     "ineligible_downfield_pass": FoulRule(5, "ball", ("live",), needs="target"),
+    "illegal_touch_pass": FoulRule(5, "ball", ("live",), needs="target"),
     "intentional_grounding": FoulRule(10, "ball", ("live",), needs="throwaway", loss_of_down=True, from_spot=True),
+    "illegal_forward_pass": FoulRule(5, "ball", ("live", "return"), loss_of_down=True, from_spot=True),
     "roughing_the_passer": FoulRule(15, "no_ball", ("live",), needs="dropback", auto_first=True),
     "roughing_the_kicker": FoulRule(15, "no_ball", ("live",), needs="scrimmage_kick", auto_first=True),
     "running_into_the_kicker": FoulRule(5, "no_ball", ("live",), needs="scrimmage_kick"),
     "fair_catch_interference": FoulRule(15, "ball", ("live",), needs="kick_catch"),
+    "illegal_touch_kick": FoulRule(5, "ball", ("live",), needs="kick_downfield"),
     "face_mask": FoulRule(15, "either", ("live", "return"), needs="any", auto_first=True),
     "unnecessary_roughness": FoulRule(15, "either", ("live", "return", "after"), needs="any", auto_first=True),
     "unsportsmanlike_conduct": FoulRule(15, "either", ("after",), needs="any", auto_first=True),
@@ -97,6 +104,8 @@ def _features(record) -> set[str]:
             out.add("scrimmage_kick")
         if k.result in ("fair_catch", "return", "muff"):
             out.add("kick_catch")
+        if k.kind != "field_goal" and k.kind != "pat" and k.result != "blocked":
+            out.add("kick_downfield")
     return out
 
 
@@ -107,10 +116,8 @@ def live_fouls(ctx, record, live) -> frozenset:
     returner = live.team if live.team != off and gained else None
     out = set()
     for name, rule in CATALOG.items():
-        if rule.needs not in features:
-            continue
         for timing in rule.timings:
-            if timing == "live":
+            if timing == "live" and rule.needs in features:
                 out.update((name, team, timing) for team in _teams(ctx, rule.by, off))
             elif timing == "return" and returner:
                 out.update((name, team, timing) for team in _teams(ctx, rule.by, returner))
@@ -139,8 +146,21 @@ def _tack_on(ctx, live, foul):
     return Dead(live.team, x, "penalty", kick=live.kick, series="first" if first else "normal"), yards
 
 
-def _enforce_during(ctx, los, live, foul):
-    """A foul during the down (timings snap, live, return). Returns (result, yards)."""
+def _rekick(ctx, los, foul):
+    """The kick doesn't count; the kicking team kicks again after the yardage from the previous spot."""
+    x, yards = _move(ctx, los, foul.team, CATALOG[foul.type].yards)
+    return Dead(foul.team, x, "penalty", series="replay", no_play=True), yards
+
+
+def _enforce_during(ctx, los, live, foul) -> list:
+    """A foul during the down (timings snap, live, return): the ways to accept it, each a (result, yards)."""
+    s = ctx.situation
+    if foul.timing != "return" and foul.team == s.offense and (s.kind in FREE_KICKS or (live.kick and live.team == s.defense)):
+        return [_tack_on(ctx, live, foul), _rekick(ctx, los, foul)]  # the kicking team's foul on a kick
+    return [_enforce_one(ctx, los, live, foul)]
+
+
+def _enforce_one(ctx, los, live, foul):
     s, rule = ctx.situation, CATALOG[foul.type]
     off, de = s.offense, s.defense
     if foul.timing == "return":
@@ -155,8 +175,6 @@ def _enforce_during(ctx, los, live, foul):
     if s.kind in FREE_KICKS:
         return _tack_on(ctx, live, foul)
     if foul.team == off:
-        if live.kick and live.team == de:  # kicking team foul on a punt the receiving team ended up with
-            return _tack_on(ctx, live, foul)
         if rule.from_spot and rel(ctx, off, foul.x) <= 0:
             return Dead(off, foul.x, "safety", no_play=True), 0.0
         if foul.type == "intentional_grounding":
@@ -209,8 +227,7 @@ def enforce(ctx, rules, los, live, fouls) -> Enforcement:
         offended = other(ctx, during[0].team)
         options = [(live, None, 0.0)]
         for f in during:
-            result, moved = _enforce_during(ctx, los, live, f)
-            options.append((result, f, moved))
+            options += [(result, f, moved) for result, moved in _enforce_during(ctx, los, live, f)]
         final, chosen, moved = max(options, key=lambda o: outcome.value(ctx, rules, los, o[0], offended))
         if chosen:
             accepted.append(chosen)

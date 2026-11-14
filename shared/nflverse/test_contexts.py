@@ -5,6 +5,8 @@
 # - test_conventions: kickoffs are from the kicking team's side; tries use the two-point spot; clock inference.
 # - test_timeouts_before_plays: who called a timeout before a play, and the state before it.
 # - test_week_one_games: every game's inputs are valid and match its plays'; its real outcome and stat lines.
+# - test_recent_snaps: players carry their recent snaps: per kicking unit where the season records who was on
+#   the field (2025), otherwise from the per-game snap counts (2026); nobody has any before week 1.
 # END
 import pytest
 
@@ -66,3 +68,20 @@ def test_week_one_games(plays):
     by_id = {p.id: p for p in game.context.players}
     passers = [pid for pid, line in actual["players"].items() if line.get("pass_att", 0) > 10]
     assert passers and all(by_id[pid].position == "QB" for pid in passers)
+
+
+def test_recent_snaps(plays):
+    from shared.nflverse import load, real_plays, real_samples
+    assert not any(p.snaps for p in plays[0].context.players)  # week 1: nothing to go on yet
+    assert load("participation", 2026) is None
+    ctx = real_plays(2026, weeks=[3])[0].context
+    units = {unit for p in ctx.players for unit, _ in p.snaps}
+    assert units == {"offense", "defense", "special_teams"}
+    assert sum(bool(p.snaps) for p in ctx.players) > 0.8 * len(ctx.players)
+    if not (CACHE / "pbp_participation_2025.parquet").exists():
+        return
+    sample = next(iter(real_samples(2025, weeks=[3])))
+    units = {unit for p in sample.context.players for unit, _ in p.snaps}
+    assert units == {"offense", "defense", "punt", "punt_return", "field_goal", "field_goal_block", "kickoff", "kick_return"}
+    on_field = sample.participation.players_on_play.split(";")
+    assert len(on_field) == 22 and set(on_field) <= set(sample.context.by_id)

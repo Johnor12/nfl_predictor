@@ -3,7 +3,7 @@
 # - Sack, Pass, Carry, LooseBall, Kick: facts the chain records alongside the event outputs it keeps as-is
 #   (Lineups, Formation, DefensiveFormation, PreSnap, Snap, PassRush, Foul, Injury from events/).
 # - Dead: how and where the ball became dead and who is entitled to it (also used for penalty-adjusted results).
-# - PlayResult: the record plus enforcement, scores, stats, clock, and the next situation.
+# - PlayResult: the record plus enforcement, scores, stats, clock, the next situation, and disqualifications.
 # - facts(record, type): the record's facts of one type, in order.
 # All spots are play coordinates (yards from the play's offense's own goal line).
 # END
@@ -38,10 +38,11 @@ class Carry:
     kind: str                      # run, scramble, kneel, catch, interception, punt_return, kick_return, recovery
     start: float
     end: float                     # spot where the carry ended (spot of a fumble; goal line on a touchdown)
-    how: str                       # tackled, out_of_bounds, fumble, down, touchdown
+    how: str                       # tackled, out_of_bounds, fumble, down, lateral, touchdown
     tacklers: tuple[str, ...] = ()
     forced_by: str | None = None
     seconds: float = 0.0
+    lateral: bool = False          # the ball came by a lateral: same kind as the carry before it, from where it ended
 
 
 @dataclass(frozen=True)
@@ -63,7 +64,8 @@ class Kick:
     kicker: str
     x: float                       # spot of the kick (line of scrimmage, or free kick line)
     land: float | None             # where it was caught, downed, landed, or went out (None for place kicks)
-    result: str                    # punt/free kick: the PuntResult / KickResult result, or out_of_bounds, short, blocked;
+    result: str                    # punt/free kick: the PuntResult / KickResult result, or out_of_bounds, short, blocked,
+                                   # illegal_touch (the kicking team recovered a free kick short of 10 yards);
                                    # place kick: good, no_good, blocked
     player: str | None = None      # returner / blocker / recovering player
     seconds: float = 0.0
@@ -74,7 +76,8 @@ class Dead:
     team: str                      # team entitled to the ball
     x: float                       # where the next play starts
     how: str                       # tackled, out_of_bounds, down, incomplete, touchdown, safety, touchback, kick_good,
-                                   # kick_missed, fair_catch, downed, recovered, kick_out_of_bounds, kick_short, penalty
+                                   # kick_missed, fair_catch, downed, recovered, kick_out_of_bounds, kick_short,
+                                   # illegal_touch, penalty, offsetting
     kick: bool = False             # the ball was kicked to the receiving side: whoever has it starts a new series
     series: str = "normal"         # normal (next down), replay (same down), loss (loss of down), first (automatic first down)
     no_play: bool = False
@@ -99,6 +102,8 @@ class PlayResult:
     untimed_down: bool
     runoff_option: bool            # 10-second runoff option for the defense
     injuries: tuple[Injury, ...] = field(default=())
+    disqualified: tuple[str, ...] = ()      # players ejected on this play, out for the rest of the game
+    warned: frozenset[str] = frozenset()    # the next play's PlayContext.warned
 
     @property
     def no_play(self) -> bool:

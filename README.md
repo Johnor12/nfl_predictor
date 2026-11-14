@@ -12,7 +12,7 @@ evaluator: scores a simulator's output distributions against external benchmarks
 
 general approach: simulate many instances of the same scenario, then present a distribution of outcomes. a scenario can be composed of many events, each of which is predicted by an appropriately complex predictor (a game scenario includes a coin toss scenario, composed of a toss event and a decision event; the toss predictor is a trivial 50/50 random generator; the model for predicting what the winning team will do with the toss is significantly more complex). the scenario logically composes event predictors, keeps track of relevant outcomes, then the simulator aggregates those outcomes across 1000’s of simulations. each predictor should be as simple and concise as possible, both in its technical implementation and its scope (for example, the defensive formation predictor should be told the offense's personnel and formation (information the defense has before the snap), rather than implicitly predicting them from team rosters).
 
-I have a fairly strong conviction that coaching staff and referees will be significant to predicting outcomes.
+I have a fairly strong conviction that coaching staff, referees, and betting lines will be significant predictors.
 
 complex events should generally be predicted by machine learning (ML) models trained on historical incidents of that event.
 
@@ -38,6 +38,8 @@ design notes:
 predictors sample, they don't average: each predictor returns a sample from its distribution, drawn with a seeded random number generator it's handed, so any play can be reproduced exactly.
 one interface per event: any predictor behind an event (base rate, hand-tuned, ML model, or a script in a test) is interchangeable, so predictors can be upgraded one at a time.
 cut events along what historical data records: each predictor needs a training set, so events should line up with what play-by-play and participation data actually label (nflverse, for example, records personnel, formation, box count, pass rushers, air yards, yards after the catch, tacklers, and fumble recoveries).
+
+Tell me if we're missing data which you think I could provide rather than working around it.
 
 our general strategy for evaluating accuracy should be: run our simulator, which provides a distribution of outcomes. check the real outcome against that distribution using fair CRPS for numberic stats, multiclass (fair) Brier for categorical outputs, and, for binary outcomes, Brier score (main metric) + smoothed log loss for moneyline comparisons. fair crps on a binary outcome is equivalent to fair brier, so a single implementation should work for both. evaluation should happen at every level of the system; individual event predictors, and every scenario, and should apply to every system output. in addition to comparing to what actually happened, we should evaluate our outputs against other predictors: moneylines (encodes win probability +vig), spreads (median-like), and prop lines (P(X > line)), be computing the same values from our distributions. those predictors can help as establish a baseline accuracy goal.
 
@@ -67,14 +69,21 @@ initial implementation of the play scenario, audited using 2026 data from nflver
   - Some clock subtleties after penalties.
   - No 2026 on-field personnel data yet: nflverse hasn't published who was on the field for 2026 (2025's is available). Personnel groupings, depth-chart lineups and formations are hand-set for now.
 
-Game level: the simulator is roughly level with the reference, which is what priors with no team-strength information should give. These
-    scores are in-sample, since the priors are built from 2026.
+finished (11/14):
+Game scenario, simulator, and evaluator.
+not built: coach's challenges, multiple timeouts per dead ball, injury stoppages, emergency replacements, disqualifications, postseason third-overtime kickoff, fair-catch kick.
 
 current goals:
  
-1. follow up on our initial play scenario: build the edge cases we haven't built yet, add data from prior years (starting with just 2025). a way to handle on-field personnel (maybe gathering directly from team websites/other sources). build the predictor in such a way that it takes advantage of the most information as possible (if we only have on-field info for 2025, it should use that on-field info when predicting for 2025)
+1. follow up on our initial play scenario: build the edge cases we haven't built yet, add data from prior years (starting with just 2025). a way to handle on-field personnel (maybe gathering directly from team websites/other sources). build each predictor so that it takes advantage of as much information as possible for each season (if we only have on-field info for 2025 (not 2026), the predictor should use that on-field info when predicting for 2025)
 
 2. extend to prior seasons (past 10 years? as much data as possible? (may not improve predictors) probably worth having as much data as possible, as it could be helpful for some predictors and detrimental for others)
+
+3. take a first pass at improving our predictors, focusing on easy wins, without getting deep into trained machine learning models.
+
+4. pick a predictor which you think would be improved by a ML model and attempt it.
+
+5. our core development loop involves A/B testing changes via our evaluators. That means that minimizing evaluator runtimes is very high leverage. take a pass at optimizing them.  
 
 notes:
 Do you want a priced source for player props? Without prices a prop can only be treated as a coin flip at the line, and priced history most likely means a paid odds API.

@@ -8,8 +8,8 @@
 - record.py: facts the chain records (`Sack`, `Pass`, `Carry`, `LooseBall`, `Kick`), `Dead` (how and where the ball died), and `PlayResult`.
 - field.py: coordinates (`rel`/`to_x`), line of scrimmage, field goal distance, eligible receivers, and lineup and formation legality.
 - chain.py: `run_play`, which runs the event chain, masks illegal choices, and applies live-ball rules (goal lines, safeties, touchbacks, momentum, who may advance a loose ball, kick rules).
-- penalties.py: the foul catalog, which fouls are possible on a play, and enforcement (accept/decline, offsetting, spots, half the distance).
-- outcome.py: scores, the next situation (downs, possession, next kind of play), the clock, the accept/decline value, and assembling the `PlayResult`.
+- penalties.py: the foul catalog, which fouls are possible on a play, and enforcement (accept/decline, offsetting, spots, half the distance, the re-kick option).
+- outcome.py: scores, the next situation (downs, possession, next kind of play), the clock (after penalties too), the 10-second runoff, disqualifications, the accept/decline value, and assembling the `PlayResult`.
 - stats.py: player and team stat crediting from the facts.
 - validate.py: `validate_play`, the invariants.
 - describe.py: narration.
@@ -20,6 +20,9 @@
 Notes:
 - Event output types live in `events/<event>/__init__.py`; this package imports them, and never an implementation.
 - All spots inside a play are in play coordinates (yards from the play's offense's goal line). Predictors receive and return the same coordinates. The carry predictor is the exception: it gets the carrier's own yard line and returns yards in the carrier's direction of travel.
+- A lateral is a `Carry` with `how == "lateral"` followed directly by the receiver's `Carry` (`lateral=True`, the same kind, starting where the first ended). Stats and the validator rely on the two being adjacent in the record.
+- `penalties._enforce_during` returns every way a foul can be accepted (one, or two for a kicking team's foul on a kick); `enforce` adds declining it and lets `outcome.value` choose for the offended team.
+- `PlayContext.warned` in, `PlayResult.warned` out: the game scenario threads it from play to play, like `next`.
 - Every live-ball path ends in a `Dead`. Penalties produce a new `Dead` (with `series`/`no_play`), and `outcome.next_situation` turns any `Dead` into the next situation, so enforcement and normal plays share one path.
 - When adding a rule, add a scripted test in test_play.py. The fuzz test only proves internal consistency, not that the rule is right.
 - `summarize` and `shared.nflverse.contexts._actual` must produce the same keys with the same meaning, and `play_summary` the same tags as `_summary` there. Change them together. nflverse counts an offensive touchdown as a first down, so `summarize` does as well.

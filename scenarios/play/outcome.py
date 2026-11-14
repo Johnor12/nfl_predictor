@@ -4,8 +4,9 @@
 #   and the kind of the next play (try after a touchdown, kickoff after a try or field goal, safety kick).
 # - expected_points(situation) / value(ctx, rules, los, dead, team): a rough worth of a result for a team,
 #   used only by the hardcoded accept/decline rule in penalties.py.
-# - finish(ctx, rules, los, record, live, enforcement, injuries) -> PlayResult: adds stats, elapsed time,
-#   what the clock does next, and the untimed-down / 10-second-runoff flags.
+# - finish(ctx, rules, los, record, live, enforcement, injuries, fouls) -> PlayResult: adds stats, elapsed
+#   time, what the clock does next (_clock_after), the untimed-down / 10-second-runoff flags, and who was
+#   disqualified (_conduct: a flagrant foul, or a second unsportsmanlike conduct foul in the game).
 # END
 import dataclasses
 
@@ -15,6 +16,8 @@ from scenarios.play import stats
 from scenarios.play.context import FREE_KICKS
 from scenarios.play.field import other, rel
 from scenarios.play.record import Carry, Kick, LooseBall, PlayResult, facts
+
+RUNOFF_FOULS = ("intentional_grounding", "illegal_forward_pass")
 
 
 def _scores(ctx, rules, dead):
@@ -123,37 +126,59 @@ def _elapsed(ctx, record, live):
 
 
 def _clock_after(ctx, live, final, nxt, scores, enforcement, remaining):
+    """After a penalty the clock starts as if there had been no foul (on the ready signal, since it stopped for
+    the flag), except late in a half, when an accepted penalty makes it wait for the snap."""
     s = ctx.situation
-    if live is None:
-        return "ready" if s.clock_running else "snap"
+    late = (s.quarter == 2 and remaining <= 120) or (s.quarter == 4 and remaining <= 300) or s.quarter >= 5
+    if live is None:  # a foul before the snap
+        return "ready" if s.clock_running and not late else "snap"
     if scores or s.kind != "scrimmage" or nxt.kind != "scrimmage" or nxt.offense != s.offense or final.kick:
         return "snap"
-    if "incomplete" in (live.how, final.how):
+    if "incomplete" in (live.how, final.how) or (enforcement.accepted and late):
         return "snap"
-    if enforcement.accepted:
-        return "ready"
     if final.how == "out_of_bounds":
-        late = (s.quarter == 2 and remaining <= 120) or (s.quarter == 4 and remaining <= 300) or s.quarter >= 5
         return "snap" if late else "ready"
-    return "running"
+    return "ready" if enforcement.accepted or enforcement.declined else "running"
 
 
-def finish(ctx, rules, los, record, live, enforcement, injuries) -> PlayResult:
+def _runoff(ctx, enforcement, remaining) -> bool:
+    """In the last minute of a half, an offensive foul that stops a running clock gives the defense a 10-second
+    runoff: a foul that prevents the snap, intentional grounding, or an illegal forward pass."""
+    s = ctx.situation
+    stops = any(f.team == s.offense and (f.type in RUNOFF_FOULS or (f.timing == "presnap" and s.clock_running))
+                for f in enforcement.accepted)
+    return stops and s.quarter in (2, 4) and remaining <= 60
+
+
+def _conduct(ctx, rules, fouls):
+    """(players disqualified on this play, players now one unsportsmanlike conduct foul from it). A foul counts
+    whether or not its penalty was accepted."""
+    out, warned = [], set(ctx.warned)
+    for f in fouls:
+        second = f.type == "unsportsmanlike_conduct" and f.player in warned and rules.unsportsmanlike_ejection
+        if f.type == "unsportsmanlike_conduct":
+            warned.add(f.player)
+        if (f.flagrant or second) and f.player not in out:
+            out.append(f.player)
+    return tuple(out), frozenset(warned - set(out))
+
+
+def finish(ctx, rules, los, record, live, enforcement, injuries, fouls=()) -> PlayResult:
     s = ctx.situation
     final = enforcement.final
     nxt, scores = next_situation(ctx, rules, los, final)
     elapsed = _elapsed(ctx, record, live)
     remaining = max(0.0, s.clock - elapsed)
     clock_after = _clock_after(ctx, live, final, nxt, scores, enforcement, remaining)
-    administrative = bool(enforcement.accepted) or nxt.offense != s.offense or nxt.kind != "scrimmage"
+    flagged = bool(enforcement.accepted or enforcement.declined)
+    administrative = flagged or nxt.offense != s.offense or nxt.kind != "scrimmage"
     nxt = dataclasses.replace(nxt, clock=remaining, clock_running=clock_after == "running",
                               play_clock=rules.admin_play_clock if administrative else rules.play_clock)
     player_stats = stats.credit(ctx, los, record, final, enforcement.accepted)
     team_stats = stats.team_totals(ctx, los, record, final, player_stats, enforcement.penalty_yards)
     during = [f for f in enforcement.accepted if f.timing != "after"]
-    untimed = any(f.team == s.defense for f in during) and s.clock - elapsed <= 0
-    runoff = (any(f.team == s.offense for f in during) and s.clock_running
-              and s.quarter in (2, 4) and s.clock <= 60)
+    untimed = s.clock - elapsed <= 0 and (any(f.team == s.defense for f in during) or final.how == "offsetting")
+    disqualified, warned = _conduct(ctx, rules, fouls)
     return PlayResult(ctx, record, live, final, enforcement.accepted, enforcement.declined,
                       enforcement.penalty_yards, scores, nxt, player_stats, team_stats, elapsed,
-                      clock_after, untimed, runoff, injuries)
+                      clock_after, untimed, _runoff(ctx, enforcement, remaining), injuries, disqualified, warned)

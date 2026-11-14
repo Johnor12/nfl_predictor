@@ -23,4 +23,4 @@ Choosing implementations: `play.load_predictors("baseline")` loads every event's
 
 Scoring implementations: `python -m evaluators.play --swap carry=other` scores each play event's predictor against what really happened (see `evaluators/play/README.md`), and `python -m evaluators.game --swap carry=other` scores whole games, and the timeout predictor, with it (see `evaluators/game/README.md`).
 
-Baseline priors: `python -m events.baseline_priors 2026` rebuilds every baseline predictor's `priors_2026.json` from that season's real plays (downloading nflverse data on first use). `from events.baseline_priors import build, save` does the same from code.
+Baseline priors: `python -m events.baseline_priors 2026` rebuilds every baseline predictor's `priors_2026.json` from that season's real plays (downloading nflverse data on first use). `from events.baseline_priors import build, save` does the same from code. There is a file per season (2025 and 2026 so far), holding what that season's data can say; a predictor reads each key from the latest season that has it and isn't after the game's (`shared/priors/README.md`).

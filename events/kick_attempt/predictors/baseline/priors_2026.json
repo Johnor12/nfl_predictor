@@ -2,26 +2,26 @@
  "fg": {
   "29": {
    "blocked": 1,
-   "made": 97,
+   "made": 101,
    "missed": 1
   },
   "39": {
    "blocked": 2,
-   "made": 140,
-   "missed": 4
+   "made": 143,
+   "missed": 5
   },
   "44": {
-   "made": 74,
+   "made": 75,
    "missed": 14
   },
   "49": {
    "blocked": 3,
-   "made": 64,
+   "made": 65,
    "missed": 15
   },
   "54": {
    "blocked": 1,
-   "made": 56,
+   "made": 58,
    "missed": 26
   },
   "59": {
@@ -38,7 +38,7 @@
  "pat": {
   "blocked": 4,
   "failed": 27,
-  "good": 582,
+  "good": 594,
   "nan": 1
  }
 }

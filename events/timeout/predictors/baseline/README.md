@@ -11,4 +11,4 @@ From data: who called a timeout before each real play (offense, defense, or nobo
 
 A team with no timeouts left can't call one; its share goes to nobody.
 
-The priors come from the `priors_<season>.json` for the game's season (the latest earlier one if it has none). Rebuild every event's with `python -m events.baseline_priors 2026`.
+The priors come from the `priors_<season>.json` files next to the code: each key from the latest season that has it and isn't after the game's (see `shared/priors/README.md`). Rebuild every event's with `python -m events.baseline_priors 2026`.

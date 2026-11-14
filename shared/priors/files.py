@@ -1,12 +1,19 @@
 # START
 # Priors files: priors_<season>.json, stored next to the predictor that samples them.
-# - priors_of(file) -> load(season) -> dict: a cached loader for the priors files in `file`'s folder. It
-#   returns the latest season's file that isn't after the requested season (the earliest file if there is none).
+# - priors_of(file) -> load(season) -> dict: a cached loader for the priors files in `file`'s folder. Each
+#   top-level key comes from the latest season's file that has it and isn't after the requested season (the
+#   earliest file if all are later). So a season's file only holds what that season's data can say, and a
+#   predictor still gets the rest (2025's on-field personnel when predicting 2026).
+# - THROUGH: the environment variable NFL_PRIORS_THROUGH=<season> ignores the files of later seasons, for an
+#   out-of-sample check (2026's plays scored with priors that have never seen them).
 # - save_priors(priors, file, season) -> Path: writes priors_<season>.json in `file`'s folder.
 # END
 import json
+import os
 from functools import lru_cache
 from pathlib import Path
+
+THROUGH = "NFL_PRIORS_THROUGH"
 
 
 def priors_of(file):
@@ -14,9 +21,12 @@ def priors_of(file):
 
     @lru_cache(maxsize=None)
     def load(season: int) -> dict:
-        seasons = [int(path.stem.split("_")[1]) for path in folder.glob("priors_*.json")]
-        earlier = [s for s in seasons if s <= season]
-        return json.loads((folder / f"priors_{max(earlier) if earlier else min(seasons)}.json").read_text())
+        files = {int(path.stem.split("_")[1]): path for path in folder.glob("priors_*.json")}
+        latest = min(season, int(os.environ.get(THROUGH, season)))
+        merged = {}
+        for s in [s for s in sorted(files) if s <= latest] or [min(files)]:
+            merged.update(json.loads(files[s].read_text()))
+        return merged
 
     return load
 

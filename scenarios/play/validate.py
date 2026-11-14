@@ -3,8 +3,8 @@
 # - validate_play(result) -> list[str]: broken invariants (empty if the play is valid).
 # Checks: 11 legal players per side and a legal formation; players with stats were on the field; carriers
 # and tacklers on the right teams; passing = receiving yards, completions = receptions, interceptions
-# thrown = made; sacks aren't rushes; tries add no yardage; no-plays credit only penalties; fumble
-# bookkeeping; team stats = player sums; scores only through scoring events; possession changes explained;
+# thrown = made; sacks aren't rushes; laterals go to a teammate from where the last carry ended; tries add
+# no yardage; no-plays credit only penalties; fumble bookkeeping; team stats = player sums; scores only through scoring events; possession changes explained;
 # field position reconciles with the yardage (plays without loose balls); the next situation is legal.
 # END
 from events.lineups import Lineups
@@ -45,7 +45,7 @@ def validate_play(result) -> list[str]:
         errors.append("completions != receptions")
     if total("int_thrown") != total("interceptions"):
         errors.append("interceptions thrown != interceptions made")
-    runs = [c for c in carries if c.kind in ("run", "scramble", "kneel")]
+    runs = [c for c in carries if c.kind in ("run", "scramble", "kneel") and not c.lateral]
     if not result.no_play and s.kind != "try" and total("rush_att") != len(runs):
         errors.append("rushing attempts != designed runs + scrambles + kneels")
     if s.kind == "try" and any(total(k) for k in ("pass_yds", "rush_yds", "rec_yds", "pass_att", "rush_att")):
@@ -62,6 +62,12 @@ def validate_play(result) -> list[str]:
             if abs(result.team_stats[team].get(key, 0) - total(key, team)) > 1e-6:
                 errors.append(f"{team} team {key} != sum of player {key}")
 
+    for before, c in zip(record, record[1:]):
+        if isinstance(c, Carry) and c.lateral and not (isinstance(before, Carry) and before.how == "lateral" and (
+                before.team, before.kind, before.end) == (c.team, c.kind, c.start) and before.player != c.player):
+            errors.append(f"{c.player} took a lateral that nobody threw")
+    if any(pid not in on_field[off] | on_field[de] for pid in result.disqualified):
+        errors.append("a disqualified player wasn't on the field")
     errors += _scoring_errors(result)
     errors += _possession_errors(result)
     errors += _situation_errors(nxt)

@@ -3,16 +3,19 @@
 # - real_plays(season, weeks=None) -> list[RealPlay]: in game order; each has the PlayContext, a dict of what
 #   actually happened (actual), and the pbp row index (row).
 # - real_samples(season, weeks=None) -> iterator of shared.priors.Sample: each real play with its nflverse
-#   rows (the pbp row and the FTN charting row, or None), for code that reads what an event's output was.
+#   rows (the pbp row, the FTN charting row or None, and the participation row or None), for code that reads
+#   what an event's output was.
 # Pipeline: _Rosters (active players per team-week: weekly roster status ACT minus injury-report Outs, plus
 #   anyone who appears in the game's pbp; depth chart slots from the last snapshot before gameday, draft
-#   pick, season-to-date stats from earlier weeks), _players (both teams' for a game),
+#   pick, season-to-date stats from earlier weeks, and recent snaps by unit from _weekly_snaps: the
+#   participation file where the season has one, else the per-game snap counts), _players (both teams' for a game),
 #   _game (schedule row -> Game), _kind / _situation (pbp row -> Situation; clock state inferred from the
 #   previous row by _clock_state), _actual (pbp row -> outcome dict), _summary (row -> PlaySummary history),
 #   _seconds_to_next (real snap-to-snap game time, for clock audits).
 # Timeouts: actual["timeout"] is the team that called one before the play (None if nobody did; a lost
 #   challenge on the previous play counts), and actual["timeout_clock_running"] whether the clock would have
 #   been running at the snap without it. The context itself is the state after the timeout.
+# Disqualification: a context's `warned` is the players already flagged for unsportsmanlike conduct in the game.
 # Conventions: nflverse lists the receiving team as posteam on kickoffs, so the kicking team is our offense
 #   there; a try's x is the two-point spot even when the row is a kick (see scenarios/play/context.py).
 # END
@@ -27,6 +30,15 @@ from shared.priors import Sample
 from shared.rulebook import rules_for
 
 SNAPPED = {"run", "pass", "punt", "field_goal", "extra_point", "qb_kneel", "qb_spike"}
+SNAP_WEEKS = 4  # a player's snaps cover his team's games in this many weeks before the game
+UNITS = {  # play type -> (the unit of the team nflverse lists in possession, the other team's)
+    "run": ("offense", "defense"), "pass": ("offense", "defense"), "qb_kneel": ("offense", "defense"),
+    "qb_spike": ("offense", "defense"), "punt": ("punt", "punt_return"),
+    "field_goal": ("field_goal", "field_goal_block"), "extra_point": ("field_goal", "field_goal_block"),
+    "kickoff": ("kick_return", "kickoff"),
+}
+SNAP_COUNTS = {"offense_snaps": "offense", "defense_snaps": "defense", "st_snaps": "special_teams"}
+UNSPORTSMANLIKE = ("Unsportsmanlike Conduct", "Taunting")
 SEASON_STATS = [  # (stat, player id column, value column), summed over earlier weeks
     ("pass_att", "passer_player_id", "attempt"),
     ("pass_yds", "passer_player_id", "passing_yards"),
@@ -56,6 +68,32 @@ def _num(value, default=None):
     return default if value is None or pd.isna(value) else value
 
 
+def _plain(name) -> str:
+    return "".join(c for c in str(name).lower() if c.isalpha()).removesuffix("jr").removesuffix("sr").rstrip("iv")
+
+
+def _weekly_snaps(season, pbp, rosters) -> pd.Series:
+    """Snaps by (player, week, unit). From who was on the field for each play, by the play scenario's units,
+    where the season has a participation file; else from the per-game snap counts (offense, defense,
+    special_teams), matched to players by their PFR id or their team and name."""
+    participation = load("participation", season)
+    if participation is not None:
+        plays = pbp[pbp.play_type.isin(list(UNITS))][["game_id", "play_id", "week", "play_type"]].merge(
+            participation, left_on=["game_id", "play_id"], right_on=["nflverse_game_id", "play_id"])
+        sides = [plays.assign(player=plays[column].str.split(";"), unit=plays.play_type.map(lambda kind: UNITS[kind][i]))
+                 for i, column in enumerate(("offense_players", "defense_players"))]
+        on_field = pd.concat(sides)[["player", "week", "unit"]].explode("player")
+        return on_field[on_field.player.str.len() > 0].groupby(["player", "week", "unit"]).size()
+    counts = load("snap_counts", season)
+    known = rosters.dropna(subset=["gsis_id"])
+    by_pfr = known.dropna(subset=["pfr_id"]).drop_duplicates("pfr_id").set_index("pfr_id").gsis_id
+    by_name = dict(zip(zip(known.team, known.full_name.map(_plain)), known.gsis_id))
+    named = [by_name.get(key) for key in zip(counts.team, counts.player.map(_plain))]
+    counts = counts.assign(player=counts.pfr_player_id.map(by_pfr).fillna(pd.Series(named, index=counts.index)))
+    snaps = counts.dropna(subset=["player"]).melt(["player", "week"], list(SNAP_COUNTS), "unit", "snaps")
+    return snaps[snaps.snaps > 0].assign(unit=snaps.unit.map(SNAP_COUNTS)).groupby(["player", "week", "unit"]).snaps.sum()
+
+
 class _Rosters:
     def __init__(self, season, pbp):
         self.rosters = load("rosters", season)
@@ -67,6 +105,19 @@ class _Rosters:
         self.depth = {key: frame for key, frame in depth.groupby(["team", "dt"])}
         self.snapshots = {team: sorted(dt for t, dt in self.depth if t == team) for team in depth.team.unique()}
         self.stats = self._season_stats(pbp)
+        self.snaps = self._recent_snaps(_weekly_snaps(season, pbp, self.rosters), pbp)
+
+    @staticmethod
+    def _recent_snaps(weekly, pbp):
+        weekly = weekly.rename("snaps").reset_index()
+        by_week = {}
+        for week in [*sorted(pbp.week.unique()), pbp.week.max() + 1]:  # the last is for games not yet played
+            recent = weekly[(weekly.week < week) & (weekly.week >= week - SNAP_WEEKS)]
+            snaps = {}
+            for (player, unit), value in recent.groupby(["player", "unit"]).snaps.sum().items():
+                snaps.setdefault(player, []).append((unit, float(value)))
+            by_week[week] = {player: tuple(sorted(s)) for player, s in snaps.items()}
+        return by_week
 
     @staticmethod
     def _season_stats(pbp):
@@ -103,6 +154,7 @@ class _Rosters:
         rows = team_rows[team_rows.week == team_rows.week.max()].drop_duplicates("gsis_id")
         slots = self._depth_slots(team, gameday)
         stats = self.stats.get(min(week, max(self.stats)), {})
+        snaps = self.snaps.get(min(week, max(self.snaps)), {})
         players = []
         for r in rows.itertuples(index=False):
             active = r.status == "ACT" and (r.gsis_id, week) not in self.out
@@ -113,7 +165,7 @@ class _Rosters:
             players.append(Player(r.gsis_id, r.full_name, team, position, jersey,
                                   tuple(slots.get(r.gsis_id, ())), int(r.years_exp),
                                   int(r.draft_number) if pd.notna(r.draft_number) else None,
-                                  stats.get(r.gsis_id, ())))
+                                  stats.get(r.gsis_id, ()), snaps.get(r.gsis_id, ())))
         return tuple(players)
 
 
@@ -236,7 +288,7 @@ def real_plays(season: int, weeks=None) -> list[RealPlay]:
         players = _players(rosters, game, str(first["game_date"])[:10], rows)
         home, away = game.home, game.away
         score = {home: 0, away: 0}
-        history, prev, prev_safety = [], None, False
+        history, prev, prev_safety, warned = [], None, False, frozenset()
         timeout, before = None, None  # the first timeout since the last play, and the row before it
         for index, row in zip(rows.index, rows.to_dict("records")):
             after = {home: int(_num(row["total_home_score"], score[home])), away: int(_num(row["total_away_score"], score[away]))}
@@ -246,8 +298,10 @@ def real_plays(season: int, weeks=None) -> list[RealPlay]:
                 actual = _actual(row, s, after)
                 actual["timeout"] = timeout
                 actual["timeout_clock_running"] = _clock_state(row, before, kind, rules)[0] if timeout else None
-                plays.append(RealPlay(PlayContext(game, s, players, tuple(history)), actual, index))
+                plays.append(RealPlay(PlayContext(game, s, players, tuple(history), warned), actual, index))
                 history.append(_summary(row, s))
+                if row["penalty_type"] in UNSPORTSMANLIKE and _num(row["penalty_player_id"]):
+                    warned |= {row["penalty_player_id"]}
                 prev_safety = row["safety"] == 1
                 timeout = None
             if row["timeout"] == 1 and timeout is None:  # on a play's own row: a lost challenge, charged after it
@@ -260,10 +314,14 @@ def real_plays(season: int, weeks=None) -> list[RealPlay]:
 def real_samples(season: int, weeks=None):
     pbp = load("pbp", season)
     ftn = load("ftn", season).set_index(["nflverse_game_id", "nflverse_play_id"])
+    participation = load("participation", season)
+    if participation is not None:
+        participation = participation.drop_duplicates(["nflverse_game_id", "play_id"]).set_index(["nflverse_game_id", "play_id"])
     for play in real_plays(season, weeks):
         row = pbp.loc[play.row]
         key = (row.game_id, int(row.play_id))
-        yield Sample(play.context, play.actual, row, ftn.loc[key] if key in ftn.index else None)
+        on_field = participation.loc[key] if participation is not None and key in participation.index else None
+        yield Sample(play.context, play.actual, row, ftn.loc[key] if key in ftn.index else None, on_field)
 
 
 def _seconds_to_next(game_plays):

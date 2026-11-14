@@ -1,11 +1,11 @@
 {
  "kickoff_result": {
   "end_zone": {
-   "return": 110,
-   "touchback": 226
+   "return": 112,
+   "touchback": 232
   },
   "landing_zone": {
-   "return": 992
+   "return": 1010
   }
  }
 }

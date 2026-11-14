@@ -10,7 +10,7 @@ API (`from scenarios.game import ...`):
 - `validate_game_context(ctx) -> list[str]`: problems with an input.
 - Input: `GameContext(game, players)`: the play scenario's `Game` (teams, venue, weather, coaches, referee, season, playoff) and both teams' active `Player`s.
 - Predictors: `GamePredictors(play, toss, timeout)`: the play scenario's `Predictors`, the coin toss scenario's `TossPredictors`, and the timeout event's function. `load_game_predictors("baseline", timeout="other", carry="other")` builds it from each event's implementation of that name.
-- `GameResult`: `record` (the timeline), `score`, `winner` (None for a tie), `quarters` (4, or more with overtime), `stats` and `team_stats` (the sum of the plays'), `absences` (players sidelined by injuries), and `plays` (the `PlayResult`s alone).
+- `GameResult`: `record` (the timeline), `score`, `winner` (None for a tie), `quarters` (4, or more with overtime), `stats` and `team_stats` (the sum of the plays'), `absences` (players sidelined by injuries or disqualified), and `plays` (the `PlayResult`s alone).
 - The record's entries, in order: a `Toss` for each coin toss, a `PlayResult` for each play, and a `Stoppage(kind, quarter, clock, team)` for each timeout, 10-second runoff, two-minute warning, and end of a period.
 - Test support (`from scenarios.game.testing import ...`): `synthetic_game`, `chaos_game_predictors` (random legal predictors for fuzzing), `with_events` (swap any event's function).
 
@@ -26,7 +26,7 @@ before every play:
   play scenario (run_play), from the situation the last play left
 
 after every play:
-  score, stats, history, injuries -> 10-second runoff? -> two-minute warning? -> overtime decided?
+  score, stats, history, injuries, disqualifications -> 10-second runoff? -> two-minute warning? -> overtime decided?
   -> time left: the next play
   -> time out:  an untimed down or a try, else the end of the period:
                 next quarter | halftime -> second half kickoff | coin toss -> overtime kickoff | game over
@@ -41,6 +41,7 @@ Each play tells the game what comes next: the new situation (possession, spot, d
 ## what the game keeps
 
 - **the clock**: seconds left in the period. A play's situation carries the clock as the last play left it; if it is running, the play's pre-snap time comes off before the snap.
-- **availability**: a player injured on a play is left out of the next plays' inputs for as long as the injury says.
+- **availability**: a player injured on a play is left out of the next plays' inputs for as long as the injury says, and a disqualified player for the rest of the game.
+- **conduct**: the players with one unsportsmanlike conduct foul, handed to each play (`PlayContext.warned`) so it can disqualify one for a second.
 - **history**: every play so far, as the play scenario's `PlaySummary`.
 - **stats**: each player's and team's totals are the sum of the plays' stat lines, so they are consistent by construction.

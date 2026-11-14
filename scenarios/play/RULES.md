@@ -25,7 +25,9 @@ The play scenario encodes the rulebook. This is a sketch of what it must cover, 
 ### passing
 - One forward pass per play, from behind the line of scrimmage. A second forward pass, or one thrown from beyond the line, is an illegal forward pass (5 yards and loss of down).
 - Only eligible receivers may catch a forward pass first. Ineligible linemen may not be more than 1 yard downfield when a pass crosses the line.
-- Backward passes (laterals and pitches) may be thrown by anyone, from anywhere, any number of times. An incomplete backward pass is a loose ball.
+- Backward passes (laterals and pitches) may be thrown by anyone, from anywhere, any number of times, to a teammate on the field. An incomplete backward pass is a loose ball.
+- A pass thrown forward by a runner beyond the line, by a returner, or after a first forward pass is an illegal forward pass: 5 yards from the spot and, for the offense, loss of down.
+- A forward pass first touched by an ineligible receiver is illegal touching: 5 yards from the previous spot.
 - Intentional grounding: loss of down plus 10 yards or the spot of the foul, whichever is worse; a safety if the passer is in his own end zone. It isn't grounding if the passer is outside the tackle box and the pass reaches the line of scrimmage.
 - Spiking the ball to stop the clock is an incomplete pass, not grounding.
 
@@ -36,6 +38,7 @@ The play scenario encodes the rulebook. This is a sketch of what it must cover, 
 ### scrimmage kicks (punts and field goals)
 - Once a kick crosses the line of scrimmage and is touched first by the receiving team, it's a live ball for both teams; the kicking team may recover it but not advance it.
 - A fair catch kills the ball at the spot of the catch. Kick catch interference is 15 yards from the spot of the foul.
+- A foul by the kicking team during a kick the receiving team ends up with gives the receiving team a choice: the yardage added to the end of the play, or a re-kick after the yardage from the previous spot. Illegal touching of a kick (a kicking-team player who went out of bounds, for one) is such a foul, 5 yards.
 - A punt into the end zone is a touchback.
 - A missed field goal gives the defense the ball at the spot of the kick, or at its own 20 if the spot of the kick was inside the 20. Blocked field goals, and ones that fall short in the field of play, are live.
 - Field goal distance = yards from the line of scrimmage to the goal line + 17 (10 yards of end zone and a 7-yard hold).
@@ -45,14 +48,15 @@ The play scenario encodes the rulebook. This is a sketch of what it must cover, 
 - Kickoff touchbacks are spotted at the 20 (before 2016), the 25 (2016–2023), the 30 (2024), and the 35 (2025+). In 2023 only, a fair catch inside the 25 was spotted at the 25.
 - Dynamic kickoff (2024+): fixed alignment (kicking team at the receiving team's 40, at least 9 receiving players in a setup zone between their own 30 and 35, at most two returners in the landing zone); a kick that lands in the landing zone (receiving team's 20 to the goal line) is live and must be played; a kick short of the landing zone or out of bounds gives the receiving team the ball at its 40; a kick that lands in the landing zone and rolls into the end zone is a touchback at the 20; no fair catches.
 - Onside kicks must be declared from 2024: in 2024 only when trailing in the 4th quarter, from 2025 any time the kicking team is trailing.
-- The kicking team may recover a free kick (but not advance it) once it has gone 10 yards or been touched by the receiving team.
+- The kicking team may recover a free kick (but not advance it) once it has gone 10 yards or been touched by the receiving team. Recovering it sooner is illegal touching: the receiving team's ball at the spot.
+- A kicking-team foul on a free kick carries the same choice as on a punt: the yardage added to the end of the return, or a re-kick from 5, 10, or 15 yards farther back.
 
 ### personnel and formation
-- Exactly 11 players per side at the snap (12 or more is too many men on the field).
+- Exactly 11 players per side at the snap (12 or more is too many men on the field, 5 yards on either team).
 - Offense: at least 7 players on the line of scrimmage, no more than 4 in the backfield, at least 5 players numbered 50–79 on the line. Eligible receivers are the two players on the ends of the line and the backs, plus anyone who reported as eligible. At most one player in motion at the snap, and not moving toward the line; after a shift, everyone is set for a full second.
 - Defense: no one in the neutral zone at the snap.
 - A player injured on a play must sit out at least the next play.
-- Two unsportsmanlike conduct fouls (2016+) or a flagrant foul disqualify a player for the rest of the game.
+- Two unsportsmanlike conduct fouls in a game (2016+) or a flagrant foul disqualify a player for the rest of it, whether or not the penalties were accepted.
 
 ### penalty enforcement
 - Each foul has a yardage (5, 10, 15, or a spot foul), an enforcement spot (previous spot, spot of the foul, end of the run, or succeeding spot), and possibly an automatic first down (defensive holding, illegal contact, defensive pass interference, roughing the passer, defensive personal fouls) or a loss of down (intentional grounding, illegal forward pass).
@@ -62,13 +66,14 @@ The play scenario encodes the rulebook. This is a sketch of what it must cover, 
 - Offsetting fouls replay the down. An offensive foul in its own end zone is a safety.
 - Accepted fouls during the play usually wipe it out ("no play", no player stats); fouls after the play are enforced from where it ended, and the play's stats stand.
 - Fouls on a scoring play may be enforced on the try or the ensuing kickoff.
-- A half can't end on a play with an accepted defensive foul (untimed down). In the last minute of a half, an offensive foul that stops the clock carries a 10-second runoff option, avoidable with a timeout.
+- A half can't end on a play with an accepted defensive foul or offsetting fouls (untimed down). In the last minute of a half, an offensive foul that stops a running clock (one that prevents the snap, intentional grounding, an illegal forward pass) carries a 10-second runoff option, avoidable with a timeout.
 
 ### clock (play level)
 - The play reports how much game time it used and what the clock does afterward. Quarter ends, the two-minute warning, and timeouts belong to the game scenario.
 - The clock stops on incomplete passes, scores, changes of possession, penalties, spikes, and runners going out of bounds. After an out-of-bounds play it restarts on the ready-for-play signal, except in the last 2 minutes of the first half and the last 5 minutes of the second half, when it waits for the snap.
+- After a penalty the clock starts as it would have without the foul: on the snap if the play ended with it stopped (an incomplete pass), otherwise on the ready-for-play signal, since it stopped for the flag, accepted or declined. In the last 2 minutes of the first half and the last 5 of the second, it waits for the snap after any accepted penalty, a pre-snap foul included.
 - An injury stoppage inside the last 2 minutes of a half costs a timeout, or a 10-second runoff if the team has none.
-- 40-second play clock after most plays; 25 seconds after administrative stoppages (timeouts, penalties, injuries, changes of possession...).
+- 40-second play clock after most plays; 25 seconds after administrative stoppages (timeouts, penalties whether accepted or declined, injuries, changes of possession...).
 
 ### rule versioning
 - All rules live in one rulebook, looked up by season. The play scenario never hardcodes a season-dependent value outside it.
@@ -82,11 +87,13 @@ Checked by one validation function after every simulated play in tests:
 - For each completion, the passer's passing yards equal the receiver's receiving yards (line of scrimmage to where the receiver's carry ended). Completions equal receptions; interceptions thrown equal interceptions made.
 - Sack yards come off team passing yards, not the passer's; sacks are not rushes; scrambles and kneels are rushes; spikes are incomplete passes.
 - Rushing and receiving yards are credited to the spot of a fumble; yards after a recovery are fumble return yards.
+- A player who takes a lateral is credited with the yards from there on, in the same category as the carry before it, but not with a rushing attempt, a reception, or a return. The passer's yards run to the end of the last lateral, and the touchdown is the last carrier's.
+- A lateral goes to a teammate, and the next carry starts where the last one ended.
 - Two-point tries add no passing, rushing, or receiving yards.
 - Team stats equal the sum of player stats, plus team-only items (sack yards, penalty yards).
 - The change in field position reconciles with the play's offensive, return, and penalty yardage, across any changes of possession.
 - The score changes only through a scoring event, by exactly that event's value.
-- Every player with a stat on the play was on the field for it; ball carriers belong to the team in possession at that moment, tacklers to the other team.
+- Every player with a stat on the play was on the field for it, and so was every disqualified player; ball carriers belong to the team in possession at that moment, tacklers to the other team.
 - Every change of possession is explained by an event (interception, lost fumble, punt, kick, turnover on downs, score, safety).
 - A "no play" produces no player stats besides the foul itself.
 - Lost fumbles equal opponent recoveries; forced fumbles never exceed fumbles.
@@ -98,10 +105,11 @@ Simulating millions of plays with cheap random predictors and checking every inv
 
 Everything above and in README.md is implemented except where listed here. Each item is a known gap, not a design change.
 
-- **laterals and backward passes**: not yet. The carry predictor can't end a carry with a lateral, so there's no backward-pass loose ball either. Only one forward pass per play is possible, so there's no illegal forward pass.
-- **penalties**: 23 foul types (`play.CATALOG`). One accepted foul per team per play, and both teams fouling during the down replays it (no change-of-possession exceptions). A kicking team's fouls on kicks are added to the end of the play, with no re-kick option. On a scoring play, only after-the-play fouls carry over to the try or kickoff. Not modeled yet: illegal touching of kicks, offensive too many men, and ejections after two unsportsmanlike fouls (the game scenario should track disqualifications).
-- **accept/decline**: the offended team takes whichever result is worth more by a rough expected-points formula (`outcome.value`).
-- **clock**: after any accepted penalty the clock restarts on the ready signal. Injury stoppages aren't charged. The untimed down and 10-second runoff are only reported as flags for the game scenario.
+- **laterals and backward passes**: a dropped lateral is recorded as a fumble by the player who threw it, so the limits on advancing a fumble (4th down, the last two minutes) apply to it too. An illegal forward pass from beyond the line is enforced from the previous spot, not from the spot of the pass.
+- **penalties**: 27 foul types (`play.CATALOG`). One accepted foul per team per play, and both teams fouling during the down replays it (no change-of-possession exceptions). On a scoring play, only after-the-play fouls carry over to the try or kickoff. A receiving team's foul during a kick is always added to the end of the play. Not modeled yet: first touching of a punt as a violation separate from a downed punt, and invalid fair catch signals.
+- **accept/decline**: the offended team takes whichever result is worth more by a rough expected-points formula (`outcome.value`); that includes the choice between a re-kick and the yardage after the return.
+- **clock**: whether the clock waits for the snap after a delay of game, and the offense's option to take the 10-second runoff after a defensive foul, aren't modeled. Injury stoppages aren't charged. The untimed down and 10-second runoff are only reported as flags for the game scenario.
+- **disqualifications**: reported in the result (`disqualified`), with the players one unsportsmanlike foul away (`warned`). The game scenario applies them.
 - **kickoffs**: 2026 uses the 2025 dynamic kickoff values (touchback to the 35, landing-zone touchback to the 20, short or out of bounds to the 40). These need checking against the 2026 rulebook. Safety kicks use the traditional rules (fair catch allowed, touchback to the 20). The 2023 fair-catch-to-the-25 rule isn't modeled.
 - **momentum rule**: applied to any return whose possession began inside the 5 and ended in the end zone, even if the carrier ran back on purpose.
 - **lineups**: always exactly 11 per side, so too-many-men is only possible as a foul.

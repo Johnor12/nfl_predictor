@@ -13,7 +13,7 @@ The NFL rules the game scenario hardcodes, the invariants every game satisfies, 
 ### the clock between plays
 - After a play the clock keeps running, restarts on the ready-for-play signal, or waits for the snap, as the play scenario reports. The first two both run before the next snap.
 - Two-minute warning in the second and fourth quarters, and in overtime (postseason: in the even overtime periods). The clock stops at 2:00, or after the play that crosses it. If a running clock reaches 2:00 before the snap, the play is snapped at 2:00 with the clock stopped.
-- 10-second runoff: when a play reports the option, the defense takes it if it's the first half or it isn't behind. The offense spends a timeout instead if it has one.
+- 10-second runoff: when a play reports the option, the defense takes it if it's the first half or it isn't behind. The offense spends a timeout instead if it has one. After a runoff the clock starts on the ready-for-play signal; declined or bought off with a timeout, it waits for the snap.
 - Play clock: 25 seconds after a timeout, the two-minute warning, and the start of a period.
 
 ### timeouts
@@ -28,8 +28,9 @@ The NFL rules the game scenario hardcodes, the invariants every game satisfies, 
 - Sudden death (regular season before 2012): any score wins.
 - A team has had its possession once it has had the ball and lost it, scored and finished its try, muffed a kick, or seen the kicking team recover its kickoff. A touchdown that ends the game has no try.
 
-### injuries
+### injuries and disqualifications
 - A player injured on a play misses the number of plays the injury says, up to the rest of the game.
+- A player the play scenario disqualifies (a flagrant foul, or a second unsportsmanlike conduct foul in the game) misses the rest of it.
 
 ## invariants
 
@@ -40,7 +41,7 @@ Checked by `validate_game`, on every simulated game in tests and in the simulato
 - Within a period the clock never goes up; periods come in order; no play is snapped inside two minutes of a period that has a warning before the warning was given.
 - Timeouts only change by a recorded timeout, never go below zero, and reset at the half and in overtime.
 - The first half never ends with a try still owed.
-- Nobody is on the field while sidelined by an injury.
+- Nobody is on the field while sidelined by an injury or after being disqualified.
 - The final score is the sum of the scoring plays; player and team stats are the sum of the plays' stat lines.
 - The winner has more points. A tie only happens after a regular season overtime.
 - The game ends when time runs out in the fourth quarter or a regular season overtime, or in overtime with a winner.
@@ -49,9 +50,8 @@ Checked by `validate_game`, on every simulated game in tests and in the simulato
 
 - **coach's challenges and replay review**: a simulated play's outcome is the final ruling. A lost challenge only shows up as a timeout (the timeout priors count it as one).
 - **timeouts**: one per dead ball, not one per team. Icing the kicker and timeouts to avoid a delay of game aren't distinguished from any other.
-- **injuries**: stoppages aren't charged in the last two minutes. A team's last healthy quarterback, kicker, punter, and five offensive linemen play through an injury, because emergency replacements aren't modeled.
-- **disqualifications**: the play scenario doesn't eject players yet, so there is nothing to track.
+- **injuries and disqualifications**: stoppages aren't charged in the last two minutes. A team's last available quarterback, kicker, punter, and five offensive linemen play through an injury or a disqualification, because emergency replacements aren't modeled.
 - **10-second runoff**: the defense's choice and the offense's timeout are hardcoded, and the play scenario only reports the option in the last minute of a half.
 - **postseason overtime**: every period after the first continues from the same situation. The kickoff that starts a third overtime period, and timeouts resetting there, aren't modeled.
-- **end of a half**: a fair-catch kick, and a period extended by offsetting fouls.
+- **end of a half**: a fair-catch kick.
 - **weather and field direction**: the toss winner's choice of goal isn't modeled.

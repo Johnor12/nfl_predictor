@@ -2,7 +2,8 @@
 # Builds the baseline carry priors from real plays.
 # - observe(tally, sample): yardage histograms by kind of carry: run, scramble, catch (yards after the
 #   catch), interception, punt_return, kick_return; run_goal / catch_goal[goal bucket]: goal-to-go histograms;
-#   carry_end[kind]: tackled, out_of_bounds, or fumble; tackler[scrimmage|kick][position group]; assisted: yes or no.
+#   carry_end[kind]: tackled, out_of_bounds, or fumble; lateral[run|catch]: yes or no;
+#   tackler[scrimmage|kick][position group]; assisted: yes or no.
 # Run, scramble, and catch histograms only use carries that started 50+ yards from the goal line, so long
 # gains aren't cut short by touchdowns.
 # END
@@ -23,6 +24,9 @@ def observe(t, sample):
             t.hist[f"{kind}_goal|{goal_bucket(to_goal)}"].append(yards)
         end = "fumble" if row.fumble == 1 else "out_of_bounds" if row.out_of_bounds == 1 else "tackled"
         t.c[f"carry_end|{kind}"][end] += 1
+        if kind != "scramble":
+            lateral = row.lateral_reception if kind == "catch" else row.lateral_rush
+            t.c[f"lateral|{kind}"]["yes" if lateral == 1 else "no"] += 1
     if row.interception == 1:
         t.hist["interception"].append(row.return_yards)
     if action == "punt" and row.punt_blocked != 1 and present(row.punt_returner_player_id) and row.punt_fair_catch != 1:

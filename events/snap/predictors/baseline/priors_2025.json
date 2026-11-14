@@ -1,0 +1,294 @@
+{
+ "carry_rate": {
+  "FB": {
+   "carried": 52,
+   "other": 1741
+  },
+  "QB1": {
+   "carried": 616,
+   "other": 11155
+  },
+  "QB2": {
+   "carried": 105,
+   "other": 1519
+  },
+  "QB3": {
+   "carried": 57,
+   "other": 209
+  },
+  "RB1": {
+   "carried": 7687,
+   "other": 815
+  },
+  "RB2": {
+   "carried": 3400,
+   "other": 512
+  },
+  "RB3": {
+   "carried": 1187,
+   "other": 310
+  },
+  "TE1": {
+   "carried": 43,
+   "other": 7791
+  },
+  "TE2": {
+   "carried": 15,
+   "other": 7115
+  },
+  "TE3": {
+   "carried": 25,
+   "other": 5405
+  },
+  "WR1": {
+   "carried": 89,
+   "other": 8667
+  },
+  "WR2": {
+   "carried": 83,
+   "other": 7681
+  },
+  "WR3": {
+   "carried": 219,
+   "other": 13508
+  }
+ },
+ "pass_rate": {
+  "bleed|1|1": {
+   "run": 1
+  },
+  "bleed|1|11+": {
+   "pass": 2,
+   "run": 9
+  },
+  "bleed|1|2-3": {
+   "run": 3
+  },
+  "bleed|1|4-6": {
+   "run": 11
+  },
+  "bleed|1|7-10": {
+   "pass": 25,
+   "run": 342
+  },
+  "bleed|2|1": {
+   "pass": 1,
+   "run": 11
+  },
+  "bleed|2|11+": {
+   "pass": 20,
+   "run": 36
+  },
+  "bleed|2|2-3": {
+   "pass": 4,
+   "run": 21
+  },
+  "bleed|2|4-6": {
+   "pass": 12,
+   "run": 65
+  },
+  "bleed|2|7-10": {
+   "pass": 62,
+   "run": 143
+  },
+  "bleed|3|1": {
+   "pass": 3,
+   "run": 30
+  },
+  "bleed|3|11+": {
+   "pass": 28,
+   "run": 21
+  },
+  "bleed|3|2-3": {
+   "pass": 19,
+   "run": 24
+  },
+  "bleed|3|4-6": {
+   "pass": 44,
+   "run": 42
+  },
+  "bleed|3|7-10": {
+   "pass": 55,
+   "run": 33
+  },
+  "bleed|4|1": {
+   "pass": 5,
+   "run": 14
+  },
+  "bleed|4|11+": {
+   "run": 1
+  },
+  "bleed|4|2-3": {
+   "pass": 4,
+   "run": 3
+  },
+  "bleed|4|4-6": {
+   "pass": 6,
+   "run": 2
+  },
+  "bleed|4|7-10": {
+   "pass": 3
+  },
+  "hurry|1|1": {
+   "pass": 9,
+   "run": 25
+  },
+  "hurry|1|11+": {
+   "pass": 60,
+   "run": 12
+  },
+  "hurry|1|2-3": {
+   "pass": 15,
+   "run": 12
+  },
+  "hurry|1|4-6": {
+   "pass": 35,
+   "run": 16
+  },
+  "hurry|1|7-10": {
+   "pass": 1492,
+   "run": 388
+  },
+  "hurry|2|1": {
+   "pass": 49,
+   "run": 37
+  },
+  "hurry|2|11+": {
+   "pass": 188,
+   "run": 16
+  },
+  "hurry|2|2-3": {
+   "pass": 127,
+   "run": 50
+  },
+  "hurry|2|4-6": {
+   "pass": 283,
+   "run": 62
+  },
+  "hurry|2|7-10": {
+   "pass": 690,
+   "run": 91
+  },
+  "hurry|3|1": {
+   "pass": 42,
+   "run": 75
+  },
+  "hurry|3|11+": {
+   "pass": 177,
+   "run": 18
+  },
+  "hurry|3|2-3": {
+   "pass": 106,
+   "run": 39
+  },
+  "hurry|3|4-6": {
+   "pass": 229,
+   "run": 18
+  },
+  "hurry|3|7-10": {
+   "pass": 267,
+   "run": 26
+  },
+  "hurry|4|1": {
+   "pass": 18,
+   "run": 32
+  },
+  "hurry|4|11+": {
+   "pass": 40,
+   "run": 1
+  },
+  "hurry|4|2-3": {
+   "pass": 55,
+   "run": 2
+  },
+  "hurry|4|4-6": {
+   "pass": 54
+  },
+  "hurry|4|7-10": {
+   "pass": 55
+  },
+  "normal|1|1": {
+   "pass": 31,
+   "run": 85
+  },
+  "normal|1|11+": {
+   "pass": 325,
+   "run": 148
+  },
+  "normal|1|2-3": {
+   "pass": 40,
+   "run": 81
+  },
+  "normal|1|4-6": {
+   "pass": 96,
+   "run": 198
+  },
+  "normal|1|7-10": {
+   "pass": 5331,
+   "run": 6190
+  },
+  "normal|2|1": {
+   "pass": 130,
+   "run": 405
+  },
+  "normal|2|11+": {
+   "pass": 1115,
+   "run": 261
+  },
+  "normal|2|2-3": {
+   "pass": 336,
+   "run": 684
+  },
+  "normal|2|4-6": {
+   "pass": 1156,
+   "run": 1187
+  },
+  "normal|2|7-10": {
+   "pass": 2916,
+   "run": 1271
+  },
+  "normal|3|1": {
+   "pass": 163,
+   "run": 593
+  },
+  "normal|3|11+": {
+   "pass": 963,
+   "run": 104
+  },
+  "normal|3|2-3": {
+   "pass": 670,
+   "run": 358
+  },
+  "normal|3|4-6": {
+   "pass": 1299,
+   "run": 108
+  },
+  "normal|3|7-10": {
+   "pass": 1548,
+   "run": 58
+  },
+  "normal|4|1": {
+   "pass": 82,
+   "run": 228
+  },
+  "normal|4|11+": {
+   "pass": 15
+  },
+  "normal|4|2-3": {
+   "pass": 157,
+   "run": 17
+  },
+  "normal|4|4-6": {
+   "pass": 105,
+   "run": 3
+  },
+  "normal|4|7-10": {
+   "pass": 26,
+   "run": 3
+  }
+ },
+ "two_point_play": {
+  "pass": 98,
+  "run": 32
+ }
+}

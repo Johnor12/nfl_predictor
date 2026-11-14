@@ -1,7 +1,8 @@
 # START
 # Tests for the play scenario.
 # - test_fuzz_invariants: thousands of plays from random legal predictors and situations; every invariant holds.
-# - Hand-built rule tests: scripted predictor outputs for specific rules (scoring, end zones, kicks, fouls).
+# - Hand-built rule tests: scripted predictor outputs for specific rules (scoring, end zones, kicks, fouls,
+#   laterals, re-kicks, illegal touching, disqualifications, the clock after penalties).
 # Helpers: situation(...) builds a HOME-offense context; base() is a quiet scripted predictor set
 # (fixed lineups/formation, no fouls); play(ctx, **outputs) runs one play with outputs scripted.
 # END
@@ -23,7 +24,11 @@ from events.punt_kick import PuntKick
 from events.punt_result import PuntResult
 from events.snap import Snap
 from events.target import Target
-from scenarios.play import PlayContext, run_play, validate_play
+import dataclasses
+
+import pytest
+
+from scenarios.play import IllegalChoice, PlayContext, run_play, validate_play
 from scenarios.play.testing import chaos_predictors, scripted, synthetic_context
 
 H, A = "HOME", "AWAY"
@@ -255,3 +260,90 @@ def test_out_of_bounds_clock():
     early = play(situation(x=30, quarter=2, clock=400.0), **run(5, "out_of_bounds"))
     late = play(situation(x=30, quarter=2, clock=100.0), **run(5, "out_of_bounds"))
     assert (early.clock_after, late.clock_after) == ("ready", "snap")
+
+
+def test_lateral_yards_go_to_whoever_carried_them():
+    r = play(situation(x=30), snap=Snap("run", "HOME-RB1"),
+             carry=[CarryEnd(4, "lateral", lateral_to="HOME-WR2"), CarryEnd(9, "tackled", ("AWAY-DB1",))])
+    assert r.stats["HOME-RB1"] == {"rush_att": 1, "rush_yds": 4} and r.stats["HOME-WR2"] == {"rush_yds": 9}
+    assert (r.next.x, r.next.down) == (43, 1)
+    r = play(situation(x=30), snap=Snap("pass"), pass_rush=PassRush(4, "throw", 2.5),
+             target=Target("HOME-TE1", 6, "middle"), pass_result=PassResult("complete"),
+             carry=[CarryEnd(2, "lateral", lateral_to="HOME-RB1"), CarryEnd(80, "tackled")])
+    assert r.stats["HOME-QB1"] == {"pass_att": 1, "pass_cmp": 1, "pass_yds": 70, "pass_td": 1}
+    assert r.stats["HOME-TE1"] == {"targets": 1, "receptions": 1, "rec_yds": 8}
+    assert r.stats["HOME-RB1"] == {"rec_yds": 62, "rec_td": 1}
+
+
+def test_lateral_must_go_to_a_teammate_on_the_field():
+    for receiver in ("HOME-RB1", "HOME-RB2", "AWAY-LB1"):  # himself, the bench, the defense
+        with pytest.raises(IllegalChoice):
+            play(situation(x=30), snap=Snap("run", "HOME-RB1"), carry=CarryEnd(4, "lateral", lateral_to=receiver))
+
+
+def test_illegal_forward_pass_costs_the_down():
+    r = play(situation(x=40, down=2, distance=6), **run(8),
+             fouls=(Foul("illegal_forward_pass", H, "HOME-RB1", 44, "live"),))
+    assert r.no_play and (r.next.x, r.next.down, r.next.distance) == (35, 3, 11)
+
+
+def test_kicking_team_foul_on_a_punt_is_added_on_or_kicked_again():
+    punt = dict(lineups=Lineups(PUNT, DEFENSE), offensive_formation=PUNT_FORMATION, snap=Snap("punt"),
+                fouls=(Foul("illegal_touch_kick", H, "HOME-LB1", 90, "live"),))
+    r = play(situation(x=30, down=4), **punt, punt_kick=PuntKick(45), punt_result=PuntResult("return", "AWAY-DB4"),
+             carry=CarryEnd(12, "tackled", ("HOME-LB2",)))
+    assert not r.no_play and (r.next.offense, r.next.x) == (A, 42)  # 5 yards on to the end of the return
+    r = play(situation(x=50, down=4), **punt, punt_kick=PuntKick(48), punt_result=PuntResult("downed"))
+    assert r.no_play and (r.next.offense, r.next.x, r.next.down, r.next.distance) == (H, 45, 4, 15)  # kick again
+
+
+def test_kicking_team_foul_on_a_kickoff():
+    ko = dict(lineups=Lineups(KICKOFF, RETURN), free_kick=FreeKick("HOME-K1", 62),
+              kick_result=KickResult("return", "AWAY-DB1"),
+              fouls=(Foul("unnecessary_roughness", H, "HOME-LB1", 70, "live"),))
+    r = play(situation("kickoff", x=35, down=None, distance=None), **ko, carry=CarryEnd(25, "tackled", ("HOME-LB1",)))
+    assert (r.next.kind, r.next.offense, r.next.x) == ("scrimmage", A, 43)
+    r = play(situation("kickoff", x=35, down=None, distance=None), **ko, carry=CarryEnd(2, "tackled", ("HOME-LB1",)))
+    assert r.no_play and (r.next.kind, r.next.offense, r.next.x) == ("kickoff", H, 20)  # the return went nowhere
+
+
+def test_onside_kick_recovered_short_of_ten_yards_is_illegal_touching():
+    onside = dict(lineups=Lineups(dataclasses.replace(KICKOFF, unit="onside_kickoff"), RETURN),
+                  kick_result=KickResult("kicking_recovery", "HOME-LB1"))
+    ctx = situation("kickoff", x=35, down=None, distance=None, score={H: 0, A: 7}, quarter=4)
+    r = play(ctx, **onside, free_kick=FreeKick("HOME-K1", 8))
+    assert (r.next.offense, r.next.x) == (A, 57)
+    r = play(ctx, **onside, free_kick=FreeKick("HOME-K1", 11))
+    assert (r.next.offense, r.next.x) == (H, 46)
+
+
+def test_disqualification_for_a_flagrant_foul_or_a_second_unsportsmanlike_foul():
+    flagrant = (Foul("unnecessary_roughness", A, "AWAY-LB1", 35, "after", flagrant=True),)
+    assert play(situation(x=30), **run(5), fouls=flagrant).disqualified == ("AWAY-LB1",)
+    taunt = (Foul("unsportsmanlike_conduct", H, "HOME-WR1", 35, "after"),)
+    r = play(situation(x=30), **run(5), fouls=taunt)
+    assert r.disqualified == () and r.warned == {"HOME-WR1"}
+    r = play(dataclasses.replace(situation(x=30), warned=r.warned), **run(5), fouls=taunt)
+    assert r.disqualified == ("HOME-WR1",) and r.warned == frozenset()
+
+
+def test_clock_after_a_penalty():
+    holding = (Foul("offensive_holding", H, "HOME-OL3", 50, "live"),)
+    early = play(situation(x=50, quarter=4, clock=600.0), **run(3), fouls=holding)
+    late = play(situation(x=50, quarter=4, clock=200.0), **run(3), fouls=holding)
+    assert (early.clock_after, late.clock_after) == ("ready", "snap") and not late.runoff_option
+    declined = play(situation(x=50, down=3, distance=5, quarter=4, clock=200.0), **run(1), fouls=holding)
+    assert declined.declined == holding and declined.clock_after == "ready" and declined.next.play_clock == 25
+    false_start = PreSnap(5.0, Foul("false_start", H, "HOME-OL2", 50, "presnap"))
+    assert play(situation(x=50, quarter=2, clock=100.0), pre_snap=false_start).clock_after == "snap"
+
+
+def test_ten_second_runoff_and_untimed_down():
+    false_start = PreSnap(5.0, Foul("false_start", H, "HOME-OL2", 50, "presnap"))
+    assert play(situation(x=50, quarter=4, clock=40.0), pre_snap=false_start).runoff_option
+    assert not play(situation(x=50, quarter=4, clock=40.0, clock_running=False), pre_snap=false_start).runoff_option
+    holding = (Foul("offensive_holding", H, "HOME-OL3", 50, "live"),)
+    assert not play(situation(x=50, quarter=4, clock=40.0), **run(3), fouls=holding).runoff_option
+    both = holding + (Foul("face_mask", A, "AWAY-LB1", 55, "live"),)
+    assert play(situation(x=50, quarter=2, clock=3.0), **run(5), fouls=both).untimed_down
+    assert not play(situation(x=50, quarter=2, clock=3.0), **run(5), fouls=holding).untimed_down

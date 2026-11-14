@@ -6,8 +6,8 @@ API (`from events.offensive_formation.predictors.baseline import predict`, or `p
 
 - `predict(ctx, lineups, rng) -> Formation`
 
-From data: the shotgun rate by down and distance (`shotgun`).
+From data: the shotgun rate by down and distance (`shotgun`), sharpened by the offense's personnel group (`personnel_shotgun`, from seasons whose data records who was on the field).
 
 Hand-set: the templates: punt, field goal, and an offense with the linemen in the middle, tight ends and receivers filling the line to 7, and the rest in the backfield.
 
-The priors come from the `priors_<season>.json` for the game's season (the latest earlier one if it has none). Rebuild every event's with `python -m events.baseline_priors 2026`.
+The priors come from the `priors_<season>.json` files next to the code: each key from the latest season that has it and isn't after the game's (see `shared/priors/README.md`). Rebuild every event's with `python -m events.baseline_priors 2026`.

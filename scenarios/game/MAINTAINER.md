@@ -9,11 +9,11 @@
 - game.py: `run_game`, the chain: one step per play (timeout, play, clock, period).
 - clock.py: the clock's rules as small functions (two-minute warning, the snap that never came, the try after time expires, the runoff choice, overtime's setup) and constants.
 - overtime.py: `Overtime`, which tracks each team's possession and says when the score ends the game.
-- roster.py: `Availability`, who can play the next play.
+- roster.py: `Availability`, who can play the next play (injuries and disqualifications).
 - validate.py: `validate_game`, the invariants.
 - describe.py: narration.
 - testing.py: a synthetic game, chaos predictors, and `with_events`.
-- test_game.py: fuzzed invariants, baseline games, and hand-built tests for endings, timeouts, the clock, overtime, and injuries.
+- test_game.py: fuzzed invariants, baseline games, and hand-built tests for endings, timeouts, the clock, overtime, injuries, disqualifications, and the 10-second runoff.
 
 Notes:
 - A situation's `clock` is the clock when the last play ended. The play scenario takes the pre-snap time off a running clock itself, so the game only finds out afterward that the period (or the two-minute warning) came first; it then discards that play and never records it. The play's draws from the `rng` are still used up, so games stay reproducible.
@@ -23,4 +23,5 @@ Notes:
 - `Overtime.over` must be called after every overtime play, in order: it keeps the possession state.
 - When adding a rule, add a test in test_game.py. The fuzz test only proves internal consistency.
 - A scripted game is hard to build play by play. Test game rules with `with_events` on top of the baseline (see `QUIET` in test_game.py, a game of kneel-downs), or on the pieces directly (`Overtime`, `Availability`).
-- Speed: about 0.2 seconds a game with the baseline predictors, most of it in the lineups predictor's depth chart lookups.
+- The game keeps `warned` (who has one unsportsmanlike conduct foul) only by copying each play's `PlayResult.warned` into the next `PlayContext`; the rule itself lives in the play scenario.
+- Speed: about 0.2 seconds a game with the baseline predictors, most of it in the lineups predictor's player ranking.

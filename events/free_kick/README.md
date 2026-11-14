@@ -12,6 +12,6 @@ Output (`from events.free_kick import ...`):
 
 - `FreeKick(kicker, distance, out_of_bounds, seconds)`: yards from the kick spot to where the ball lands; hang time (which doesn't run the game clock).
 
-The play scenario raises `IllegalChoice` unless the kicker is on the field for the kicking team. The scenario makes an onside kick travel the minimum distance and stops any kick at the end line.
+The play scenario raises `IllegalChoice` unless the kicker is on the field for the kicking team. The scenario stops any kick at the end line. An onside kick the kicking team recovers before it has gone the minimum distance is illegal touching: the receiving team's ball there.
 
 Implementations are in [predictors/](predictors/README.md).

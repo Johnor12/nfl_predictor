@@ -1,13 +1,22 @@
 # START
 # Building priors from real plays: what each event's priors.py (observe(tally, sample)) works with.
-# - Sample: one real play: its PlayContext, RealPlay.actual, the nflverse pbp row, and the FTN charting row (or None).
+# - Sample: one real play: its PlayContext, RealPlay.actual, the nflverse pbp row, the FTN charting row (or
+#   None), and the participation row (who was on the field; None where the season has no such data).
 # - Tally: raw counts (tally.c[name][key] += 1) and values (tally.hist[name].append(x)); a name like
 #   "unit|3|4-6|7" nests everything after the first "|" as a sub-key. priors() -> the JSON-ready dict, with
 #   values turned into {"rounded value": count} histograms (clamped to -20..110).
 # - present(value) -> bool: not None and not NaN.
 # Readers of nflverse rows that more than one event needs:
 # - flag(sample) -> (foul name, "offense" | "defense") | None: the flag on the play, in the play scenario's
-#   foul names (FOULS maps nflverse's). PRESNAP: the fouls that belong to the pre-snap event.
+#   foul names (FOULS maps nflverse's, to the foul enforced the same way where the scenario has no foul of
+#   that name; a pair is the name by side). PRESNAP: the fouls that belong to the pre-snap event.
+# - flagrant(sample) -> bool: the flagged player was disqualified.
+# Readers of the participation row (None when the season has no such data, or the row is unusable):
+# - personnel(sample) -> str: the offense's personnel group: backs and tight ends ("11", "12"), with a "+" for
+#   each lineman past five.
+# - package(sample) -> str: the defense's package by its defensive backs: goal_line (3 or fewer), base,
+#   nickel, dime (6 or more).
+# - played(sample) -> (offense ids, defense ids): the 11 players each team had on the field.
 # - kickoff_result(sample) -> (zone, result) | None: a kickoff that came down in the landing zone or end zone.
 # - nullified(sample) -> run, pass, punt, field_goal, or kickoff: what a play wiped out by a penalty was
 #   (nflverse labels it no_play; its description still says).
@@ -34,9 +43,16 @@ FOULS = {
     "Chop Block": "unnecessary_roughness", "Low Block": "unnecessary_roughness", "Tripping": "unnecessary_roughness",
     "Unsportsmanlike Conduct": "unsportsmanlike_conduct", "Taunting": "unsportsmanlike_conduct",
     "Illegal Block Above the Waist": "illegal_block_in_the_back",
+    "Offensive Too Many Men on Field": "offensive_too_many_men", "Illegal Forward Pass": "illegal_forward_pass",
+    "Illegal Touch Pass": "illegal_touch_pass", "Illegal Touch Kick": "illegal_touch_kick",
+    "Player Out of Bounds on Kick": "illegal_touch_kick", "Ineligible Downfield Kick": "illegal_touch_kick",
+    "Kick Catch Interference": "fair_catch_interference", "Hip Drop Tackle": "unnecessary_roughness",
+    "Disqualification": "unnecessary_roughness",
+    "Illegal Use of Hands": ("offensive_holding", "defensive_holding"),
+    "Illegal Substitution": ("offensive_too_many_men", "defensive_too_many_men"),
 }
 PRESNAP = {"false_start", "delay_of_game", "encroachment", "neutral_zone_infraction", "defensive_offside",
-           "defensive_too_many_men", "illegal_formation", "illegal_shift"}
+           "defensive_too_many_men", "offensive_too_many_men", "illegal_formation", "illegal_shift"}
 
 
 @dataclass(frozen=True)
@@ -45,6 +61,7 @@ class Sample:
     actual: dict
     row: object
     charting: object
+    participation: object = None
 
 
 def present(value) -> bool:
@@ -78,7 +95,47 @@ def flag(sample):
     name = FOULS.get(row.penalty_type) if row.penalty == 1 else None
     if name is None:
         return None
-    return name, "offense" if row.penalty_team == sample.context.situation.offense else "defense"
+    side = "offense" if row.penalty_team == sample.context.situation.offense else "defense"
+    return (name if isinstance(name, str) else name[side == "defense"]), side
+
+
+def flagrant(sample) -> bool:
+    return "Disqualification" in str(sample.row.desc)
+
+
+def _positions(text) -> Counter:
+    return Counter({position: int(count) for count, position in (part.split() for part in str(text).split(", "))})
+
+
+def personnel(sample):
+    row = sample.participation
+    if row is None or not present(row.offense_personnel):
+        return None
+    counts = _positions(row.offense_personnel)
+    backs, linemen = counts["RB"] + counts["FB"], counts["C"] + counts["G"] + counts["T"] + counts["OL"]
+    if counts["QB"] != 1 or linemen < 5 or 1 + backs + counts["TE"] + counts["WR"] + linemen != 11:
+        return None
+    return f"{backs}{counts['TE']}" + "+" * (linemen - 5)
+
+
+def package(sample):
+    row = sample.participation
+    if row is None or not present(row.defense_personnel):
+        return None
+    counts = _positions(row.defense_personnel)
+    if sum(counts.values()) != 11:
+        return None
+    backs = sum(counts[position] for position in ("CB", "S", "FS", "SS", "DB"))
+    return "goal_line" if backs <= 3 else "base" if backs == 4 else "nickel" if backs == 5 else "dime"
+
+
+def played(sample):
+    row, ctx = sample.participation, sample.context
+    if row is None or not present(row.players_on_play):
+        return None
+    teams = {team: tuple(pid for pid in row.players_on_play.split(";") if pid in ctx.by_id and ctx.by_id[pid].team == team)
+             for team in (ctx.situation.offense, ctx.situation.defense)}
+    return tuple(teams.values()) if all(len(players) == 11 for players in teams.values()) else None
 
 
 def kickoff_result(sample):

@@ -7,6 +7,8 @@
 #   out (or reaching the two-minute warning) before the snap.
 # - test_overtime_formats: who has had a possession and when the score ends the game, on hand-built plays.
 # - test_injured_players_sit_out: availability, and the last players at a required position playing through.
+# - test_disqualified_players_are_out_for_the_game: a second unsportsmanlike conduct foul, over two plays.
+# - test_ten_second_runoff: the runoff, and the timeout that avoids it.
 # Helpers: play(...) is a fake overtime play result with only the fields Overtime reads.
 # END
 import random
@@ -14,6 +16,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from events.fouls import Foul
 from events.injuries import Injury
 from events.lineups import Lineup, Lineups
 from events.pre_snap import PreSnap
@@ -173,19 +176,19 @@ def test_overtime_formats():
 def test_injured_players_sit_out():
     players = synthetic_roster(H) + synthetic_roster(A)
     roster = Availability(players)
-    roster.played((Injury("HOME-RB1", 2), Injury("HOME-K1", 999), Injury("AWAY-WR1", 999)), 0)
+    roster.played((Injury("HOME-RB1", 2), Injury("HOME-K1", 999), Injury("AWAY-WR1", 999)), (), 0)
     assert roster.absences == [("HOME-RB1", 1, 2), ("AWAY-WR1", 1, 999)]  # the only kicker plays through it
     active = {p.id for p in roster.active()}
     assert "HOME-RB1" not in active and "AWAY-WR1" not in active and "HOME-K1" in active
-    roster.played((), 1)
+    roster.played((), (), 1)
     assert "HOME-RB1" not in {p.id for p in roster.active()}
     same = roster.active()
-    roster.played((), 2)
+    roster.played((), (), 2)
     assert "HOME-RB1" in {p.id for p in roster.active()} and "AWAY-WR1" not in {p.id for p in roster.active()}
-    roster.played((), 3)
+    roster.played((), (), 3)
     assert roster.active() is not same and len(roster.active()) == len(players) - 1
     for i in range(4):
-        roster.played((Injury(f"HOME-OL{i + 1}", 999),), 4 + i)
+        roster.played((Injury(f"HOME-OL{i + 1}", 999),), (), 4 + i)
     assert sum(p.team == H and p.position == "OL" for p in roster.active()) == 5  # 8 linemen, 3 can be lost
 
     def often(ctx, lineups, record, rng):
@@ -196,3 +199,35 @@ def test_injured_players_sit_out():
     hurt = with_events(chaos_game_predictors(), injuries=often)
     result = run_game(synthetic_game(), hurt, random.Random(0))
     assert validate_game(result) == [] and len(result.absences) > 40
+
+
+def test_disqualified_players_are_out_for_the_game():
+    def taunting(ctx, lineups, record, allowed, rng):  # the home team's first receiver, on every scrimmage play
+        player = f"{H}-WR1"
+        if ctx.situation.kind != "scrimmage" or player not in lineups.offense.players + lineups.defense.players:
+            return ()
+        return (Foul("unsportsmanlike_conduct", H, player, 50.0, "after"),)
+
+    result = run_game(synthetic_game(), with_events(chaos_game_predictors(), fouls=taunting), random.Random(1))
+    assert validate_game(result) == []
+    ejected = [i for i, play in enumerate(result.plays) if play.disqualified]
+    assert len(ejected) == 1 and (f"{H}-WR1", ejected[0] + 1, 999) in result.absences
+    taunts = [i for i, play in enumerate(result.plays)
+              if any(isinstance(f, Foul) and f.type == "unsportsmanlike_conduct" for f in play.record)]
+    assert taunts == [taunts[0], ejected[0]]  # warned on the first, gone on the second
+
+
+def test_ten_second_runoff():
+    def false_start(ctx, lineups, formation, allowed, rng):
+        s = ctx.situation
+        late = s.quarter == 2 and s.clock <= 50 and s.clock_running and s.kind == "scrimmage"
+        return PreSnap(5.0, Foul("false_start", s.offense, lineups.offense.players[1], s.x, "presnap") if late else None)
+
+    result = run_game(synthetic_game(), with_events(QUIET, pre_snap=false_start), random.Random(0))
+    assert validate_game(result) == []
+    flagged = [p for p in result.plays if p.runoff_option]
+    spent = [p for p in flagged if p.next.timeouts[p.context.situation.offense] > 0]
+    assert len(stoppages(result, "timeout")) == len(spent) > 0  # a timeout avoids the runoff while there is one
+    runoffs = stoppages(result, "runoff")
+    assert len(runoffs) == len(flagged) - len(spent) > 0        # then ten seconds come off
+    assert runoffs[0].clock == max(0.0, next(p for p in flagged if p not in spent).next.clock - 10)

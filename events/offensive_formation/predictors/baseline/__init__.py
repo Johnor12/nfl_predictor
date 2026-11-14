@@ -1,11 +1,12 @@
 # START
-# Baseline offensive formation predictor: a legal alignment for the unit, shotgun or under center by the priors.
+# Baseline offensive formation predictor: a legal alignment for the unit, shotgun or under center by the priors
+# (by down and distance, sharpened by the personnel group on the field where a season's data has it).
 # - predict(ctx, lineups, rng) -> Formation.
 # Internals: _formation (hand-set templates: punt, field goal, and an offense with linemen in the middle,
 # tight ends and receivers filling the line to 7, and at most 4 in the backfield).
 # END
 from events.offensive_formation import Formation
-from shared.priors import dist_bucket, priors_of, rate
+from shared.priors import blend, dist_bucket, priors_of, rate
 
 load_priors = priors_of(__file__)  # season -> priors dict
 
@@ -15,7 +16,9 @@ def predict(ctx, lineups, rng):
     if lineups.offense.unit == "victory":
         shotgun = False
     elif s.kind == "scrimmage":
-        counts = load_priors(ctx.game.season)["shotgun"].get(f"{s.down}|{dist_bucket(s.distance)}", {})
+        p, key = load_priors(ctx.game.season), f"{s.down}|{dist_bucket(s.distance)}"
+        by_personnel = p["personnel_shotgun"].get(f"{lineups.offense.personnel}|{key}", {})
+        counts = blend(by_personnel, p["shotgun"].get(key, {}))
         shotgun = rng.random() < (rate(counts, "shotgun") if counts else 0.6)
     else:
         shotgun = rng.random() < 0.5

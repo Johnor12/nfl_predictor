@@ -10,4 +10,4 @@ From data: pre-snap foul rates per snap (`fouls` over `snaps`).
 
 Hand-set: play clock usage (hurry, bleed, or normal pace) and which positions commit each foul (`shared.priors.fouler`).
 
-The priors come from the `priors_<season>.json` for the game's season (the latest earlier one if it has none). Rebuild every event's with `python -m events.baseline_priors 2026`.
+The priors come from the `priors_<season>.json` files next to the code: each key from the latest season that has it and isn't after the game's (see `shared/priors/README.md`). Rebuild every event's with `python -m events.baseline_priors 2026`.

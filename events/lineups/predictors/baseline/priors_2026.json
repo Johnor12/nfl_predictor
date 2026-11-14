@@ -1,29 +1,29 @@
 {
  "two_point": {
-  "attempt": 65,
-  "kick": 614
+  "attempt": 66,
+  "kick": 626
  },
  "unit": {
   "1|11+|0": {
-   "offense": 19
+   "offense": 20
   },
   "1|11+|1": {
-   "offense": 43
+   "offense": 44
   },
   "1|11+|2": {
-   "offense": 39
+   "offense": 40
   },
   "1|11+|3": {
    "offense": 56
   },
   "1|11+|4": {
-   "offense": 46
+   "offense": 47
   },
   "1|11+|5": {
-   "offense": 40
+   "offense": 42
   },
   "1|11+|6": {
-   "offense": 31
+   "offense": 32
   },
   "1|11+|7": {
    "offense": 25
@@ -32,10 +32,11 @@
    "offense": 20
   },
   "1|1|9": {
-   "offense": 89
+   "offense": 91
   },
   "1|2-3|9": {
-   "offense": 83
+   "field_goal": 1,
+   "offense": 84
   },
   "1|4-6|0": {
    "offense": 2
@@ -56,7 +57,7 @@
    "offense": 9
   },
   "1|4-6|6": {
-   "offense": 4
+   "offense": 5
   },
   "1|4-6|7": {
    "offense": 4
@@ -66,83 +67,83 @@
    "offense": 3
   },
   "1|4-6|9": {
-   "offense": 130
+   "offense": 132
   },
   "1|7-10|0": {
-   "offense": 172
+   "offense": 175
   },
   "1|7-10|1": {
-   "offense": 438
+   "offense": 449
   },
   "1|7-10|2": {
-   "offense": 955
+   "offense": 980
   },
   "1|7-10|3": {
-   "offense": 1216
+   "offense": 1240
   },
   "1|7-10|4": {
-   "offense": 947
+   "offense": 969
   },
   "1|7-10|5": {
    "field_goal": 1,
-   "offense": 824
+   "offense": 837
   },
   "1|7-10|6": {
    "field_goal": 4,
-   "offense": 678
+   "offense": 699
   },
   "1|7-10|7": {
    "field_goal": 2,
-   "offense": 605
+   "offense": 620
   },
   "1|7-10|8": {
    "field_goal": 5,
-   "offense": 522
+   "offense": 531
   },
   "1|7-10|9": {
    "field_goal": 3,
-   "offense": 173
+   "offense": 176
   },
   "2|11+|0": {
-   "offense": 36
+   "offense": 37
   },
   "2|11+|1": {
-   "offense": 82
+   "offense": 86
   },
   "2|11+|2": {
-   "offense": 125
+   "offense": 127
   },
   "2|11+|3": {
-   "offense": 125
+   "offense": 127
   },
   "2|11+|4": {
-   "offense": 110
+   "offense": 112
   },
   "2|11+|5": {
-   "offense": 100
+   "offense": 101
   },
   "2|11+|6": {
-   "offense": 100
+   "offense": 102
   },
   "2|11+|7": {
    "field_goal": 1,
-   "offense": 70
+   "offense": 71
   },
   "2|11+|8": {
    "field_goal": 1,
-   "offense": 69
+   "offense": 70
   },
   "2|1|1": {
    "offense": 10
   },
   "2|1|2": {
-   "offense": 21
+   "offense": 22
   },
   "2|1|3": {
    "offense": 40
   },
   "2|1|4": {
-   "offense": 58
+   "offense": 59
   },
   "2|1|5": {
    "offense": 45
@@ -154,10 +155,10 @@
    "offense": 29
   },
   "2|1|8": {
-   "offense": 21
+   "offense": 23
   },
   "2|1|9": {
-   "offense": 89
+   "offense": 90
   },
   "2|2-3|0": {
    "offense": 1
@@ -166,127 +167,128 @@
    "offense": 21
   },
   "2|2-3|2": {
-   "offense": 56
+   "offense": 57
   },
   "2|2-3|3": {
-   "offense": 81
+   "offense": 85
   },
   "2|2-3|4": {
-   "offense": 92
+   "offense": 95
   },
   "2|2-3|5": {
-   "offense": 71
+   "offense": 72
   },
   "2|2-3|6": {
-   "offense": 49
+   "offense": 51
   },
   "2|2-3|7": {
    "field_goal": 1,
-   "offense": 52
+   "offense": 54
   },
   "2|2-3|8": {
-   "offense": 36
+   "offense": 37
   },
   "2|2-3|9": {
-   "offense": 99
+   "offense": 103
   },
   "2|4-6|0": {
-   "offense": 12
+   "offense": 14
   },
   "2|4-6|1": {
-   "offense": 69
+   "offense": 71
   },
   "2|4-6|2": {
-   "offense": 144
+   "offense": 148
   },
   "2|4-6|3": {
-   "offense": 214
+   "offense": 218
   },
   "2|4-6|4": {
-   "offense": 176
+   "offense": 180
   },
   "2|4-6|5": {
    "field_goal": 1,
-   "offense": 173
+   "offense": 179
   },
   "2|4-6|6": {
    "field_goal": 1,
-   "offense": 124
+   "offense": 130
   },
   "2|4-6|7": {
-   "offense": 124
+   "offense": 128
   },
   "2|4-6|8": {
-   "offense": 106
+   "offense": 109
   },
   "2|4-6|9": {
    "field_goal": 1,
-   "offense": 137
+   "offense": 139
   },
   "2|7-10|0": {
    "offense": 63
   },
   "2|7-10|1": {
-   "offense": 141
+   "offense": 145
   },
   "2|7-10|2": {
-   "offense": 315
+   "offense": 324
   },
   "2|7-10|3": {
-   "offense": 452
+   "offense": 462
   },
   "2|7-10|4": {
-   "offense": 366
+   "offense": 373
   },
   "2|7-10|5": {
-   "offense": 324
+   "offense": 330
   },
   "2|7-10|6": {
    "field_goal": 4,
-   "offense": 278
+   "offense": 286
   },
   "2|7-10|7": {
    "field_goal": 7,
-   "offense": 219
+   "offense": 222
   },
   "2|7-10|8": {
    "field_goal": 2,
-   "offense": 228
+   "offense": 232
   },
   "2|7-10|9": {
    "offense": 87
   },
   "3|11+|0": {
-   "offense": 28
+   "offense": 30
   },
   "3|11+|1": {
-   "offense": 77
+   "offense": 79
   },
   "3|11+|2": {
-   "offense": 92
+   "offense": 93
   },
   "3|11+|3": {
-   "offense": 111
+   "offense": 112
   },
   "3|11+|4": {
-   "offense": 80
+   "offense": 81
   },
   "3|11+|5": {
    "field_goal": 1,
-   "offense": 83
+   "offense": 85
   },
   "3|11+|6": {
-   "offense": 72
+   "offense": 74
   },
   "3|11+|7": {
    "field_goal": 1,
    "offense": 56
   },
   "3|11+|8": {
+   "field_goal": 1,
    "offense": 61
   },
   "3|1|1": {
-   "offense": 16
+   "offense": 18
   },
   "3|1|2": {
    "offense": 29
@@ -295,14 +297,14 @@
    "offense": 57
   },
   "3|1|4": {
-   "offense": 63
+   "offense": 66
   },
   "3|1|5": {
    "offense": 53
   },
   "3|1|6": {
    "field_goal": 1,
-   "offense": 50
+   "offense": 53
   },
   "3|1|7": {
    "offense": 47
@@ -311,7 +313,7 @@
    "offense": 36
   },
   "3|1|9": {
-   "offense": 76
+   "offense": 77
   },
   "3|2-3|0": {
    "offense": 1
@@ -320,109 +322,110 @@
    "offense": 29
   },
   "3|2-3|2": {
-   "offense": 52
+   "offense": 53
   },
   "3|2-3|3": {
-   "offense": 83
+   "offense": 85
   },
   "3|2-3|4": {
    "offense": 88
   },
   "3|2-3|5": {
-   "offense": 75
+   "offense": 76
   },
   "3|2-3|6": {
-   "offense": 48
+   "offense": 50
   },
   "3|2-3|7": {
-   "offense": 50
+   "offense": 52
   },
   "3|2-3|8": {
    "field_goal": 1,
-   "offense": 49
+   "offense": 53
   },
   "3|2-3|9": {
-   "offense": 82
+   "offense": 83
   },
   "3|4-6|0": {
    "offense": 6
   },
   "3|4-6|1": {
-   "offense": 49
+   "offense": 51
   },
   "3|4-6|2": {
-   "offense": 95
+   "offense": 97
   },
   "3|4-6|3": {
-   "offense": 143
+   "offense": 145
   },
   "3|4-6|4": {
-   "offense": 125
+   "offense": 127
   },
   "3|4-6|5": {
-   "offense": 108
+   "offense": 111
   },
   "3|4-6|6": {
    "field_goal": 2,
-   "offense": 92
+   "offense": 98
   },
   "3|4-6|7": {
-   "offense": 87
+   "offense": 90
   },
   "3|4-6|8": {
-   "offense": 84
+   "offense": 85
   },
   "3|4-6|9": {
    "field_goal": 1,
-   "offense": 74
+   "offense": 77
   },
   "3|7-10|0": {
    "offense": 20
   },
   "3|7-10|1": {
-   "offense": 62
+   "offense": 63
   },
   "3|7-10|2": {
-   "offense": 123
+   "offense": 129
   },
   "3|7-10|3": {
-   "offense": 156
+   "offense": 162
   },
   "3|7-10|4": {
-   "offense": 136
+   "offense": 138
   },
   "3|7-10|5": {
    "field_goal": 1,
-   "offense": 120
+   "offense": 121
   },
   "3|7-10|6": {
-   "offense": 98
+   "field_goal": 1,
+   "offense": 99
   },
   "3|7-10|7": {
    "field_goal": 2,
    "offense": 85
   },
   "3|7-10|8": {
-   "offense": 86
+   "offense": 88
   },
   "3|7-10|9": {
    "field_goal": 2,
    "offense": 45
   },
   "4|11+|0": {
-   "punt": 14
+   "punt": 16
   },
   "4|11+|1": {
    "offense": 4,
-   "punt": 58
+   "punt": 60
   },
   "4|11+|2": {
    "offense": 6,
-   "punt": 68
+   "punt": 69
   },
   "4|11+|3": {
    "offense": 6,
-   "punt": 78
+   "punt": 80
   },
   "4|11+|4": {
    "offense": 1,
@@ -431,7 +434,7 @@
   "4|11+|5": {
    "field_goal": 5,
    "offense": 7,
-   "punt": 43
+   "punt": 48
   },
   "4|11+|6": {
    "field_goal": 38,
@@ -454,7 +457,7 @@
    "punt": 15
   },
   "4|1|3": {
-   "offense": 9,
+   "offense": 10,
    "punt": 9
   },
   "4|1|4": {
@@ -466,11 +469,11 @@
   },
   "4|1|6": {
    "field_goal": 5,
-   "offense": 28
+   "offense": 29
   },
   "4|1|7": {
-   "field_goal": 5,
-   "offense": 17
+   "field_goal": 6,
+   "offense": 18
   },
   "4|1|8": {
    "field_goal": 2,
@@ -485,24 +488,24 @@
   },
   "4|2-3|2": {
    "offense": 1,
-   "punt": 26
+   "punt": 27
   },
   "4|2-3|3": {
    "offense": 3,
-   "punt": 45
+   "punt": 46
   },
   "4|2-3|4": {
    "field_goal": 1,
-   "offense": 9,
+   "offense": 10,
    "punt": 32
   },
   "4|2-3|5": {
    "offense": 28,
-   "punt": 12
+   "punt": 13
   },
   "4|2-3|6": {
-   "field_goal": 12,
-   "offense": 13,
+   "field_goal": 13,
+   "offense": 14,
    "punt": 1
   },
   "4|2-3|7": {
@@ -511,49 +514,49 @@
   },
   "4|2-3|8": {
    "field_goal": 13,
-   "offense": 11
+   "offense": 12
   },
   "4|2-3|9": {
    "field_goal": 16,
    "offense": 20
   },
   "4|4-6|0": {
-   "punt": 8
+   "punt": 9
   },
   "4|4-6|1": {
-   "punt": 22
+   "punt": 23
   },
   "4|4-6|2": {
    "offense": 1,
-   "punt": 49
+   "punt": 51
   },
   "4|4-6|3": {
    "offense": 6,
    "punt": 70
   },
   "4|4-6|4": {
-   "offense": 4,
-   "punt": 49
+   "offense": 5,
+   "punt": 50
   },
   "4|4-6|5": {
    "field_goal": 5,
    "offense": 12,
-   "punt": 29
+   "punt": 31
   },
   "4|4-6|6": {
    "field_goal": 37,
    "offense": 12
   },
   "4|4-6|7": {
-   "field_goal": 48,
+   "field_goal": 50,
    "offense": 6
   },
   "4|4-6|8": {
-   "field_goal": 36,
+   "field_goal": 37,
    "offense": 4
   },
   "4|4-6|9": {
-   "field_goal": 33,
+   "field_goal": 35,
    "offense": 12
   },
   "4|7-10|0": {
@@ -561,19 +564,19 @@
   },
   "4|7-10|1": {
    "offense": 3,
-   "punt": 35
+   "punt": 37
   },
   "4|7-10|2": {
    "offense": 2,
-   "punt": 55
+   "punt": 58
   },
   "4|7-10|3": {
    "offense": 6,
-   "punt": 77
+   "punt": 78
   },
   "4|7-10|4": {
    "offense": 2,
-   "punt": 63
+   "punt": 64
   },
   "4|7-10|5": {
    "field_goal": 1,
@@ -587,14 +590,14 @@
   },
   "4|7-10|7": {
    "field_goal": 41,
-   "offense": 4
+   "offense": 5
   },
   "4|7-10|8": {
-   "field_goal": 39,
+   "field_goal": 40,
    "offense": 1
   },
   "4|7-10|9": {
-   "field_goal": 29,
+   "field_goal": 30,
    "offense": 2
   }
  }

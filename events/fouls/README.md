@@ -1,6 +1,6 @@
 # fouls event
 
-Fouls during the play (holding, pass interference, roughing the passer, a face mask...) and dead-ball fouls after it, each with the offending player and the spot. Predicted once, after the ball is dead, conditioned on the whole play. The play scenario decides accept/decline and enforces the penalty.
+Fouls during the play (holding, pass interference, roughing the passer, a face mask...) and dead-ball fouls after it, each with the offending player and the spot. Predicted once, after the ball is dead, conditioned on the whole play. The play scenario decides accept/decline, enforces the penalty, and disqualifies the player for a flagrant foul or a second unsportsmanlike conduct foul.
 
 Predictor: `predict(ctx, lineups, record, allowed_fouls, rng) -> tuple[Foul, ...]`
 
@@ -11,7 +11,7 @@ Inputs (besides the [common ones](../README.md)):
 
 Output (`from events.fouls import ...`):
 
-- `Foul(type, team, player, x, timing)`: `type` is a key of `play.CATALOG`; `timing` is `live`, `return`, or `after` here, and `presnap` or `snap` when the foul comes from the [pre-snap event](../pre_snap/README.md).
+- `Foul(type, team, player, x, timing, flagrant)`: `type` is a key of `play.CATALOG`; `timing` is `live`, `return`, or `after` here, and `presnap` or `snap` when the foul comes from the [pre-snap event](../pre_snap/README.md); `flagrant` means the officials disqualified the player for it.
 
 The play scenario raises `IllegalChoice` unless each foul is one of `allowed_fouls`, by a player on the field for that team, at a spot on the field.
 

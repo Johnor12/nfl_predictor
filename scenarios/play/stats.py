@@ -6,7 +6,8 @@
 # Conventions: passing/rushing/receiving yards run from the line of scrimmage to where the carry ended (the
 # spot of a fumble; the goal line on a touchdown); return yards from where possession was gained; sack yards
 # are a team stat, not the passer's; tries credit only two_pt (no attempts or yards); a no-play credits only
-# the penalty.
+# the penalty. A player who takes a lateral gets the yards from there on, in the same category, without an
+# attempt, reception, or return; the passer's yards run to the end of the last lateral.
 # END
 from collections import defaultdict
 
@@ -23,8 +24,15 @@ RETURNS = {
 RETURN_COUNTS = {"punt_return": "punt_returns", "kick_return": "kick_returns"}
 
 
-def _next_carry(record, i):
-    return next(f for f in record[i + 1:] if isinstance(f, Carry))
+def _last_carry(record, i):
+    """Where the ball caught at record[i] ended up: the catch's carry, or the last lateral after it."""
+    carries = [f for f in record[i + 1:] if isinstance(f, Carry)]
+    last = carries[0]
+    for c in carries[1:]:
+        if not c.lateral:
+            break
+        last = c
+    return last
 
 
 def credit(ctx, los, record, final, accepted) -> dict[str, dict[str, float]]:
@@ -40,27 +48,24 @@ def credit(ctx, los, record, final, accepted) -> dict[str, dict[str, float]]:
         return {pid: dict(line) for pid, line in st.items()}
     is_try = ctx.situation.kind == "try"
 
-    def gained(c):
-        return rel(ctx, c.team, c.end) - rel(ctx, c.team, los)
+    def gained(c, start):
+        return rel(ctx, c.team, c.end) - rel(ctx, c.team, start)
 
     for i, f in enumerate(record):
         if isinstance(f, Pass):
             if is_try:
-                if f.result == "complete" and _next_carry(record, i).how == "touchdown":
+                if f.result == "complete" and _last_carry(record, i).how == "touchdown":
                     add(f.passer, "two_pt")
-                    add(f.receiver, "two_pt")
+                    add(_last_carry(record, i).player, "two_pt")
                 continue
             add(f.passer, "pass_att")
             add(f.receiver, "targets")
             if f.result == "complete":
-                c = _next_carry(record, i)
+                last = _last_carry(record, i)
                 add(f.passer, "pass_cmp")
                 add(f.receiver, "receptions")
-                add(f.passer, "pass_yds", gained(c))
-                add(f.receiver, "rec_yds", gained(c))
-                if c.how == "touchdown":
-                    add(f.passer, "pass_td")
-                    add(f.receiver, "rec_td")
+                add(f.passer, "pass_yds", gained(last, los))
+                add(f.passer, "pass_td", last.how == "touchdown")
             elif f.result == "intercepted":
                 add(f.passer, "int_thrown")
                 add(f.defender, "interceptions")
@@ -80,14 +85,17 @@ def credit(ctx, los, record, final, accepted) -> dict[str, dict[str, float]]:
                 if is_try:
                     add(f.player, "two_pt", touchdown)
                     continue
-                add(f.player, "rush_att")
-                add(f.player, "rush_yds", gained(f))
+                add(f.player, "rush_att", not f.lateral)
+                add(f.player, "rush_yds", gained(f, f.start if f.lateral else los))
                 add(f.player, "rush_td", touchdown)
+            elif f.kind == "catch" and not is_try:
+                add(f.player, "rec_yds", gained(f, f.start if f.lateral else los))
+                add(f.player, "rec_td", touchdown)
             elif f.kind in RETURNS:
                 yards, td = RETURNS[f.kind]
                 if f.kind in RETURN_COUNTS:
-                    add(f.player, RETURN_COUNTS[f.kind])
-                add(f.player, yards, rel(ctx, f.team, f.end) - rel(ctx, f.team, f.start))
+                    add(f.player, RETURN_COUNTS[f.kind], not f.lateral)
+                add(f.player, yards, gained(f, f.start))
                 add(f.player, td, touchdown)
         elif isinstance(f, LooseBall):
             if f.cause in ("fumble", "bad_snap"):

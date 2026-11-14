@@ -46,6 +46,8 @@ class Player:
     years_exp: int | None = None
     draft_pick: int | None = None              # overall pick; None if undrafted
     season_stats: tuple[tuple[str, float], ...] = ()  # this season's totals before this game
+    snaps: tuple[tuple[str, float], ...] = ()  # (unit, snaps) in his team's recent games: offense, defense, and
+                                               # special_teams or, where the data has them, each kicking unit
 
     def rank(self, slot: str) -> int | None:
         ranks = [r for s, r in self.depth if s == slot]
@@ -82,6 +84,7 @@ class PlayContext:
     situation: Situation
     players: tuple[Player, ...]          # active players on both teams
     history: tuple[PlaySummary, ...] = ()
+    warned: frozenset[str] = frozenset()  # players with one unsportsmanlike conduct foul in this game
 
     @cached_property
     def by_id(self) -> dict[str, Player]:

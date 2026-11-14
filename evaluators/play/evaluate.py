@@ -8,7 +8,9 @@
 #   real outcome (RealPlay.actual) and a simulated one (simulators.play.summarize). The clock isn't one of
 #   them: nflverse times a play from its snap to the next snap, the scenario from the previous play's end.
 # Internals: _evaluate_week (one week's scorecard), _score_play (the scenario: the simulated outcomes against
-#   the real one), _score_events (each event case: `sims` samples of its predictor against the real output),
+#   the real one), _score_events (each event case: `sims` samples of its predictor against the real output,
+#   each sample with another simulated run standing in for the inputs the data doesn't record, so the forecast
+#   is spread over what they might have been instead of pinned to one draw),
 #   _traced / _runs (the predictors wrapped to record every call, split into one cases.Run per simulated run).
 # END
 import dataclasses
@@ -82,12 +84,13 @@ def _score_play(card, ctx, actual, results):
 
 def _score_events(card, predictors, sample, runs, sims, rng):
     ctx = sample.context
-    for case in event_cases(sample, runs):
+    stand_ins = [event_cases(sample, runs[i:] + runs[:i]) for i in range(max(1, len(runs)))]  # each run leads once
+    for k, case in enumerate(stand_ins[0]):
         predict = getattr(predictors, case.event)
         if case.args is None:
             outs = []
         elif case.args:
-            outs = [predict(ctx, *case.args, rng) for _ in range(sims)]
+            outs = [predict(ctx, *stand_ins[i % len(stand_ins)][k].args, rng) for i in range(sims)]
         else:  # the context is the predictor's only input, so the runs have already sampled it
             outs = [run.calls[case.event][0][1] for run in runs]
         samples = [read(ctx, case, out) for out in outs]

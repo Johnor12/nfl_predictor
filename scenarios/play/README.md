@@ -9,9 +9,9 @@ API (`from scenarios.play import ...`):
 - `validate_context(ctx) -> list[str]`: problems with an input.
 - `describe_play(result)` / `describe_situation(situation)`: human-readable narration.
 - `summarize(result) -> dict`: the outcome in a few values (`action`, `yards`, `points` by team, `touchdown`, `turnover`, `penalty`, `first_down`, `complete`, kick results, `touchback`, `return_yards`, `seconds`), with the names nflverse uses for a real play. `play_summary(result) -> PlaySummary`: the same as an entry in a later play's history.
-- Inputs: `PlayContext(game, situation, players, history)` with `Game`, `Situation`, `Player`, `PlaySummary`. Spots are yard lines from the offense's own goal line (the kicking team's on free kicks); a try's `x` is the two-point spot, and a kicked try is snapped 13 yards farther back.
+- Inputs: `PlayContext(game, situation, players, history, warned)` with `Game`, `Situation`, `Player`, `PlaySummary`. Spots are yard lines from the offense's own goal line (the kicking team's on free kicks); a try's `x` is the two-point spot, and a kicked try is snapped 13 yards farther back.
 - Predictors: `Predictors` bundles one function per event. `load_predictors("baseline")` builds it from each event's implementation of that name (`events/<event>/predictors/<name>/`), and `load_predictors("baseline", carry="other")` swaps one event's. Each event's signature and output type are in `events/<event>/README.md`.
-- `PlayResult`: the record (facts), live and final dead-ball results, accepted/declined fouls, scores, `next` situation, player and team stats, elapsed time, what the clock does next, untimed-down and 10-second-runoff flags, injuries.
+- `PlayResult`: the record (facts), live and final dead-ball results, accepted/declined fouls, scores, `next` situation, player and team stats, elapsed time, what the clock does next, untimed-down and 10-second-runoff flags, injuries, `disqualified` players, and `warned` (the next play's).
 - The record's facts: `Sack`, `Pass`, `Carry`, `LooseBall`, `Kick`, plus the event outputs kept as they were predicted; `facts(record, type)` reads them.
 - Helpers for predictors: `rel` / `to_x` (team yard lines), `eligible_receivers`, `field_goal_distance`, `allowed_units`, `FREE_KICKS`, `CATALOG` (the fouls).
 - Test support (`from scenarios.play.testing import ...`): `synthetic_context`, `synthetic_roster`, `chaos_predictors` (random legal predictors for fuzzing), `scripted` (fixed outputs for rule tests).
@@ -23,7 +23,8 @@ The hardcoded NFL rules, the invariants, and what isn't built yet are in [RULES.
 Provided by the game scenario:
 
 - **game**: teams playing, game location, weather, time of day, stadium turf type, coaching staffs, referee crew, season (which selects the rulebook), and whether it's a playoff game.
-- **players**: rosters (including injuries, depth charts, and disqualifications) and each player's information (position, jersey number, aggregate statistics for the season so far, and draft capital for rookies).
+- **players**: rosters (including injuries, depth charts, and disqualifications) and each player's information (position, jersey number, aggregate statistics for the season so far, draft capital for rookies, and `snaps`: his snaps in his team's recent games by unit, as far as the season's data records them).
+- **warned**: the players who already have an unsportsmanlike conduct foul in this game (a second one disqualifies).
 - **situation**: kind of play (scrimmage down, try after a touchdown, or kickoff/safety kick), possession, field location, down and distance, score, quarter, game clock time, whether the game clock is running, play clock time, and team timeouts remaining.
 - **history**: all previous plays in the game (or a condensation of the relevant information, or just their outcomes).
 
@@ -35,7 +36,7 @@ Each event's predictor is handed only the slice of these inputs (plus earlier ev
 - the type of play, how long it took, and the players involved.
 - player outcomes, offensive and defensive: rushing yards, receiving yards, passes, receptions, first downs, touchdowns, kick yards, return yards, field goal makes and misses, fumbles, interceptions, sacks, tackles, and pressures. Team totals are the sum of player outcomes.
 - penalties: type, players involved, yardage outcome, accepted or declined, and initiating referee if available.
-- injuries and disqualifications, including how much of the game they cost the player, up to the rest of it.
+- injuries (with how much of the game they cost the player, up to the rest of it) and disqualifications (the rest of it).
 - the new situation: possession, field location, down and distance, score, and the kind of the next play (a try after a touchdown, a kickoff after a try or field goal, a safety kick after a safety, otherwise a scrimmage down).
 - clock: game time used (pre-snap runoff plus the play itself), what the clock does afterward (keeps running, stopped until the snap, or restarts on the ready-for-play signal), and flags the game scenario needs (10-second runoff, untimed down owed).
 
@@ -82,12 +83,13 @@ after the ball is dead:
   live-ball fouls -> accept/decline -> enforcement -> injuries -> stat crediting -> new situation
 ```
 
-Bad snaps, strip sacks, blocked kicks, muffed punts, and incomplete backward passes all become a loose ball, and every run, scramble, catch, and return becomes a carry. These shared building blocks keep the number of distinct events small.
+Bad snaps, strip sacks, blocked kicks, muffed punts, and dropped laterals all become a loose ball, and every run, scramble, catch, and return becomes a carry. A carry that ends in a lateral hands the ball to a teammate, whose carry is the same kind and starts where the last one ended. These shared building blocks keep the number of distinct events small.
 
 Each event in the chain is a package under `events/`, with its inputs, output, and predictors: `lineups`, `offensive_formation`, `defensive_formation`, `pre_snap`, `snap`, `pass_rush`, `target`, `pass_result`, `punt_kick`, `punt_result`, `kick_attempt`, `free_kick`, `kick_result`, the shared building blocks `carry` and `loose_ball`, and `fouls` and `injuries` after the ball is dead. The kickoff alignment is fixed by the season's rules, so it isn't predicted.
 
 The rest of what happens after the ball is dead is this scenario's own code, with no predictors:
 
-- **accept/decline**: the non-offending team's choice. A hardcoded rule (take whichever result is better in yards, downs, possession, and clock); it can become an event later if coaches turn out to deviate from it meaningfully.
+- **accept/decline**: the non-offending team's choice, including how to accept a kicking team's foul on a kick (added to the end of the play, or a re-kick). A hardcoded rule (take whichever result is better in yards, downs, possession, and clock); it can become an event later if coaches turn out to deviate from it meaningfully.
 - **enforcement**: fully hardcoded (see [RULES.md](RULES.md#penalty-enforcement)).
+- **disqualification**: a player whose foul the fouls predictor marked flagrant, or who commits a second unsportsmanlike conduct foul in the game, is out for the rest of it.
 - **stat crediting** and the **new situation**: computed from the record (see [RULES.md](RULES.md#invariants)).

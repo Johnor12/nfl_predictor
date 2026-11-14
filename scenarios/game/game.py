@@ -5,7 +5,7 @@
 #   run (opening toss and kickoff, then step until the game is over),
 #   step (the next play: a timeout if one is called, the play scenario, and the snap that never came when
 #     the clock ran out first),
-#   apply (the play's score, stats, history, and injuries),
+#   apply (the play's score, stats, history, injuries, and disqualifications),
 #   after (what the clock does next: the 10-second runoff, the two-minute warning, overtime's end, and time
 #     running out),
 #   end_period (the next quarter, the second half kickoff, overtime, or the end of the game),
@@ -38,7 +38,7 @@ class _Game:
         self.home, self.away = ctx.game.home, ctx.game.away
         self.rules = rules_for(ctx.game.season)
         self.roster = Availability(ctx.players)
-        self.record, self.history = [], []
+        self.record, self.history, self.warned = [], [], frozenset()
         self.score = {self.home: 0, self.away: 0}
         self.stats = defaultdict(lambda: defaultdict(float))
         self.team_stats = {self.home: defaultdict(float), self.away: defaultdict(float)}
@@ -73,7 +73,7 @@ class _Game:
                          {self.home: timeouts, self.away: timeouts})
 
     def play_context(self, s) -> PlayContext:
-        return PlayContext(self.game, s, self.roster.active(), tuple(self.history))
+        return PlayContext(self.game, s, self.roster.active(), tuple(self.history), self.warned)
 
     def stop(self, kind, s, team=None):
         self.record.append(Stoppage(kind, s.quarter, s.clock, team))
@@ -116,7 +116,8 @@ class _Game:
         for team, line in result.team_stats.items():
             for stat, value in line.items():
                 self.team_stats[team][stat] += value
-        self.roster.played(result.injuries, self.plays)
+        self.warned = result.warned
+        self.roster.played(result.injuries, result.disqualified, self.plays)
         self.plays += 1
 
     def after(self, s, result):
@@ -125,7 +126,7 @@ class _Game:
             if nxt.timeouts[s.offense] > 0:  # the offense spends a timeout instead
                 nxt = self.charge_timeout(nxt, s.offense)
             else:
-                nxt = dataclasses.replace(nxt, clock=max(0.0, nxt.clock - clock.RUNOFF))
+                nxt = dataclasses.replace(nxt, clock=max(0.0, nxt.clock - clock.RUNOFF), clock_running=True)
                 self.stop("runoff", nxt)
         if clock.has_warning(self.game, s.quarter) and s.clock > clock.WARNING >= nxt.clock > 0:
             nxt = dataclasses.replace(nxt, clock_running=False, play_clock=self.rules.admin_play_clock)

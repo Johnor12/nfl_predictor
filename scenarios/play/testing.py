@@ -3,7 +3,7 @@
 # - synthetic_roster(team) -> tuple[Player]: a 46-man active roster with jerseys and depth chart slots.
 # - synthetic_context(rng, kind=None, **situation) -> PlayContext: a random legal situation (overridable).
 # - chaos_predictors() -> Predictors: uniformly random legal choices, including rare branches (fumbles,
-#   blocks, muffs, laterals excluded, every foul type), for fuzzing the invariants.
+#   blocks, muffs, laterals, every foul type, flagrant fouls), for fuzzing the invariants.
 # - scripted(base, **outputs) -> Predictors: replace events with fixed outputs (a value, or a list consumed
 #   in order), for hand-built rule tests.
 # END
@@ -135,8 +135,11 @@ def chaos_predictors() -> Predictors:
         team = ctx.by_id[carrier].team
         s = ctx.situation
         opponents = _team_players(ctx, lineups, s.defense if team == s.offense else s.offense)
-        how = rng.choice(["tackled", "tackled", "out_of_bounds", "fumble", "down"])
+        how = rng.choice(["tackled", "tackled", "out_of_bounds", "fumble", "down", "lateral"])
         yards = rng.choice([rng.uniform(-10, 15), rng.uniform(-110, 110)])
+        if how == "lateral":
+            teammates = [pid for pid in _team_players(ctx, lineups, team) if pid != carrier]
+            return CarryEnd(yards, how, seconds=rng.uniform(0, 10), lateral_to=rng.choice(teammates))
         forced = rng.choice(opponents + (None,)) if how == "fumble" else None
         return CarryEnd(yards, how, tuple(rng.sample(opponents, rng.randint(0, 2))), forced, rng.uniform(0, 10))
 
@@ -168,7 +171,8 @@ def chaos_predictors() -> Predictors:
         out = []
         for _ in range(rng.choice([0, 0, 0, 1, 1, 2])):
             name, team, timing = rng.choice(sorted(allowed))
-            out.append(Foul(name, team, rng.choice(_team_players(ctx, lineups, team)), rng.uniform(-10, 110), timing))
+            out.append(Foul(name, team, rng.choice(_team_players(ctx, lineups, team)), rng.uniform(-10, 110), timing,
+                            rng.random() < 0.1))
         return tuple(out)
 
     def injuries(ctx, lineups, record, rng):

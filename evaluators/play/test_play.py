@@ -46,7 +46,7 @@ def _real_run(rng):
     ctx = synthetic_context(rng, kind="scrimmage", x=30.0, down=1, distance=10.0, quarter=1, clock=600.0)
     back = next(p for p in ctx.roster(ctx.situation.offense) if p.position == "RB")
     row = SimpleNamespace(rusher_player_id=back.id, yards_gained=7.0, shotgun=1, fumble=0, touchdown=0,
-                          out_of_bounds=0, penalty=0, penalty_type=None, penalty_team=None, desc="run for 7 yards")
+                          out_of_bounds=0, lateral_rush=0, lateral_reception=0, penalty=0, penalty_type=None, penalty_team=None, desc="run for 7 yards")
     return Sample(ctx, {"action": "run"}, row, None), back
 
 
