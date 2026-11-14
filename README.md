@@ -59,16 +59,6 @@ Phase 3 is a multi-season simulator. the multi-season scenario chains multiple s
 
 architecture: the project should be structured to match our terminology and model; a /events folder with subfolders for each individual event that we are modeling (the inputs and outputs for the event). within each event folder, we should have a folder for predictors. each subfolder in the predictors folder should be an implementation of a predictor for that event, allowing us to store multiple predictors and swap between them easily. a separate top level folder for each scenario we model; a game, a play, etc. individual events/predictors can be reused across different scenarios. a separate top level folder for our simulators, which orchestrate our scenarios. a separate top level folder for evaluators, which score the output of simulators. a top level folder /shared, for shared business logic (rulebooks)
 
-finished (11/8/26):
-initial implementation of the play scenario, audited using 2026 data from nflverse. open:
-- Not built yet:
-  - Laterals.
-  - Re-kick options on kicking-team fouls.
-  - Illegal touching.
-  - Ejections.
-  - Some clock subtleties after penalties.
-  - No 2026 on-field personnel data yet: nflverse hasn't published who was on the field for 2026 (2025's is available). Personnel groupings, depth-chart lineups and formations are hand-set for now.
-
 finished (11/14):
 Game scenario, simulator, and evaluator.
 not built: coach's challenges, multiple timeouts per dead ball, injury stoppages, emergency replacements, disqualifications, postseason third-overtime kickoff, fair-catch kick.
