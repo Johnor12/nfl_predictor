@@ -1,0 +1,33 @@
+# game evaluator
+
+Scores the game scenario against real games and against the betting lines. Every played game of a season is simulated many times from its inputs at kickoff; each simulated distribution is scored against what really happened with `evaluators.scoring`, and against the market on its own lines with `evaluators.lines`.
+
+API (`from evaluators.game import ...`):
+
+- `evaluate(season=2026, weeks=None, sims=100, seed=0, predictors=None, workers=None, lines=()) -> Evaluation`: `predictors` is a `game.GamePredictors` (the baseline set if omitted). Games run in parallel processes (`workers=1` to stay in this one). `lines` are `evaluators.lines.Line`s (from `lines.lines(season, weeks)`); without them the lines section is left out. Half a season at 100 sims takes about half an hour on 2 cores.
+- `Evaluation`: `season`, `weeks`, `sims`, `games`, `failures` (simulated games that raised or broke an invariant), `card` (a `scoring.Scorecard`), `lines`, and `samples` (`{line key: simulated values}`, what `lines.score_lines` takes).
+- `evaluate_games(games, sims, seed, predictors, workers, lines) -> (card, samples, failures)`: the same for a list of games (anything with `.context` and `.actual`).
+- `game_outputs(ctx, outcome) -> {(name, subject): value}`: the scored outputs, read the same way from a real outcome and a simulated one.
+- `write_report(evaluation, path=None)`: markdown at `evaluation_output/game_<season>.md` (gitignored): score tables, the betting lines, PIT histograms, reliability.
+- CLI: `python -m evaluators.game --season 2026 [--weeks 1-3] [--sims 100] [--swap carry=tuned] [--no-lines]`. `--swap` evaluates `events/carry/predictors/tuned/` in place of the baseline: run it with and without, and compare the rows. The first run downloads each game's player props.
+
+## what is scored
+
+**The game scenario**, against what happened:
+
+- `game: ...`, one case per game: margin (home minus away), total, home win, overtime, plays.
+- `team: ...`, one case per team and game: points, turnovers, pass_yds, pass_att, rush_yds, rush_att, sacked, penalties, punts, fg_att.
+- `player: <stat> (<role>)`, one case per active player with that depth chart role and game, whether or not he played: passing stats and rush_yds for QB1; rush_yds, rush_att, rec_yds, receptions for RB1 and RB2; rec_yds and receptions for WR1, WR2, WR3, TE1, TE2; fg_made and xp_made for K; and `touchdown` (a rushing or receiving one) for the backs and receivers. A 3 means third or lower on the depth chart.
+
+**The betting lines** (when given): the market's probability and line scored against the result, and the simulator's share of samples over the same line, on the moneyline, spread, total, and every player prop (see `evaluators/lines/README.md`).
+
+**The timeout predictor alone** (`timeout: caller (...)`): sampled on every real play's situation as it stood before any timeout, and scored against who called one (offense, defense, none). The coin toss isn't in the data, so its two predictors aren't scored.
+
+## reading the results
+
+- The score columns are explained in `evaluators/scoring/README.md`.
+- **In-sample**: the baseline priors are built from 2026's plays, so 2026 scores are in-sample. They are league-wide rates, though, not fit to any game.
+- **Inputs at kickoff**: the active players include everyone who appeared in the real game, which is the inactive list announced before kickoff, not hindsight about who got hurt.
+- The market is the benchmark: the simulator's Brier, log loss, and MAE on a market are directly comparable with the market's own columns. Player props are scored at 50% for the market because prices aren't published.
+- A simulated probability is the smoothed share of samples over the line, so with few sims it is coarse; `sim CRPS` doesn't depend on the number of sims.
+- `game: plays` is where the clock gets scored (the play evaluator can't): too many plays means the simulated game uses too little clock per play.

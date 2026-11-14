@@ -8,5 +8,5 @@
 
 Dependencies:
 - rulebook/ and priors/ import nothing from events/, scenarios/, simulators/, or evaluators/.
-- nflverse/ is the one exception: it builds `PlayContext`s, so it imports `scenarios.play` (and `shared.rulebook`, `shared.priors`). The play scenario must never import it back.
+- nflverse/ is the one exception: it builds `PlayContext`s and `GameContext`s, so it imports `scenarios.play` and `scenarios.game` (and `shared.rulebook`, `shared.priors`). The scenarios must never import it back.
 - lines/ imports `shared.nflverse` (the schedule, and rosters to map ESPN's player ids).

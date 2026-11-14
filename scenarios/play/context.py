@@ -32,6 +32,7 @@ class Game:
     home_coach: str | None = None
     away_coach: str | None = None
     referee: str | None = None
+    playoff: bool = False
 
 
 @dataclass(frozen=True)

@@ -1,9 +1,8 @@
 # MAINTAINER
 
-- __init__.py: exports `simulate_plays`, `simulate_play`, `summarize`, `PlaySimulation`.
+- __init__.py: exports `simulate_plays`, `simulate_play`, `PlaySimulation`, and re-exports `scenarios.play.summarize`.
 - simulator.py: all of it.
 - test_simulator.py: a synthetic simulation is valid and repeatable by seed; rule-breaking predictors are collected as failures.
 
 Notes:
-- `summarize` and `shared.nflverse.contexts._actual` must produce the same keys. Change them together.
-- The values must mean the same thing too. nflverse counts an offensive touchdown as a first down, so `summarize` does as well (`evaluators/play`'s reliability table is where a mismatch like that shows up).
+- `summarize` moved to the play scenario (`scenarios/play/summary.py`) so the game scenario can use it for its history. Its notes are in `scenarios/play/MAINTAINER.md`.

@@ -23,13 +23,11 @@ from statistics import fmean, median
 
 from evaluators.scoring import brier, fair_crps, log_loss, probability
 from shared.lines import game_lines, player_lines
-from shared.nflverse import load
+from shared.nflverse import STAT_COLUMNS, load
 
-ACTUAL = {  # our stat name -> nflverse player stats column
-    "pass_yds": "passing_yards", "pass_cmp": "completions", "pass_att": "attempts", "pass_td": "passing_tds",
-    "int_thrown": "passing_interceptions", "rush_yds": "rushing_yards", "rush_att": "carries",
-    "rec_yds": "receiving_yards", "receptions": "receptions", "fg_made": "fg_made", "xp_made": "pat_made",
-}
+PROPS = ("pass_yds", "pass_cmp", "pass_att", "pass_td", "int_thrown", "rush_yds", "rush_att", "rec_yds",
+         "receptions", "fg_made", "xp_made")
+ACTUAL = {stat: STAT_COLUMNS[stat] for stat in PROPS}  # our stat name -> nflverse player stats column
 
 
 @dataclass(frozen=True)

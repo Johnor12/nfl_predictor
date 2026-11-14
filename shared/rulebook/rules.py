@@ -34,6 +34,12 @@ class Rules:
     admin_play_clock: int = 25
     # discipline
     unsportsmanlike_ejection: bool = True  # two unsportsmanlike fouls disqualify (2016+)
+    # overtime: sudden_death (any score wins), modified (a field goal on the first possession doesn't end it),
+    # or both_possess (each team gets a possession before the next score wins)
+    overtime_format: str = "both_possess"          # regular season: modified 2012-2024, sudden_death before
+    overtime_seconds: int = 600                    # regular season period, played once (900 before 2017)
+    playoff_overtime_format: str = "both_possess"  # modified before 2022
+    playoff_overtime_seconds: int = 900            # postseason periods, played until there is a winner
 
 
 def rules_for(season: int) -> Rules:
@@ -49,4 +55,12 @@ def rules_for(season: int) -> Rules:
                  kickoff_touchback_line=25 if season >= 2016 else 20)
     if season == 2024:
         r.update(kickoff_touchback_line=30, onside_declared="trailing_q4")
+    if season < 2025:
+        r.update(overtime_format="modified")
+    if season < 2022:
+        r.update(playoff_overtime_format="modified")
+    if season < 2017:
+        r.update(overtime_seconds=900)
+    if season < 2012:
+        r.update(overtime_format="sudden_death")
     return Rules(**r)

@@ -19,6 +19,7 @@ API (`from evaluators.lines import ...`):
   With `samples` (`{key: [simulated values]}`) only the lines that have samples are scored, and the simulator gets the same columns from the same lines: `sim_brier` and `sim_log_loss` (its smoothed share of samples over the line), `sim_mae` (its median), and `sim_crps`.
 - `no_vig(odds, other) -> float`: one side's probability from both sides' American odds, with the bookmaker's margin removed.
 - `write_report(season, weeks=None, samples=None, path=None)`: markdown at `evaluation_output/lines_<season>.md` (gitignored).
+- `lines_table(rows) -> list[str]`: `score_lines`' rows as a markdown table, for other reports.
 - CLI: `python -m evaluators.lines --season 2026 [--weeks 1-3]`. The first run downloads each game's props (about a minute for half a season).
 
-No simulator produces game-level distributions yet (the game scenario is next), so today the report is the market on its own. The game evaluator will pass its simulated margins, totals, and player stat lines as `samples`.
+This package's own report is the market on its own. `evaluators/game` passes the game simulator's margins, totals, and player stat lines as `samples`, and reports both side by side.

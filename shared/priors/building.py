@@ -11,7 +11,10 @@
 # - kickoff_result(sample) -> (zone, result) | None: a kickoff that came down in the landing zone or end zone.
 # - nullified(sample) -> run, pass, punt, field_goal, or kickoff: what a play wiped out by a penalty was
 #   (nflverse labels it no_play; its description still says).
+# - timeout_case(sample) -> (context, "offense" | "defense" | "none"): the play's context as it stood before
+#   any timeout was called (the clock as it was, the caller's timeout given back), and who called one.
 # END
+import dataclasses
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 
@@ -102,3 +105,13 @@ def nullified(sample) -> str:
     if " pass " in play or "sacked" in play or "scrambles" in play:
         return "pass"
     return "run"
+
+
+def timeout_case(sample):
+    ctx, team = sample.context, sample.actual.get("timeout")
+    s = ctx.situation
+    if team not in s.timeouts:
+        return ctx, "none"
+    before = dataclasses.replace(s, clock_running=sample.actual["timeout_clock_running"],
+                                 timeouts={**s.timeouts, team: min(3, s.timeouts[team] + 1)})
+    return dataclasses.replace(ctx, situation=before), "offense" if team == s.offense else "defense"

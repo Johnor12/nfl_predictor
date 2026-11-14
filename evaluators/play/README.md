@@ -45,4 +45,4 @@ API (`from evaluators.play import ...`):
 - **Stand-ins**: nflverse doesn't record who was on the field in 2026, the formation, the defensive look, or the play record the fouls and injuries predictors read. An event case takes those from the first simulated run where the offense sent out the same unit as in the real play (and ran the same kind of play, for fouls). Every other input is real. A case with no such run is counted in the `unscored` column.
 - **In-sample**: the baseline priors are built from 2026's plays, so 2026 scores are in-sample. Another season is out-of-sample (`--season 2025` works with the 2026 priors).
 - An output that only exists on some samples (sack yards, the carrier of a run) is scored on those samples, so its `sims` is lower.
-- The clock isn't scored: nflverse times a play from its snap to the next snap, the scenario from the end of the previous play. That needs a game.
+- The clock isn't scored here: nflverse times a play from its snap to the next snap, the scenario from the end of the previous play. `evaluators/game` scores it as plays per game.

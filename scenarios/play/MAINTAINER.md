@@ -13,6 +13,7 @@
 - stats.py: player and team stat crediting from the facts.
 - validate.py: `validate_play`, the invariants.
 - describe.py: narration.
+- summary.py: `summarize` (a play's outcome with nflverse's names) and `play_summary` (its entry in the game's history).
 - testing.py: synthetic contexts, random legal ("chaos") predictors, and `scripted` predictors for rule tests.
 - test_play.py: fuzzed invariants and hand-built rule tests.
 
@@ -21,4 +22,5 @@ Notes:
 - All spots inside a play are in play coordinates (yards from the play's offense's goal line). Predictors receive and return the same coordinates. The carry predictor is the exception: it gets the carrier's own yard line and returns yards in the carrier's direction of travel.
 - Every live-ball path ends in a `Dead`. Penalties produce a new `Dead` (with `series`/`no_play`), and `outcome.next_situation` turns any `Dead` into the next situation, so enforcement and normal plays share one path.
 - When adding a rule, add a scripted test in test_play.py. The fuzz test only proves internal consistency, not that the rule is right.
+- `summarize` and `shared.nflverse.contexts._actual` must produce the same keys with the same meaning, and `play_summary` the same tags as `_summary` there. Change them together. nflverse counts an offensive touchdown as a first down, so `summarize` does as well.
 - The chaos predictors are test support for the chain (they exist to reach every branch), so they live here rather than under `events/`.

@@ -15,3 +15,10 @@ def test_kickoff_eras():
 def test_try_changes():
     assert rules_for(2014).pat_line == 2 and rules_for(2015).pat_line == 15
     assert not rules_for(2014).defensive_try_points
+
+
+def test_overtime_eras():
+    assert rules_for(2011).overtime_format == "sudden_death" and rules_for(2011).playoff_overtime_format == "modified"
+    assert rules_for(2016).overtime_format == "modified" and rules_for(2016).overtime_seconds == 900
+    assert rules_for(2024).overtime_seconds == 600 and rules_for(2024).playoff_overtime_format == "both_possess"
+    assert rules_for(2026).overtime_format == "both_possess"

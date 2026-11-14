@@ -13,6 +13,6 @@ def test_week_one_build():
     from events.baseline_priors import _builders, build
     from shared.priors import priors_of
     built = build(2026, weeks=[1])
-    assert len(built) == 17
+    assert len(built) == 18
     for event, priors in built.items():
         assert priors and set(priors) <= set(priors_of(_builders()[event].__file__)(2026)), event

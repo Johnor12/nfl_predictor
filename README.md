@@ -12,6 +12,8 @@ evaluator: scores a simulator's output distributions against external benchmarks
 
 general approach: simulate many instances of the same scenario, then present a distribution of outcomes. a scenario can be composed of many events, each of which is predicted by an appropriately complex predictor (a game scenario includes a coin toss scenario, composed of a toss event and a decision event; the toss predictor is a trivial 50/50 random generator; the model for predicting what the winning team will do with the toss is significantly more complex). the scenario logically composes event predictors, keeps track of relevant outcomes, then the simulator aggregates those outcomes across 1000’s of simulations. each predictor should be as simple and concise as possible, both in its technical implementation and its scope (for example, the defensive formation predictor should be told the offense's personnel and formation (information the defense has before the snap), rather than implicitly predicting them from team rosters).
 
+I have a fairly strong conviction that coaching staff and referees will be significant to predicting outcomes.
+
 complex events should generally be predicted by machine learning (ML) models trained on historical incidents of that event.
 
 scenarios can be composed together; for example an NFL play scenario contains lineup, formation, snap, and outcome events. a game scenario contains many play scenarios. a season scenario contains many game scenarios. parent scenarios should call child scenarios directly rather than trying to recreate or handle them differently.
@@ -65,13 +67,14 @@ initial implementation of the play scenario, audited using 2026 data from nflver
   - Some clock subtleties after penalties.
   - No 2026 on-field personnel data yet: nflverse hasn't published who was on the field for 2026 (2025's is available). Personnel groupings, depth-chart lineups and formations are hand-set for now.
 
+Game level: the simulator is roughly level with the reference, which is what priors with no team-strength information should give. These
+    scores are in-sample, since the priors are built from 2026.
+
 current goals:
  
-1. add the game scenario and related evaluation framework.
- 
-2. follow up on our initial play scenario: build the edge cases we haven't built yet, add data from prior years (starting with just 2025). a way to handle on-field personnel (maybe gathering directly from team websites/other sources). build the predictor in such a way that it takes advantage of the most information as possible (if we only have on-field info for 2025, it should use that on-field info when predicting for 2025)
+1. follow up on our initial play scenario: build the edge cases we haven't built yet, add data from prior years (starting with just 2025). a way to handle on-field personnel (maybe gathering directly from team websites/other sources). build the predictor in such a way that it takes advantage of the most information as possible (if we only have on-field info for 2025, it should use that on-field info when predicting for 2025)
 
-3. extend to prior seasons (past 10 years? as much data as possible? (may not improve predictors) probably worth having as much data as possible, as it could be helpful for some predictors and detrimental for others)
+2. extend to prior seasons (past 10 years? as much data as possible? (may not improve predictors) probably worth having as much data as possible, as it could be helpful for some predictors and detrimental for others)
 
 notes:
 Do you want a priced source for player props? Without prices a prop can only be treated as a coin flip at the line, and priced history most likely means a paid odds API.

@@ -6,10 +6,13 @@
 #   rows (the pbp row and the FTN charting row, or None), for code that reads what an event's output was.
 # Pipeline: _Rosters (active players per team-week: weekly roster status ACT minus injury-report Outs, plus
 #   anyone who appears in the game's pbp; depth chart slots from the last snapshot before gameday, draft
-#   pick, season-to-date stats from earlier weeks),
+#   pick, season-to-date stats from earlier weeks), _players (both teams' for a game),
 #   _game (schedule row -> Game), _kind / _situation (pbp row -> Situation; clock state inferred from the
 #   previous row by _clock_state), _actual (pbp row -> outcome dict), _summary (row -> PlaySummary history),
 #   _seconds_to_next (real snap-to-snap game time, for clock audits).
+# Timeouts: actual["timeout"] is the team that called one before the play (None if nobody did; a lost
+#   challenge on the previous play counts), and actual["timeout_clock_running"] whether the clock would have
+#   been running at the snap without it. The context itself is the state after the timeout.
 # Conventions: nflverse lists the receiving team as posteam on kickoffs, so the kicking team is our offense
 #   there; a try's x is the two-point spot even when the row is a kick (see scenarios/play/context.py).
 # END
@@ -74,7 +77,7 @@ class _Rosters:
                  .assign(stat=stat) for stat, pid, value in SEASON_STATS]
         weekly = pd.concat(parts).groupby(["player", "week", "stat"]).value.sum().reset_index()
         by_week = {}
-        for week in sorted(pbp.week.unique()):
+        for week in [*sorted(pbp.week.unique()), pbp.week.max() + 1]:  # the last is for games not yet played
             before = weekly[weekly.week < week].groupby(["player", "stat"]).value.sum()
             stats = {}
             for (player, stat), value in before.items():
@@ -94,10 +97,12 @@ class _Rosters:
         return slots
 
     def players(self, team, week, gameday, appeared) -> tuple[Player, ...]:
-        """Active players: roster status ACT minus injury-report Outs, plus anyone who appears in the game's pbp."""
-        rows = self.rosters[(self.rosters.team == team) & (self.rosters.week == week)].drop_duplicates("gsis_id")
+        """Active players: roster status ACT minus injury-report Outs, plus anyone who appears in the game's pbp.
+        A week without a roster yet (a game not played) uses the team's latest one."""
+        team_rows = self.rosters[(self.rosters.team == team) & (self.rosters.week <= week)]
+        rows = team_rows[team_rows.week == team_rows.week.max()].drop_duplicates("gsis_id")
         slots = self._depth_slots(team, gameday)
-        stats = self.stats.get(week, {})
+        stats = self.stats.get(min(week, max(self.stats)), {})
         players = []
         for r in rows.itertuples(index=False):
             active = r.status == "ACT" and (r.gsis_id, week) not in self.out
@@ -113,11 +118,19 @@ class _Rosters:
 
 
 def _game(schedule, row) -> Game:
+    """row names the game (a pbp row, or the schedule row itself); schedule is its schedule row, or {}."""
     return Game(row["game_id"], int(row["season"]), int(row["week"]), row["home_team"], row["away_team"],
                 schedule.get("location") == "Neutral", _num(schedule.get("roof")), _num(schedule.get("surface")),
                 _num(schedule.get("temp")), _num(schedule.get("wind")), _num(schedule.get("stadium")),
                 _num(schedule.get("gametime")), _num(schedule.get("home_coach")), _num(schedule.get("away_coach")),
-                _num(schedule.get("referee")))
+                _num(schedule.get("referee")), schedule.get("game_type", "REG") != "REG")
+
+
+def _players(rosters, game, gameday, rows) -> tuple[Player, ...]:
+    """Both teams' active players; rows are the game's pbp rows (None if it hasn't been played)."""
+    appeared = set() if rows is None else set(rows[[c for c in rows.columns if c.endswith("_player_id")]].stack())
+    return (rosters.players(game.home, game.week, gameday, appeared)
+            + rosters.players(game.away, game.week, gameday, appeared))
 
 
 def _is_play(row) -> bool:
@@ -220,21 +233,25 @@ def real_plays(season: int, weeks=None) -> list[RealPlay]:
         first = rows.iloc[0]
         sched = schedule.loc[game_id].to_dict() if game_id in schedule.index else {}
         game = _game(sched, first)
-        gameday = str(first["game_date"])[:10]
-        appeared = set(rows[[c for c in rows.columns if c.endswith("_player_id")]].stack())
-        players = (rosters.players(game.home, game.week, gameday, appeared)
-                   + rosters.players(game.away, game.week, gameday, appeared))
+        players = _players(rosters, game, str(first["game_date"])[:10], rows)
         home, away = game.home, game.away
         score = {home: 0, away: 0}
         history, prev, prev_safety = [], None, False
+        timeout, before = None, None  # the first timeout since the last play, and the row before it
         for index, row in zip(rows.index, rows.to_dict("records")):
             after = {home: int(_num(row["total_home_score"], score[home])), away: int(_num(row["total_away_score"], score[away]))}
             if _is_play(row):
                 kind = _kind(row, prev_safety)
                 s = _situation(row, prev, kind, score, rules)
-                plays.append(RealPlay(PlayContext(game, s, players, tuple(history)), _actual(row, s, after), index))
+                actual = _actual(row, s, after)
+                actual["timeout"] = timeout
+                actual["timeout_clock_running"] = _clock_state(row, before, kind, rules)[0] if timeout else None
+                plays.append(RealPlay(PlayContext(game, s, players, tuple(history)), actual, index))
                 history.append(_summary(row, s))
                 prev_safety = row["safety"] == 1
+                timeout = None
+            if row["timeout"] == 1 and timeout is None:  # on a play's own row: a lost challenge, charged after it
+                timeout, before = _num(row["timeout_team"]), row if _is_play(row) else prev
             score, prev = after, row
         _seconds_to_next(plays[len(plays) - len(history):])
     return plays

@@ -10,6 +10,6 @@ API (`from simulators.play import ...`):
   - `outcomes`: `(context, summary)` for every play that ran.
   - `failures`: `(context index, message, narration or traceback)`.
   - `examples`: `(context index, PlayResult)`: the first run of about `examples` evenly spaced contexts.
-- `summarize(result) -> dict`: one play's outcome: `action`, `yards`, `points` by team, `touchdown`, `turnover`, `penalty`, `first_down`, `complete`, `field_goal_result`, `extra_point_result`, `kick_distance`, `touchback`, `return_yards`, `seconds`. Same keys and values as `shared.nflverse`'s `RealPlay.actual`, so real and simulated plays can be measured the same way (a touchdown counts as a first down, as in nflverse).
+- `summarize(result) -> dict` (re-exported from `scenarios.play`, where it lives): one play's outcome: `action`, `yards`, `points` by team, `touchdown`, `turnover`, `penalty`, `first_down`, `complete`, `field_goal_result`, `extra_point_result`, `kick_distance`, `touchback`, `return_yards`, `seconds`. Same keys and values as `shared.nflverse`'s `RealPlay.actual`, so real and simulated plays can be measured the same way (a touchdown counts as a first down, as in nflverse).
 
 Every run has its own seed (from `seed`, the context's index, and the run number), so any play can be reproduced.
