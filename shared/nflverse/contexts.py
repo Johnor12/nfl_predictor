@@ -5,7 +5,7 @@
 #   narrow it down.
 # - real_samples(season, weeks=None, games=None) -> iterator of shared.priors.Sample: each real play with its
 #   nflverse rows (the pbp row, the FTN charting row or None, and the participation row or None), for code
-#   that reads what an event's output was.
+#   that reads what an event's output was. A row is a plain object with the columns as attributes (_rows).
 # Pipeline: _Rosters (active players per team-week: weekly roster status ACT minus injury-report Outs, plus
 #   anyone who appears in the game's pbp; depth chart slots from the last snapshot before gameday, draft
 #   pick, season-to-date stats from earlier weeks, and recent snaps by unit from _weekly_snaps: the
@@ -24,6 +24,7 @@
 import bisect
 import dataclasses
 from dataclasses import dataclass
+from types import SimpleNamespace
 
 import pandas as pd
 
@@ -334,12 +335,20 @@ def real_samples(season: int, weeks=None, games=None):
     participation = load("participation", season)
     if participation is not None:
         participation = participation.drop_duplicates(["nflverse_game_id", "play_id"]).set_index(["nflverse_game_id", "play_id"])
+    row, charting, on_field = _rows(pbp), _rows(ftn), _rows(participation)
     for play in real_plays(season, weeks, games):
-        row = pbp.loc[play.row]
-        key = (row.game_id, int(row.play_id))
-        on_field = participation.loc[key] if participation is not None and key in participation.index else None
-        charting = ftn.loc[key] if ftn is not None and key in ftn.index else None
-        yield Sample(play.context, play.actual, row, charting, on_field)
+        play_row = row(play.row)
+        key = (play_row.game_id, int(play_row.play_id))
+        yield Sample(play.context, play.actual, play_row, charting(key), on_field(key))
+
+
+def _rows(frame):
+    """A reader of the frame's rows: label -> the row as a plain object with the columns as attributes, or
+    None if there is no such row (or no frame). A pandas Series reads the same way, 200 times slower."""
+    if frame is None:
+        return lambda label: None
+    names = frame.columns.tolist()
+    return lambda label: SimpleNamespace(**dict(zip(names, frame.loc[label].to_numpy()))) if label in frame.index else None
 
 
 def _seconds_to_next(game_plays):

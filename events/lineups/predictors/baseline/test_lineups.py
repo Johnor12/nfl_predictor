@@ -4,11 +4,13 @@
 # - test_players_are_on_the_field_as_often_as_they_have_been: recent snaps decide who plays, and how often.
 # - test_a_wrong_depth_chart_still_fields_a_kicking_unit: a punter listed at kicker and a quarterback listed
 #   at guard (older depth charts have such rows) don't take the kicker's or a lineman's place.
+# - test_lineups_follow_the_active_players: what is remembered about one set of active players isn't used
+#   for another, however many sets go by.
 # END
 import dataclasses
 import random
 
-from events.lineups.predictors.baseline import predict
+from events.lineups.predictors.baseline import depth_chart, predict
 from events.lineups.predictors.baseline.depth_chart import offense_lineup, unit_lineup
 from scenarios.play.testing import synthetic_context
 
@@ -55,3 +57,17 @@ def test_a_wrong_depth_chart_still_fields_a_kicking_unit():
     unit = unit_lineup(ctx, "HOME", "field_goal", random.Random(0))
     assert len(set(unit)) == 11 and {"HOME-K1", "HOME-P1"} <= set(unit)
     assert "HOME-QB2" not in offense_lineup(ctx, "HOME", "11", random.Random(0))
+
+
+def test_lineups_follow_the_active_players():
+    ctx = synthetic_context(random.Random(1), kind="scrimmage", offense="HOME", defense="AWAY", down=1, distance=10.0, x=30.0)
+    healthy = predict(ctx, random.Random(0))
+    assert "HOME-QB1" in healthy.offense.players
+    hurt = dataclasses.replace(ctx, players=tuple(p for p in ctx.players if p.id != "HOME-QB1"))
+    backup = predict(hurt, random.Random(0)).offense.players
+    assert "HOME-QB1" not in backup and "HOME-QB2" in backup
+    for i in range(depth_chart.KEPT + 5):  # the same players as a new tuple each time: nothing is carried over wrongly
+        again = dataclasses.replace(ctx, players=ctx.players[:i + 1] + ctx.players[i + 1:])
+        assert again.players is not ctx.players and predict(again, random.Random(0)) == healthy
+    assert len(depth_chart._POOLS) <= depth_chart.KEPT
+    assert predict(ctx, random.Random(0)) == healthy

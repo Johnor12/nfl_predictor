@@ -59,15 +59,17 @@ def real_games(season: int, weeks=None, games=None) -> list[RealGame]:
         schedule = schedule[schedule.game_id.isin(list(games))]
     pbp = load("pbp", season)
     rosters = _Rosters(season, pbp)
-    rows = dict(tuple(pbp.groupby("game_id", sort=False)))
-    stats = {game_id: frame.to_dict("records") for game_id, frame in load("player_stats", season).groupby("game_id")}
+    rows = dict(tuple(pbp[pbp.game_id.isin(schedule.game_id)].groupby("game_id", sort=False)))
+    stats = load("player_stats", season)
+    stats = dict(tuple(stats[stats.game_id.isin(schedule.game_id)].groupby("game_id")))  # only the games asked for
     games = []
     for sched in schedule.to_dict("records"):
         game, played = _game(sched, sched), rows.get(sched["game_id"])
         context = GameContext(game, _players(rosters, game, str(sched["gameday"])[:10], played))
         actual = None
         if played is not None and pd.notna(sched["result"]):
-            plays = sum(_is_play(row) for row in played.to_dict("records"))
-            actual = _actual(game, sched, plays, stats.get(game.game_id, []))
+            plays = sum(_is_play(row) for row in played[["posteam", "play_type", "penalty"]].to_dict("records"))
+            lines = stats[game.game_id].to_dict("records") if game.game_id in stats else []
+            actual = _actual(game, sched, plays, lines)
         games.append(RealGame(context, actual))
     return games

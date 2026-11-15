@@ -22,7 +22,8 @@
 # - nullified(sample) -> run, pass, punt, field_goal, or kickoff: what a play wiped out by a penalty was
 #   (nflverse labels it no_play; its description still says).
 # - timeout_case(sample) -> (context, "offense" | "defense" | "none"): the play's context as it stood before
-#   any timeout was called (the clock as it was, the caller's timeout given back), and who called one.
+#   any timeout was called (the clock as it was, the caller's timeout given back), and who called one. Only
+#   the context and actual are read, so a shared.nflverse RealPlay does as well as a Sample.
 # END
 import dataclasses
 import re

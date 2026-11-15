@@ -1,6 +1,6 @@
 # MAINTAINER
 
-- __init__.py: `parse_weeks`, shared by the CLIs.
+- __init__.py: `parse_weeks`, shared by the CLIs, and `executor` (a process pool, or `Inline` for `workers=1`), shared by the play and game evaluators.
 - sample.py: which games an evaluation covers: `EVALUATED`, `sample_games`, `label`. Used by the play, game, and lines evaluators.
 - scoring/: the scoring toolkit (see its MAINTAINER.md). Imports nothing from the rest of the project.
 - play/: the play and event evaluator (see its MAINTAINER.md).
@@ -14,3 +14,13 @@ Notes:
 - The audit and the play evaluator answer different questions. The audit compares overall rates (is the simulator reasonable on average?) and checks every play is valid. The play evaluator scores each play's forecast distribution (is it right about this play?).
 - The sample is a shuffle of the seasons' played games with a fixed seed, cut to `n`: it changes when the seasons or weeks do, or when new games are played (a season in progress), so compare two runs made on the same day's data.
 - The audit still takes one season (`--season`); it is a diagnostic, not a score.
+
+## run time
+
+The evaluators are the development loop, so their run time is worth guarding.
+
+- Where it goes (profile with `workers=1`: `python -m cProfile -s cumulative -m evaluators.game --games 4 --sims 20 --workers 1 --no-lines`): the play scenario's `run_play` is about 75% of a game evaluation and 50% of a play evaluation, spread thinly over the predictors once the lineups stopped dominating; validating every simulated play is about 15%; the play evaluator's event cases and their samples about 25% of it.
+- Work that doesn't depend on the run belongs outside the per-sim loop. The two big wins so far were of that kind: the lineups predictor ranked the roster from scratch on every play (now once per set of active players), and the play evaluator rebuilt each play's real lineups and read pandas rows once per simulated run.
+- Nothing is done in the parent process that a worker can do: reading a season's games and scoring its timeouts are jobs in the same pool as the games.
+- A speedup must not change a score. Check it against a copy of the code from before (`git archive HEAD | tar -x -C <dir>`, with `.cache` linked in): the same small evaluation on both (`--games 8 --sims 6`) must give the same per-case scores (`evaluation.card.outputs[name].scores`, and `pits`, `forecasts`, `halves`), and a few dozen seeded games the same narration (`describe_game`) and stats.
+- Not done, because they change the numbers or cost more than they save: fewer validations, a cache of the built rosters on disk, sampling tables for the priors (`shared.priors.choice` rebuilds its weights on every draw, about 7% of a run).

@@ -24,11 +24,11 @@ Priors files:
 - `save_priors(by_week, file, season) -> Path`: writes a season's `{week: priors}`.
 
 Building priors (used by each baseline's `priors.py` and by `events/baseline_priors.py`):
-- `Sample(context, actual, row, charting, participation)`: one real play: its `PlayContext`, `RealPlay.actual`, nflverse pbp row, FTN charting row (or None), and participation row (who was on the field; None where the season has no such data).
+- `Sample(context, actual, row, charting, participation)`: one real play: its `PlayContext`, `RealPlay.actual`, nflverse pbp row, FTN charting row (or None), and participation row (who was on the field; None where the season has no such data). A row is anything with the file's columns as attributes.
 - `Tally`: `tally.c[name][key] += 1` counts, `tally.hist[name].append(x)` collects values, and `tally.priors()` returns the JSON-ready dict. A name like `"unit|3|4-6|7"` nests everything after the first `|` as a sub-key.
 - `present(value)`: not None and not NaN.
 - `flag(sample)`: the flag on the play as `(foul name, "offense" | "defense")` in the play scenario's foul names, or None. `PRESNAP`: the fouls that belong to the pre-snap event. `flagrant(sample)`: the flagged player was disqualified.
 - `personnel(sample)` (`"11"`, `"12+"`), `package(sample)` (`goal_line`, `base`, `nickel`, `dime`), `played(sample)` (`(offense ids, defense ids)`): the participation row read in the lineups event's terms, or None.
 - `kickoff_result(sample)`: `(zone, result)` for a kickoff that came down in the landing zone or end zone, else None.
-- `timeout_case(sample) -> (context, caller)`: the play's context as it stood before any timeout was called, and who called one (`offense`, `defense`, or `none`).
+- `timeout_case(play) -> (context, caller)`: the play's context as it stood before any timeout was called, and who called one (`offense`, `defense`, or `none`). `play` is a `Sample` or a `RealPlay`: only its context and `actual` are read.
 - `nullified(sample)`: what a play wiped out by a penalty was (`run`, `pass`, `punt`, `field_goal`, `kickoff`), from its description.

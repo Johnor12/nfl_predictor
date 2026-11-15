@@ -5,6 +5,7 @@
 # - test_runs_are_traced: every simulated run becomes one Run with its lineups and each call's arguments.
 # - test_event_cases_for_a_run / test_no_stand_in_no_score: a hand-built real run play gives each event its
 #   real inputs and output; without a matching simulated run the cases have no arguments and go unscored.
+# - test_each_run_leads_once: stand_ins builds the cases once per run, each taking its stand-ins from that run on.
 # - test_week_one_evaluation: a real week scores every event, with skill where the baseline has information.
 #   Skipped unless the 2026 files are already in .cache/nflverse.
 # - test_a_sample_of_seasons: a few games sampled across seasons, old ones included, score in one card.
@@ -16,7 +17,7 @@ from types import SimpleNamespace
 import pytest
 
 from evaluators.play import evaluate, write_report
-from evaluators.play.cases import event_cases
+from evaluators.play.cases import event_cases, stand_ins
 from evaluators.play.evaluate import _runs, _score_events, _score_play, _traced
 from evaluators.play.report import EVENTS
 from evaluators.scoring import Scorecard
@@ -87,6 +88,17 @@ def test_event_cases_for_a_run():
     assert rows["carry: yards (run)"]["n"] == 1 and rows["carry: yards (run)"]["sims"] == 40
     assert rows["snap: carrier"]["n"] == 1 and rows["snap: carrier"]["sims"] < 40  # only the samples that ran
     assert rows["lineups: unit (downs 1-3)"]["sims"] == 40
+
+
+def test_each_run_leads_once():
+    sample, _ = _real_run(random.Random(0))
+    runs, _, _ = _traced_runs(sample.context)
+    by_run = stand_ins(sample, runs)
+    assert len(by_run) == len(runs) and by_run[0] == event_cases(sample, runs)
+    snaps = [next(case.args for case in cases if case.event == "snap") for cases in by_run]
+    assert all(args == event_cases(sample, runs[i:] + runs[:i])[3].args for i, args in enumerate(snaps))
+    assert len({args[0] for args in snaps}) > 1  # the stand-in lineups vary from sample to sample
+    assert len(stand_ins(sample, [])) == 1
 
 
 def test_no_stand_in_no_score():

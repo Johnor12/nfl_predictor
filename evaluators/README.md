@@ -20,4 +20,8 @@ An evaluation covers a sample of games drawn from several seasons, not one seaso
 
 API (`from evaluators.sample import ...`): `EVALUATED`, `sample_games(seasons, weeks=None, n=None) -> {season: [game id]}` (what `evaluate` covers; `evaluators.lines.lines` takes it), and `label(seasons)` for report names.
 
-`from evaluators import parse_weeks` reads a CLI's `--weeks` or `--seasons` value (`1-3` or `1,4`).
+`from evaluators import parse_weeks` reads a CLI's `--weeks` or `--seasons` value (`1-3` or `1,4`). `executor(workers=None)` is where an evaluation's jobs run: a pool of worker processes (one per core), or the calling process when `workers` is 1.
+
+## run times
+
+Both evaluations cost about 0.17 core-seconds per game and sim, and split across every core: the default 160 games at 100 sims take 11 to 12 minutes on 4 cores. The fixed cost is reading a season's files (1 to 2 seconds a season, in the worker processes). Nearly all the time is the play scenario itself, so a slow predictor shows up here first: `MAINTAINER.md` says how to find it and how to check that a speedup changes no score.

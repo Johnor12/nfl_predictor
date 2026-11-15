@@ -10,8 +10,10 @@
 #   and specialists are the ones with the most snaps; the quarterback and returners are the depth chart's.
 #   Without snaps (week 1, synthetic rosters) everyone lines up by depth chart rank.
 # Internals: _snaps (a player's snaps in a unit, from whatever the season's data records), _ranked (players
-#   at depth slots or positions, in the order they'd take the field), _linemen (offensive linemen), _take
-#   (fill quotas without reusing anyone), _fill (top up to 11). SPECIALISTS: each kicking unit's specialists.
+#   at depth slots or positions, in the order they'd take the field), _pool (what _ranked needs to know about
+#   each of them, remembered for as long as the same players are active: ranking is most of a simulated
+#   game's time otherwise), _linemen (offensive linemen), _take (fill quotas without reusing anyone), _fill
+#   (top up to 11). SPECIALISTS: each kicking unit's specialists.
 # END
 OL_SLOTS = ("LT", "LG", "C", "RG", "RT")
 FRONT_SLOTS = ("LDE", "LDT", "NT", "RDT", "RDE", "WLB", "MLB", "SLB", "LILB", "RILB", "DL", "LB")  # the last come off first
@@ -26,6 +28,8 @@ SPECIALISTS = {  # unit -> its specialists as (depth slot, position), in the ord
 }
 INF = float("inf")
 SHARPEN = 1.5  # draw by snaps to this power: plain shares put the regulars on the field too rarely
+KEPT = 64  # sets of active players whose pools are remembered (a game goes through a few as players get hurt)
+_POOLS = {}  # id of a tuple of active players -> (the tuple, {_pool's other arguments: its result})
 
 
 def quotas(group) -> tuple[int, int, int, int]:
@@ -40,19 +44,40 @@ def _snaps(player, unit) -> float:
     return snaps.get(unit, snaps.get("special_teams", 0.0) if unit in KICK_UNITS else 0.0)
 
 
+def _pool(players, team, unit, slots, positions, backups):
+    """The team's players at the given depth slots or positions, in roster order, as (id, snaps in the unit
+    to the power SHARPEN, depth chart rank), and their ids with the most snaps first. Nothing here changes
+    while the same players are active, so it is worked out once for them, not on every play."""
+    if id(players) not in _POOLS:
+        if len(_POOLS) >= KEPT:
+            _POOLS.clear()
+        _POOLS[id(players)] = (players, {})  # holding the tuple keeps its id its own
+    pools = _POOLS[id(players)][1]
+    key = (team, unit, slots, positions, backups)
+    if key not in pools:
+        pool, order = [], []
+        for p in players:
+            if p.team == team and (p.position in positions or any(s in slots for s, _ in p.depth)):
+                best, slot = min([(r, slots.index(s)) for s, r in p.depth if s in slots], default=(50, len(slots)))
+                rank = (best == 1, -best) if backups else (best, slot, p.position not in positions)
+                snaps = _snaps(p, unit)
+                pool.append((p.id, snaps ** SHARPEN if snaps else 0.0, rank))
+                order.append((-snaps if snaps else INF, rank, len(order), p.id))  # its place keeps ties in roster order
+        pools[key] = pool, [entry[-1] for entry in sorted(order)]
+    return pools[key]
+
+
 def _ranked(ctx, team, unit, slots, positions, exclude=(), backups=False, rng=None):
     """Players at the given depth slots or positions. With an rng, players who have snaps in the unit come
     first, drawn without replacement by their snaps to the power SHARPEN (so the first k are on the field
     about as often as they have been); without one, the most snaps first. Then the best depth chart rank at the earliest
     slot (or backups first, for coverage units)."""
-    def order(p):
-        best, slot = min([(r, slots.index(s)) for s, r in p.depth if s in slots], default=(50, len(slots)))
-        rank = (best == 1, -best) if backups else (best, slot, p.position not in positions)
-        snaps = _snaps(p, unit)
-        return (rng.expovariate(1.0) / snaps ** SHARPEN if rng and snaps else -snaps if snaps else INF), rank
-    pool = [p for p in ctx.roster(team) if p.id not in exclude
-            and (p.position in positions or any(s in slots for s, _ in p.depth))]
-    return [p.id for p in sorted(pool, key=order)]
+    pool, by_snaps = _pool(ctx.players, team, unit, slots, positions, backups)
+    if not rng:
+        return [pid for pid in by_snaps if pid not in exclude]
+    drawn = [(rng.expovariate(1.0) / weight if weight else INF, rank, i, pid)
+             for i, (pid, weight, rank) in enumerate(pool) if pid not in exclude]  # i keeps ties in roster order
+    return [entry[-1] for entry in sorted(drawn)]
 
 
 def _take(ctx, team, unit, chosen, quota, backups=False, rng=None):
@@ -63,6 +88,8 @@ def _take(ctx, team, unit, chosen, quota, backups=False, rng=None):
 
 def _fill(ctx, team, chosen, positions=REGULARS):
     """Top up to 11 with any unused players (never a second quarterback or specialist unless needed)."""
+    if len(chosen) >= 11:
+        return tuple(chosen[:11])
     extra = [p.id for p in ctx.roster(team) if p.id not in chosen and p.position in positions]
     extra += [p.id for p in ctx.roster(team) if p.id not in chosen and p.id not in extra]
     return tuple((chosen + extra)[:11])
@@ -106,8 +133,9 @@ def unit_lineup(ctx, team, unit, rng) -> tuple[str, ...]:
         chosen += _ranked(ctx, team, None, ("PR",), (), chosen)[:1]
     elif unit == "kick_return":
         chosen += _ranked(ctx, team, None, ("KR",), (), chosen)[:2]
+    played = {pid for pid, weight, _ in _pool(ctx.players, team, unit, (), REGULARS, False)[0] if weight}
     regulars = _ranked(ctx, team, unit, (), REGULARS, chosen, rng=rng)  # whoever has been playing in the unit
-    chosen += [pid for pid in regulars if _snaps(ctx.by_id[pid], unit) > 0][:11 - len(chosen)]
+    chosen += [pid for pid in regulars if pid in played][:11 - len(chosen)]
     if unit == "punt":
         chosen = _take(ctx, team, unit, chosen, COVERAGE, backups=True)
     elif unit == "kickoff":

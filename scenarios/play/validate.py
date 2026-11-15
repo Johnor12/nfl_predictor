@@ -7,6 +7,8 @@
 # no yardage; no-plays credit only penalties; fumble bookkeeping; team stats = player sums; scores only through scoring events; possession changes explained;
 # field position reconciles with the yardage (plays without loose balls); the next situation is legal.
 # END
+from collections import defaultdict
+
 from events.lineups import Lineups
 from events.offensive_formation import Formation
 from scenarios.play.context import FREE_KICKS, KINDS
@@ -23,8 +25,14 @@ def validate_play(result) -> list[str]:
     off, de = s.offense, s.defense
     errors = []
 
+    totals = defaultdict(dict)  # each stat's total: everyone's (None), and each team's
+    for pid, line in st.items():
+        for scope in (None, ctx.by_id[pid].team):
+            for key, value in line.items():
+                totals[scope][key] = totals[scope].get(key, 0) + value
+
     def total(key, team=None):
-        return sum(line.get(key, 0) for pid, line in st.items() if team in (None, ctx.by_id[pid].team))
+        return totals[team].get(key, 0)
 
     lineups = facts(record, Lineups)[0]
     errors += lineup_errors(ctx, lineups)

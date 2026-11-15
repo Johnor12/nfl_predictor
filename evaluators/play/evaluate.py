@@ -18,11 +18,11 @@
 import dataclasses
 import random
 import zlib
-from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 
+from evaluators import executor
 from evaluators.sample import EVALUATED, sample_games
-from evaluators.play.cases import Run, event_cases, read
+from evaluators.play.cases import Run, read, stand_ins
 from evaluators.scoring import Scorecard
 from scenarios.play import load_predictors
 from shared.nflverse import real_samples
@@ -88,13 +88,13 @@ def _score_play(card, ctx, actual, results):
 
 def _score_events(card, predictors, sample, runs, sims, rng):
     ctx = sample.context
-    stand_ins = [event_cases(sample, runs[i:] + runs[:i]) for i in range(max(1, len(runs)))]  # each run leads once
-    for k, case in enumerate(stand_ins[0]):
+    cases = stand_ins(sample, runs)  # each run leads once
+    for k, case in enumerate(cases[0]):
         predict = getattr(predictors, case.event)
         if case.args is None:
             outs = []
         elif case.args:
-            outs = [predict(ctx, *stand_ins[i % len(stand_ins)][k].args, rng) for i in range(sims)]
+            outs = [predict(ctx, *cases[i % len(cases)][k].args, rng) for i in range(sims)]
         else:  # the context is the predictor's only input, so the runs have already sampled it
             outs = [run.calls[case.event][0][1] for run in runs]
         samples = [read(ctx, case, out) for out in outs]
@@ -122,13 +122,9 @@ def evaluate(seasons=EVALUATED, weeks=None, games=None, sims: int = 100, seed: i
              workers: int | None = None) -> Evaluation:
     sample = sample_games(seasons, weeks, games)
     chunks = [(season, ids[i:i + 8]) for season, ids in sample.items() for i in range(0, len(ids), 8)]
-    jobs = [[season for season, _ in chunks], [ids for _, ids in chunks],
-            [sims] * len(chunks), [seed] * len(chunks), [predictors] * len(chunks)]
-    if workers == 1 or len(chunks) == 1:
-        parts = list(map(_evaluate_games, *jobs))
-    else:
-        with ProcessPoolExecutor(workers) as pool:
-            parts = list(pool.map(_evaluate_games, *jobs))
+    with executor(1 if len(chunks) == 1 else workers) as pool:
+        parts = list(pool.map(_evaluate_games, [season for season, _ in chunks], [ids for _, ids in chunks],
+                              [sims] * len(chunks), [seed] * len(chunks), [predictors] * len(chunks)))
     card = Scorecard()
     for part, _, _ in parts:
         card.merge(part)

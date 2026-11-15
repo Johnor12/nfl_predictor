@@ -1,6 +1,8 @@
 # START
 # Event cases: an event's real inputs and real output on one real play, for scoring its predictor alone.
 # - event_cases(sample, runs) -> list[Case]: every event the data records on this play.
+# - stand_ins(sample, runs) -> list[list[Case]]: the same cases once per run, each with that run moved to the
+#   front of the runs (so each case takes its stand-ins from another run).
 # - Case(event, args, actual, label, real): args are the predictor's arguments between ctx and rng (None when
 #   there is no stand-in, so the case can't be scored); actual is {output name: real value}; label names
 #   the sub-case ("run", "4th down"); real is whatever else of the real play the reader needs.
@@ -13,9 +15,9 @@
 #   run where the offense sent out the same unit as in the real play (and ran the same kind of play, for
 #   fouls). Every other input is real, the lineups included where the season has them (an event whose
 #   inputs also include a stand-in formation keeps the stand-in's lineups, so the two agree).
-# Internals: one builder per group of events (_lineups ... _dead_ball, listed in BUILDERS) and one reader per
-#   event (READERS). _unit / _kind read the real play; _args / _on_field find a stand-in; _real_lineups
-#   builds the real play's Lineups.
+# Internals: one builder per group of events (_lineups ... _dead_ball, listed in BUILDERS; each takes the
+#   sample, the runs, and the real play's Lineups, or None) and one reader per event (READERS). _unit / _kind
+#   read the real play; _args / _on_field find a stand-in; _real_lineups builds the real play's Lineups.
 # Carries stop at the goal line in real data, so a sample's yards are capped there and its end is a touchdown.
 # END
 from dataclasses import dataclass
@@ -101,26 +103,24 @@ def _real_lineups(sample):
                    Lineup(DEFENSE_UNITS[unit], package(sample) if offense else None, players[1]))
 
 
-def _on_field(sample, runs, unit):
-    return _real_lineups(sample) or next((run.lineups for run in runs if run.unit == unit), None)
+def _on_field(real, runs, unit):
+    return real or next((run.lineups for run in runs if run.unit == unit), None)
 
 
-def _lineups(sample, runs):
+def _lineups(sample, runs, real):
     s, unit = sample.context.situation, _unit(sample)
     if unit and s.kind == "scrimmage":
         yield Case("lineups", (), {"unit": unit}, "4th down" if s.down == 4 else "downs 1-3")
     elif unit and s.kind == "try":
         yield Case("lineups", (), {"unit": unit}, "try")
-    real = _real_lineups(sample)
     for side, lineup in enumerate((real.offense, real.defense) if real else ()):  # who was on the field
         actual = {"players missed": 0.0} | ({"personnel": lineup.personnel} if lineup.personnel else {})
         yield Case("lineups", (), actual, lineup.unit, (unit, side, frozenset(lineup.players)))
 
 
-def _formations(sample, runs):
+def _formations(sample, runs, real):
     row, charting = sample.row, sample.charting
     if sample.context.situation.kind == "scrimmage" and sample.actual["action"] in OFFENSE:
-        real = _real_lineups(sample)
         yield Case("offensive_formation", (real,) if real else _args(runs, "offense", "offensive_formation"),
                    {"shotgun": bool(row.shotgun == 1)})
         if charting is not None and charting.n_defense_box > 0:
@@ -128,14 +128,14 @@ def _formations(sample, runs):
                        {"box": float(charting.n_defense_box)})
 
 
-def _pre_snap(sample, runs):
+def _pre_snap(sample, runs, real):
     if sample.context.situation.kind not in FREE_KICKS:
         foul = flag(sample)
         yield Case("pre_snap", _args(runs, _unit(sample), "pre_snap"),
                    {"foul": "|".join(foul) if foul and foul[0] in PRESNAP else "none"})
 
 
-def _snap(sample, runs):
+def _snap(sample, runs, real):
     """The snap and the dropback behind it: snap, pass_rush, target, pass_result."""
     ctx, row, charting, action = sample.context, sample.row, sample.charting, sample.actual["action"]
     if ctx.situation.kind != "scrimmage" or action not in OFFENSE + ("spike",):
@@ -169,13 +169,13 @@ def _snap(sample, runs):
             yield Case("pass_result", args and (lineups, target), {"result": result})
 
 
-def _carries(sample, runs):
+def _carries(sample, runs, real):
     ctx, row, action = sample.context, sample.row, sample.actual["action"]
     s = ctx.situation
 
     def carry(unit, kind, carrier, yard_line, yards, end=None):
         if carrier in ctx.by_id and present(yards) and 0 < yard_line < 100:
-            lineups = _on_field(sample, runs, unit)
+            lineups = _on_field(real, runs, unit)
             actual = {"yards": float(yards)} | ({"end": end} if end else {})
             yield Case("carry", lineups and (lineups, kind, carrier, float(yard_line)), actual, kind)
 
@@ -202,22 +202,22 @@ def _carry_end(row) -> str:
             else "touchdown" if row.touchdown == 1 else "out_of_bounds" if row.out_of_bounds == 1 else "tackled")
 
 
-def _loose_ball(sample, runs):
+def _loose_ball(sample, runs, real):
     s, row = sample.context.situation, sample.row
     if s.kind == "scrimmage" and sample.actual["action"] in OFFENSE and row.fumble == 1:
-        lineups = _on_field(sample, runs, "offense")
+        lineups = _on_field(real, runs, "offense")
         x = min(99.0, max(1.0, s.x + float(row.yards_gained)))
         yield Case("loose_ball", lineups and (lineups, "fumble", x, s.offense), {"lost": bool(row.fumble_lost == 1)})
 
 
-def _punt(sample, runs):
+def _punt(sample, runs, real):
     ctx, row = sample.context, sample.row
     s = ctx.situation
     if s.kind != "scrimmage" or sample.actual["action"] != "punt":
         return
     blocked, kicked = row.punt_blocked == 1, present(row.kick_distance)
     if row.punter_player_id in ctx.by_id:
-        lineups = _on_field(sample, runs, "punt")
+        lineups = _on_field(real, runs, "punt")
         actual = {"blocked": bool(blocked)} | ({"distance": float(row.kick_distance)} if kicked and not blocked else {})
         yield Case("punt_kick", lineups and (lineups, row.punter_player_id), actual)
     if kicked and not blocked and s.x + row.kick_distance < 100 and row.touchback != 1:
@@ -228,24 +228,24 @@ def _punt(sample, runs):
         yield Case("punt_result", args and (args[0], float(s.x + row.kick_distance), args[2]), {"result": result})
 
 
-def _place_kick(sample, runs):
+def _place_kick(sample, runs, real):
     ctx, row, action = sample.context, sample.row, sample.actual["action"]
     field_goal = ctx.situation.kind == "scrimmage" and action == "field_goal"
     extra_point = ctx.situation.kind == "try" and action == "extra_point"
     result = (FIELD_GOALS.get(row.field_goal_result) if field_goal
               else EXTRA_POINTS.get(row.extra_point_result) if extra_point else None)
     if result and present(row.kick_distance) and row.kicker_player_id in ctx.by_id:
-        lineups = _on_field(sample, runs, "field_goal")
+        lineups = _on_field(real, runs, "field_goal")
         yield Case("kick_attempt", lineups and (lineups, row.kicker_player_id, float(row.kick_distance)),
                    {"result": result}, "field goal" if field_goal else "extra point")
 
 
-def _kickoff(sample, runs):
+def _kickoff(sample, runs, real):
     s, row = sample.context.situation, sample.row
     if s.kind != "kickoff" or sample.actual["action"] != "kickoff" or "onside" in str(row.desc).lower():
         return
     out = row.kickoff_out_of_bounds == 1 or row.penalty_type == "Kickoff Out of Bounds"
-    lineups = _on_field(sample, runs, "kickoff")
+    lineups = _on_field(real, runs, "kickoff")
     actual = {"out of bounds": bool(out)}
     if not out and present(row.kick_distance):
         actual["distance"] = float(row.kick_distance)
@@ -257,7 +257,7 @@ def _kickoff(sample, runs):
         yield Case("kick_result", args and (args[0], land, args[2]), {"result": landed[1]})
 
 
-def _dead_ball(sample, runs):
+def _dead_ball(sample, runs, real):
     """Fouls during or after the play, and injuries."""
     action, foul, kind = sample.actual["action"], flag(sample), _kind(sample)
     if kind:
@@ -270,8 +270,17 @@ def _dead_ball(sample, runs):
 BUILDERS = (_lineups, _formations, _pre_snap, _snap, _carries, _loose_ball, _punt, _place_kick, _kickoff, _dead_ball)
 
 
+def _cases(sample, runs, real) -> list[Case]:
+    return [case for build in BUILDERS for case in build(sample, runs, real)]
+
+
 def event_cases(sample, runs) -> list[Case]:
-    return [case for build in BUILDERS for case in build(sample, runs)]
+    return _cases(sample, runs, _real_lineups(sample))
+
+
+def stand_ins(sample, runs) -> list[list[Case]]:
+    real = _real_lineups(sample)  # the same whichever run leads
+    return [_cases(sample, runs[i:] + runs[:i], real) for i in range(max(1, len(runs)))]
 
 
 def _foul(ctx, foul) -> str:

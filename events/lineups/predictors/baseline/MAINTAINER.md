@@ -2,7 +2,7 @@
 
 - __init__.py: `predict`, the unit choice (`_unit`, `_kneel`, `_two_point_rate`, `_onside`), `_personnel`, and `_package`.
 - depth_chart.py: 11 players for any unit: position quotas for the personnel group or package, filled by recent snaps in the unit and then by depth chart rank, with position fallbacks.
-- test_lineups.py: spot checks (depth chart, kneel rule, 4th-and-long punts, recent snaps).
+- test_lineups.py: spot checks (depth chart, kneel rule, 4th-and-long punts, recent snaps, a change of active players).
 - priors.py: `observe(tally, sample)`, which counts one real play into this predictor's priors.
 - priors_<season>.json: the built priors (raw counts and histograms), one file per season (2011 on), counted week by week. `personnel` and `package` are only in seasons with participation data (2016 to 2025).
 
@@ -14,4 +14,5 @@ Notes:
 - Depth charts can be wrong, the weekly ones before 2025 especially (a quarterback at left guard, the kicker and punter swapped). So a kicking unit's specialists are picked one at a time, a player of the specialist's position ahead of anyone else listed at the slot (`SPECIALISTS`), and only linemen fill the five line spots (`_linemen`).
 - A back listed at fullback is also a running back, so the second and third backs are drawn without the fullback already taken.
 - Lineups are drawn independently on every play: nothing keeps a back on the field for a whole series.
+- This predictor runs on every play and ranks the roster about ten times in each, which was 60% of a simulated game's time. `_pool` keeps what a ranking needs (who qualifies, their snaps, their depth chart rank) for each tuple of active players it has seen (`_POOLS`, keyed by the tuple's identity, the last `KEPT` of them), so a play only draws and sorts. The game scenario hands over the same tuple until a player leaves or returns. A change here must keep the draws in roster order, one per player with snaps who isn't excluded, or every seeded game changes.
 - `_ranked` draws without replacement by sorting on an exponential draw divided by the player's snaps to the power `SHARPEN`. Plain shares (1.0) leave the regulars out too often, because a tight end's or third receiver's snaps come mostly from the personnel groups that add him, not from taking the starter's place. On 2025, 1.5 missed fewer players than 1.0 at the same Brier score on offense and defense (2.1 against 2.25, 3.2 against 3.5) and scored better on the kicking units with snap counts; 2.0 and up cost calibration. The cleaner fix is snaps by personnel group, which only the participation data has.

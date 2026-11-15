@@ -16,16 +16,19 @@
 # - TEAM_STATS, PLAYER_STATS: the stats scored for each team, and for each depth chart role (a 3 means third
 #   or lower).
 # Internals: _evaluate_game (one game's scorecard and line samples), _line_values (a line's simulated
-#   values), _score_timeouts (the timeout predictor sampled on every real play's situation).
+#   values), _score_games (the games as jobs of a pool, their scorecards merged), _played (a season's sampled
+#   games), _score_timeouts (the timeout predictor sampled on every real play's situation, a season at a
+#   time). evaluate runs all three in one pool of processes: reading a season and scoring its timeouts are
+#   jobs like a game is, so nothing waits on the parent process.
 # END
 import random
-from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 
+from evaluators import executor
 from evaluators.sample import EVALUATED, sample_games
 from evaluators.scoring import Scorecard
 from scenarios.game import load_game_predictors
-from shared.nflverse import real_games, real_samples
+from shared.nflverse import real_games, real_plays
 from shared.priors import role, timeout_case
 from simulators.game import simulate_game
 
@@ -88,17 +91,12 @@ def _evaluate_game(game, sims, seed, predictors, keys):
     return card, {key: _line_values(sim, key) for key in keys}, len(sim.failures)
 
 
-def evaluate_games(games, sims: int = 100, seed: int = 0, predictors=None, workers: int | None = None, lines=()):
+def _score_games(pool, games, sims, seed, predictors, lines):
     keys = {}
     for line in lines:
         keys.setdefault(line.key[1], set()).add(line.key)
-    jobs = [games, [sims] * len(games), [seed] * len(games), [predictors] * len(games),
-            [sorted(keys.get(game.context.game.game_id, ())) for game in games]]
-    if workers == 1 or len(games) == 1:
-        parts = list(map(_evaluate_game, *jobs))
-    else:
-        with ProcessPoolExecutor(workers) as pool:
-            parts = list(pool.map(_evaluate_game, *jobs))
+    parts = list(pool.map(_evaluate_game, games, [sims] * len(games), [seed] * len(games), [predictors] * len(games),
+                          [sorted(keys.get(game.context.game.game_id, ())) for game in games]))
     card, samples = Scorecard(), {}
     for part, values, _ in parts:
         card.merge(part)
@@ -106,23 +104,36 @@ def evaluate_games(games, sims: int = 100, seed: int = 0, predictors=None, worke
     return card, samples, sum(failures for _, _, failures in parts)
 
 
-def _score_timeouts(card, season, games, predict, sims, seed):
-    rng = random.Random(f"{seed} timeouts {season}")
-    for sample in real_samples(season, games=games):
-        ctx, caller = timeout_case(sample)
+def evaluate_games(games, sims: int = 100, seed: int = 0, predictors=None, workers: int | None = None, lines=()):
+    with executor(1 if len(games) == 1 else workers) as pool:
+        return _score_games(pool, games, sims, seed, predictors, lines)
+
+
+def _played(season, games) -> list:
+    return [game for game in real_games(season, games=games) if game.actual]
+
+
+def _score_timeouts(season, games, predict, sims, seed) -> Scorecard:
+    card, rng = Scorecard(), random.Random(f"{seed} timeouts {season}")
+    for play in real_plays(season, games=games):
+        ctx, caller = timeout_case(play)
         s = ctx.situation
         side = {s.offense: "offense", s.defense: "defense", None: "none"}
         left = s.clock + (900 if s.quarter in (1, 3) else 0)
         label = "last 2:00 of a half" if left <= 120 else "rest of the game"
         card.add(f"timeout: caller ({label})", [side[predict(ctx, rng)] for _ in range(sims)], caller)
+    return card
 
 
 def evaluate(seasons=EVALUATED, weeks=None, games=None, sims: int = 100, seed: int = 0, predictors=None,
              workers: int | None = None, lines=()) -> Evaluation:
     sample = sample_games(seasons, weeks, games)
-    played = [game for season, ids in sample.items() for game in real_games(season, games=ids) if game.actual]
-    card, samples, failures = evaluate_games(played, sims, seed, predictors, workers, lines)
     timeout = (predictors or load_game_predictors("baseline")).timeout
-    for season, ids in sample.items():
-        _score_timeouts(card, season, ids, timeout, sims, seed)
+    with executor(workers) as pool:  # each season's games are read and its timeouts scored while games are simulated
+        loading = [pool.submit(_played, season, ids) for season, ids in sample.items()]
+        timeouts = [pool.submit(_score_timeouts, season, ids, timeout, sims, seed) for season, ids in sample.items()]
+        played = [game for games in loading for game in games.result()]
+        card, samples, failures = _score_games(pool, played, sims, seed, predictors, lines)
+        for part in timeouts:
+            card.merge(part.result())
     return Evaluation(sorted(sample), sims, len(played), failures, card, list(lines), samples)

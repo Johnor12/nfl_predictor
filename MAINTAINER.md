@@ -40,10 +40,10 @@ They point one way: evaluators -> simulators -> scenarios -> events (output type
 
 ## commands
 
-- Tests: `uv run pytest -q` (about 2 minutes with the cache). The nflverse, audit, priors-build, play and game evaluation, and lines tests skip unless `.cache/` has the 2026 files (and the 2014, 2016, 2019, and 2025 ones, for the tests that use them).
-- Forecast a game: `uv run python -m simulators.game 2026_10_NE_DET --sims 1000` prints win probabilities and the distributions of the score and the main stat lines (about 0.25 seconds per simulated game and core).
-- Evaluate the game scenario: `uv run python -m evaluators.game` writes `evaluation_output/game_2021-2026.md`: 160 games sampled from the last six seasons (about 6 minutes on 16 cores, 45 on 2; `--games 16 --sims 10` for a quick look; `--seasons 2026 --games 0` for every game of a season; `--no-lines` to skip the betting lines; `--swap carry=other` for another implementation).
-- Evaluate the play scenario and its event predictors: `uv run python -m evaluators.play` writes `evaluation_output/play_2021-2026.md`, on the same 160 games (about 7 minutes on 16 cores, 55 on 2; `--games 16 --sims 20` for a quick look, under a minute; `--swap carry=other` for another implementation).
+- Tests: `uv run pytest -q` (about 90 seconds with the cache). The nflverse, audit, priors-build, play and game evaluation, and lines tests skip unless `.cache/` has the 2026 files (and the 2014, 2016, 2019, and 2025 ones, for the tests that use them).
+- Forecast a game: `uv run python -m simulators.game 2026_10_NE_DET --sims 1000` prints win probabilities and the distributions of the score and the main stat lines (about 0.1 seconds per simulated game and core).
+- Evaluate the game scenario: `uv run python -m evaluators.game` writes `evaluation_output/game_2021-2026.md`: 160 games sampled from the last six seasons (about 3 minutes on 16 cores, 11 on 4; `--games 16 --sims 10` for a quick look, about 15 seconds; `--seasons 2026 --games 0` for every game of a season; `--no-lines` to skip the betting lines; `--swap carry=other` for another implementation).
+- Evaluate the play scenario and its event predictors: `uv run python -m evaluators.play` writes `evaluation_output/play_2021-2026.md`, on the same 160 games (about 3 minutes on 16 cores, 12 on 4; `--games 16 --sims 20` for a quick look, about 20 seconds; `--swap carry=other` for another implementation).
 - Score the betting lines: `uv run python -m evaluators.lines` writes `evaluation_output/lines_2021-2026.md` for the same games (downloads each game's props on first use).
 - Audit: `uv run python -m evaluators.audit --season 2026` writes `audit_output/report_2026.md`.
 - Rebuild the baseline priors: `uv run python -m events.baseline_priors` (every season from 2011, one file per season and predictor; about 20 minutes on 2 cores; `2026` or `2020-2026` for some of them). The first run downloads about 25 MB of nflverse files per season.
@@ -61,6 +61,7 @@ They point one way: evaluators -> simulators -> scenarios -> events (output type
 - A rule change needs: the value in `shared/rulebook/rules.py`, the scenario reading it, a scripted test, and, if it changes how an event plays out, its fields in a group like `KICKOFF` with the affected priors keys tied to it.
 - A scenario's outcome summary and the real outcome built from nflverse must have the same keys and meaning: `scenarios.play.summarize` with `shared/nflverse/contexts.py`, `simulators.game.summarize` with `shared/nflverse/games.py`.
 - Every evaluator scores with `evaluators.scoring` (fair CRPS for numbers, fair Brier for yes/no and categories), so scores mean the same thing at every level.
+- The evaluators' run time is the development loop's: a predictor runs on every simulated play, so anything it works out that doesn't change from play to play (a roster's ranking, a table built from the priors) should be worked out once. `evaluators/MAINTAINER.md` says where the time goes and how to check a speedup changes no score.
 
 ## generated files (gitignored)
 

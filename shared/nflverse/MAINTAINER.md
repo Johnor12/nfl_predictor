@@ -3,7 +3,7 @@
 - __init__.py: exports `SEASONS`, `load`, `real_plays`, `real_samples`, `RealPlay`, `real_games`, `RealGame`, `STAT_COLUMNS`.
 - download.py: `SEASONS`, `load`, and the file URLs (`FILES`); caches under `.cache/nflverse/`. A file in `OPTIONAL` that isn't published (404) leaves a `.missing` marker, so it's only asked for once. `load` renames the teams that have moved (`TEAMS`) in every file's team columns.
 - depth.py: `depth_charts(season)`: the depth charts in the 2025+ shape for every season (the weekly charts before 2025 are dated the day before the week's first game, and their slots renamed by `SLOTS`).
-- contexts.py: `real_samples`, and `real_plays` and its pipeline (`_Rosters`, `_weekly_snaps`, `_game`, `_kind`, `_clock_state`, `_situation`, `_actual`, `_summary`, `_seconds_to_next`).
+- contexts.py: `real_samples` (and `_rows`, which hands a file's rows over as plain objects), and `real_plays` and its pipeline (`_Rosters`, `_weekly_snaps`, `_game`, `_kind`, `_clock_state`, `_situation`, `_actual`, `_summary`, `_seconds_to_next`).
 - games.py: `real_games`, `RealGame`, `STAT_COLUMNS`, and `_actual` (a game's real outcome from the schedule and the player stats file). Uses contexts.py's `_Rosters`, `_players`, and `_game`, so a game and its plays get the same inputs.
 - test_contexts.py: week 1 contexts are valid; conventions (kickoff orientation, try spots, clock inference); timeouts before plays; week 1 games (inputs, outcomes, stat lines); a season in the older formats (2014). Skipped if the cache is missing.
 
@@ -20,7 +20,8 @@ Notes:
 - `games._actual` and `simulators.game.summarize` must produce the same keys with the same meaning (`evaluators/game` compares them). Change them together.
 - Timeouts are their own pbp rows (`timeout == 1`, `timeout_team`). A play's own row has `timeout == 1` when its challenge was lost; that timeout is attributed to the next play. Only the first timeout between two plays is kept.
 - The player stats file has a leftover row per team without a player id (penalties that weren't assigned). `games._actual` skips it, so team penalties are the players' only.
-- `real_plays` and `real_games` take about 5 seconds for a season before the first play or game comes out, nearly all of it building the rosters; that is the fixed cost of every evaluator process.
+- `real_plays` and `real_games` take 1 to 2 seconds for a season before the first play or game comes out, nearly all of it building the rosters (`_Rosters`, the same for one game as for the whole season); that is the fixed cost of every evaluator process. What is per game (`real_games`' stat lines and play counts) is only read for the games asked for.
+- A sample's rows are plain objects, not pandas Series: reading an attribute of a Series takes about 20 microseconds, and the priors builders and the play evaluator read dozens per play (the evaluator once per simulated run). The values are the Series' own (numpy numbers, `nan` where missing).
 - A cached file doesn't refresh itself: `load(name, season, refresh=True)` after new games are played.
 - Older seasons, and what was done about each difference (a new one belongs in the same places: `load` for names, `depth.py` for depth charts, `_Rosters.players` for a player's fields):
   - Team codes: only the play-by-play uses the current ones for every season. `load` renames the rest (`TEAMS`).
