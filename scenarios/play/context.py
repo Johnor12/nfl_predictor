@@ -33,6 +33,8 @@ class Game:
     away_coach: str | None = None
     referee: str | None = None
     playoff: bool = False
+    spread: float | None = None   # the betting line before the game: points the home team is favored by
+    total: float | None = None    # ... and the points both teams are expected to score
 
 
 @dataclass(frozen=True)

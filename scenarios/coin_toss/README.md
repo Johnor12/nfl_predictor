@@ -8,7 +8,7 @@ API (`from scenarios.coin_toss import ...`):
 - `TossContext(game, players, overtime=False)`: the game, both teams' active players, and whether this is the overtime toss.
 - `Toss(winner, choice, kicking, receiving, second_half_kicking, overtime)`: `second_half_kicking` is None for an overtime toss.
 - `allowed_choices(ctx)`: `receive`, `kick`, and, except in overtime, `defer`.
-- `TossPredictors(coin_toss, toss_choice)`: one function per event. `load_toss_predictors("baseline", toss_choice="other")` builds it from each event's implementation of that name (`events/<event>/predictors/<name>/`).
+- `TossPredictors(coin_toss, toss_choice)`: one function per event. `load_toss_predictors()` builds it from each event's default implementation, and `load_toss_predictors(toss_choice="other")` swaps in `events/toss_choice/predictors/other/` (see `events/README.md`).
 
 ## the event chain
 

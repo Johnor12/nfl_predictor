@@ -13,3 +13,5 @@ Design the system in a way which facilitates automated testing by agents.
 Your goal when working should be to isolate the responsible service(s) and focus your work (and context) on them, treating other services as abstract APIs outside of the scope of your changes (only loading their README.mds into context, for example). The goal is to break the project into manageably sized services, allowing the project to scale with efficient context management (loading all project code into context on every change bloats quickly; loading a short <100 line README.md for each service scales much better).
 
 try to avoid spending a ton of time making manual tweaks to event predictors; I think an ML model will generally outperform handcrafted predictors for complex events.
+
+When you start a long running process, report how long you expect it to take

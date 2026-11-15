@@ -8,8 +8,8 @@ API (`from scenarios.game import ...`):
 - `validate_game(result, plays=True) -> list[str]`: the broken [invariants](RULES.md#invariants) (empty if the game is valid). `plays=False` skips re-checking each play with the play scenario's validator.
 - `describe_game(result, plays=False) -> str`: a box score; with `plays=True`, the whole timeline as well.
 - `validate_game_context(ctx) -> list[str]`: problems with an input.
-- Input: `GameContext(game, players)`: the play scenario's `Game` (teams, venue, weather, coaches, referee, season, playoff) and both teams' active `Player`s.
-- Predictors: `GamePredictors(play, toss, timeout)`: the play scenario's `Predictors`, the coin toss scenario's `TossPredictors`, and the timeout event's function. `load_game_predictors("baseline", timeout="other", carry="other")` builds it from each event's implementation of that name.
+- Input: `GameContext(game, players)`: the play scenario's `Game` (teams, venue, weather, coaches, referee, season, playoff, the betting lines) and both teams' active `Player`s.
+- Predictors: `GamePredictors(play, toss, timeout)`: the play scenario's `Predictors`, the coin toss scenario's `TossPredictors`, and the timeout event's function. `load_game_predictors()` builds it from each event's default implementation, `load_game_predictors(timeout="other", carry="other")` swaps some, and `load_game_predictors("baseline")` takes every event's baseline.
 - `GameResult`: `record` (the timeline), `score`, `winner` (None for a tie), `quarters` (4, or more with overtime), `stats` and `team_stats` (the sum of the plays'), `absences` (players sidelined by injuries or disqualified), and `plays` (the `PlayResult`s alone).
 - The record's entries, in order: a `Toss` for each coin toss, a `PlayResult` for each play, and a `Stoppage(kind, quarter, clock, team)` for each timeout, 10-second runoff, two-minute warning, and end of a period.
 - Test support (`from scenarios.game.testing import ...`): `synthetic_game`, `chaos_game_predictors` (random legal predictors for fuzzing), `with_events` (swap any event's function).

@@ -2,13 +2,15 @@
 # The play's predictors: one function per event, bundled.
 # - Predictors: dataclass of event functions, in chain order. Each event's package (events/<event>/) defines
 #   its signature and output type. Swap one with dataclasses.replace(predictors, carry=my_carry).
-# - load_predictors(default="baseline", **overrides) -> Predictors: each event's implementation by name, from
-#   events/<event>/predictors/<name>/ (its `predict`), e.g. load_predictors("baseline", carry="tuned").
+# - load_predictors(default=None, **overrides) -> Predictors: each event's default implementation
+#   (events.predictor), or the one named `default` for every event; an override names one event's, e.g.
+#   load_predictors(carry="tuned"), or load_predictors("baseline") for every event's baseline.
 # END
 import dataclasses
 from dataclasses import dataclass
-from importlib import import_module
 from typing import Callable
+
+from events import predictor
 
 
 @dataclass(frozen=True)
@@ -32,10 +34,9 @@ class Predictors:
     injuries: Callable             # (ctx, lineups, record, rng) -> tuple[Injury, ...]
 
 
-def load_predictors(default: str = "baseline", **overrides: str) -> Predictors:
+def load_predictors(default: str | None = None, **overrides: str) -> Predictors:
     events = [f.name for f in dataclasses.fields(Predictors)]
     unknown = sorted(set(overrides) - set(events))
     if unknown:
         raise ValueError(f"not play events: {unknown}")
-    return Predictors(**{event: import_module(f"events.{event}.predictors.{overrides.get(event, default)}").predict
-                         for event in events})
+    return Predictors(**{event: predictor(event, overrides.get(event, default)) for event in events})

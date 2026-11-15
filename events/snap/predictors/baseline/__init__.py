@@ -1,9 +1,11 @@
 # START
 # Baseline snap predictor: run or pass by game script, down, and distance; the ball carrier by how often each
 # back on the field carries when he is out there (by depth chart role, and his own carries this season).
-# - predict(ctx, lineups, formation, defense, allowed, rng) -> Snap.
+# - predict(ctx, lineups, formation, defense, allowed, rng, pass_rate=pass_rate) -> Snap. Another
+#   implementation can hand in its own `pass_rate` and keep the rest (events/snap/predictors/gbm).
+# - pass_rate(ctx, lineups, formation, defense) -> float: how often the offense drops back here (the
+#   script's rate backed off to the normal script's; the two-point play mix on a try).
 # Hand-set: the bad snap rate, kneels from the victory formation, and spikes late in a half with no timeouts.
-# Internals: _pass_rate (the script's rate backed off to the normal script's).
 # END
 from events.snap import Snap
 from shared.priors import blend, dist_bucket, priors_of, rate, script, usage
@@ -11,7 +13,17 @@ from shared.priors import blend, dist_bucket, priors_of, rate, script, usage
 load_priors = priors_of(__file__)  # (season, week) -> priors dict
 
 
-def predict(ctx, lineups, formation, defense, allowed, rng):
+def pass_rate(ctx, lineups, formation, defense) -> float:
+    s = ctx.situation
+    p = load_priors(ctx.game.season, ctx.game.week)
+    if s.kind == "try":
+        return rate(p["two_point_play"], "pass")
+    key = f"{s.down}|{dist_bucket(s.distance)}"
+    counts = p["pass_rate"].get(f"{script(s)}|{key}", {})
+    return rate(blend(counts, p["pass_rate"].get(f"normal|{key}", {})), "pass")
+
+
+def predict(ctx, lineups, formation, defense, allowed, rng, pass_rate=pass_rate):
     s = ctx.situation
     p = load_priors(ctx.game.season, ctx.game.week)
     bad = rng.random() < 0.003
@@ -24,17 +36,10 @@ def predict(ctx, lineups, formation, defense, allowed, rng):
     if (s.kind == "scrimmage" and s.clock_running and s.quarter in (2, 4) and s.clock <= 30 and s.down < 4
             and s.timeouts[s.offense] == 0 and (s.quarter == 2 or lead <= 0) and rng.random() < 0.6):
         return Snap("spike")  # hand-set
-    if rng.random() < _pass_rate(s, p):
+    if rng.random() < pass_rate(ctx, lineups, formation, defense):
         return Snap("pass", bad_snap=bad)
     backs = list(formation.backfield)
     weights = [usage(ctx.by_id[pid], "carries", "carried", p["carry_rate"], p["carries_per_snap"]) or 0.001
                for pid in backs]
     return Snap("run", rng.choices(backs, weights)[0], bad)
 
-
-def _pass_rate(s, p):
-    if s.kind == "try":
-        return rate(p["two_point_play"], "pass")
-    key = f"{s.down}|{dist_bucket(s.distance)}"
-    counts = p["pass_rate"].get(f"{script(s)}|{key}", {})
-    return rate(blend(counts, p["pass_rate"].get(f"normal|{key}", {})), "pass")

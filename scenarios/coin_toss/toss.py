@@ -1,8 +1,8 @@
 # START
 # The coin toss scenario: the toss, the winner's choice, and what the choice means under the rules.
 # - TossContext(game, players, overtime): the input. overtime is True for the toss before overtime.
-# - TossPredictors(coin_toss, toss_choice): one function per event; load_toss_predictors(default, **overrides)
-#   loads each event's implementation by name from events/<event>/predictors/<name>/.
+# - TossPredictors(coin_toss, toss_choice): one function per event; load_toss_predictors(default=None,
+#   **overrides) loads each event's default implementation (events.predictor), or the ones named.
 # - allowed_choices(ctx) -> tuple[str, ...]: receive, kick, and (not in overtime) defer.
 # - run_coin_toss(ctx, predictors, rng) -> Toss: winner, choice, who kicks off now, and who kicks off the
 #   second half (None for an overtime toss).
@@ -12,9 +12,9 @@
 # END
 import dataclasses
 from dataclasses import dataclass
-from importlib import import_module
 from typing import Callable
 
+from events import predictor
 from scenarios.play import Game, IllegalChoice, Player
 
 
@@ -41,13 +41,12 @@ class TossPredictors:
     toss_choice: Callable          # (ctx, winner, allowed, rng) -> choice
 
 
-def load_toss_predictors(default: str = "baseline", **overrides: str) -> TossPredictors:
+def load_toss_predictors(default: str | None = None, **overrides: str) -> TossPredictors:
     events = [f.name for f in dataclasses.fields(TossPredictors)]
     unknown = sorted(set(overrides) - set(events))
     if unknown:
         raise ValueError(f"not coin toss events: {unknown}")
-    return TossPredictors(**{event: import_module(f"events.{event}.predictors.{overrides.get(event, default)}").predict
-                             for event in events})
+    return TossPredictors(**{event: predictor(event, overrides.get(event, default)) for event in events})
 
 
 def allowed_choices(ctx) -> tuple[str, ...]:

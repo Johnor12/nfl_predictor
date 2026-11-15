@@ -200,7 +200,8 @@ def _game(schedule, row) -> Game:
                 schedule.get("location") == "Neutral", _num(schedule.get("roof")), _num(schedule.get("surface")),
                 _num(schedule.get("temp")), _num(schedule.get("wind")), _num(schedule.get("stadium")),
                 _num(schedule.get("gametime")), _num(schedule.get("home_coach")), _num(schedule.get("away_coach")),
-                _num(schedule.get("referee")), schedule.get("game_type", "REG") != "REG")
+                _num(schedule.get("referee")), schedule.get("game_type", "REG") != "REG",
+                _num(schedule.get("spread_line")), _num(schedule.get("total_line")))
 
 
 def _players(rosters, game, gameday, rows) -> tuple[Player, ...]:

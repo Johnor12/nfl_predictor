@@ -26,7 +26,7 @@ def main():
     problems = validate_game_context(game.context)
     if problems:
         parser.error(f"the inputs for {args.game_id} aren't usable: {problems}")
-    predictors = load_game_predictors("baseline", **dict(swap.split("=") for swap in args.swap))
+    predictors = load_game_predictors(**dict(swap.split("=") for swap in args.swap))
     sim = simulate_game(game.context, predictors, args.sims, args.seed, args.workers)
     print(forecast(sim))
     for run, message, _ in sim.failures[:5]:

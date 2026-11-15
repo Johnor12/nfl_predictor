@@ -14,6 +14,8 @@ general approach: simulate many instances of the same scenario, then present a d
 
 I have a fairly strong conviction that coaching staff, referees, and betting lines will be significant predictors.
 
+I am absolutely willing to include pre-game betting lines as inputs to our predictors. I realize this means that comparing to betting lines becomes more complex, but I believe betting lines abolsutely impact the outcomes of games (corruption). at the very least we should test including them. a theory is that referees are unduly influenced by betting lines, which would imply that fouls are the main way they express themselves in games. I'm not particularly interested in implicitly reusing the betting lines predictive values (that's the whole point of this project), but I think they could be useful as a primary indicator via the path I described above. - we attempted this generally and saw no improvement. the next step would be to split by referee crew and foul type. this is not high priority.
+
 complex events should generally be predicted by machine learning (ML) models trained on historical incidents of that event.
 
 scenarios can be composed together; for example an NFL play scenario contains lineup, formation, snap, and outcome events. a game scenario contains many play scenarios. a season scenario contains many game scenarios. parent scenarios should call child scenarios directly rather than trying to recreate or handle them differently.
@@ -57,11 +59,11 @@ Phase 2 is a season simulator. the season scenario contains all game scenarios a
 
 Phase 3 is a multi-season simulator. the multi-season scenario chains multiple season scenarios together with between-season events (many of the same events from the season scenario, but including drafted players and the NFL schedule). even further out.
 
-architecture: the project should be structured to match our terminology and model; a /events folder with subfolders for each individual event that we are modeling (the inputs and outputs for the event). within each event folder, we should have a folder for predictors. each subfolder in the predictors folder should be an implementation of a predictor for that event, allowing us to store multiple predictors and swap between them easily. a separate top level folder for each scenario we model; a game, a play, etc. individual events/predictors can be reused across different scenarios. a separate top level folder for our simulators, which orchestrate our scenarios. a separate top level folder for evaluators, which score the output of simulators. a top level folder /shared, for shared business logic (rulebooks)
+architecture: the project should be structured to match our terminology and model; a /events folder with subfolders for each individual event that we are modeling (the inputs and outputs for the event). within each event folder, we should have a folder for predictors. each subfolder in the predictors folder should be an implementation of a predictor for that event, allowing us to store multiple predictors and swap between them easily. a separate folder within the scenario folder for each scenario we model; a game, a play, etc. individual events/predictors can be reused across different scenarios. a separate top level folder for our simulators, which orchestrate our scenarios. a separate top level folder for evaluators, which score the output of simulators. a top level folder /shared, for shared business logic (rulebooks)
 
 finished (11/14):
 Game scenario, simulator, and evaluator.
-not built: coach's challenges, multiple timeouts per dead ball, injury stoppages, emergency replacements, disqualifications, postseason third-overtime kickoff, fair-catch kick.
+not built: coach's challenges, multiple timeouts per dead ball, injury stoppage time, emergency replacements, postseason third-overtime kickoff, fair-catch kick, fake kicks
 
 current goals:
 
@@ -69,5 +71,11 @@ current goals:
 
 2. follow up on our game scenario implementation, building out any remaining edge cases.
 
+3. no indicator of team or player strength anywhere in the model (represented by ML weights?). coaches, referees, weather, surface, neutral site, experience, and draft pick are read by nothing.
+
 notes:
 Do you want a priced source for player props? Without prices a prop can only be treated as a coin flip at the line, and priced history most likely means a paid odds API.
+
+formation, personnel, and box are not used in our snap predictor ML model. they were worth 5.8% in a test run, but there's no mechanism for play-specific inputs; they come from league averages, which makes the model worse than leaving them out. offensive formation (shotgun) predictors would enable them.
+
+team/coach tendency inputs would be high leverage

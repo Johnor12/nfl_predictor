@@ -1,6 +1,8 @@
 # START
 # Tests across the events' predictor implementations (no network needed).
 # - test_baseline_plays_are_valid: thousands of synthetic plays with every baseline predictor pass the validator.
+# - test_default_plays_are_valid: the same with each event's default implementation (events.predictor), and
+#   every event of the game has one.
 # - test_load_predictors_rejects_unknown_events.
 # - test_baseline_timeouts_need_a_timeout: only a team with a timeout left calls one.
 # END
@@ -15,6 +17,16 @@ from scenarios.play.testing import synthetic_context
 def test_baseline_plays_are_valid():
     predictors = load_predictors("baseline")
     for seed in range(3000):
+        rng = random.Random(seed)
+        result = run_play(synthetic_context(rng), predictors, rng)
+        assert validate_play(result) == [], seed
+
+
+def test_default_plays_are_valid():
+    from scenarios.game import load_game_predictors
+    predictors = load_game_predictors().play  # the play's, the coin toss's, and the timeout's defaults all load
+    assert predictors == load_predictors()
+    for seed in range(500):
         rng = random.Random(seed)
         result = run_play(synthetic_context(rng), predictors, rng)
         assert validate_play(result) == [], seed

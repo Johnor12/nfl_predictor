@@ -1,8 +1,9 @@
 # MAINTAINER
 
-- __init__.py: package marker.
+- __init__.py: `predictor(event, name=None)`: an implementation's `predict`, the event's `DEFAULT` one without a name. The scenarios' loaders all go through it.
 - <event>/: one package per event (see its README.md and MAINTAINER.md).
 - baseline_priors.py: `build` / `save` and the CLI (one season, or a range of them in parallel processes). One pass over a season's real plays, handing each one (a `shared.priors.Sample`) to every `<event>/predictors/baseline/priors.py`'s `observe(tally, sample)`.
+- training.py: `table`: every real play of the given seasons as a row of a trained predictor's inputs and output, built in parallel processes and cached per season (`.cache/training/<name>_<season>.parquet`).
 - test_predictors.py: every baseline predictor together produces valid plays on synthetic contexts; `load_predictors` rejects unknown events; the baseline timeout predictor only names a team that has a timeout.
 - test_baseline_priors.py: a week 1 priors build covers every event that has a `priors.py` (18) with the committed files' keys, for a season with on-field data (2025), one without (2026), and one in the older data formats (2016). Skipped if the nflverse cache is missing.
 
@@ -10,7 +11,9 @@ Adding an event: create `events/<event>/` with the output type in `__init__.py`,
 
 Adding an event to another scenario works the same way: a field in that scenario's bundle (`scenarios.coin_toss.TossPredictors`, `scenarios.game.GamePredictors`) and a call in its chain. A baseline without data (`coin_toss`, `toss_choice`) has no `priors.py`.
 
-Adding a predictor implementation: create `events/<event>/predictors/<name>/` exporting `predict`, then load it with `load_predictors("baseline", <event>="<name>")`. Score it with `python -m evaluators.play --swap <event>=<name>` and compare the event's rows with the baseline's; the audit shows the effect on overall rates.
+Adding a predictor implementation: create `events/<event>/predictors/<name>/` exporting `predict`, then load it with `load_predictors(<event>="<name>")`. Score it with `python -m evaluators.play --swap <event>=<name>` and compare the event's rows with the default's; the audit shows the effect on overall rates. Once it measures better, make it the default: `DEFAULT = "<name>"` in `events/<event>/predictors/__init__.py` (the evaluators, the audit, and the simulators' CLIs then use it, and `--swap <event>=baseline` brings the old one back for a comparison).
+
+Adding a trained predictor (a model instead of counts; `snap/predictors/gbm/` is the pattern): an `inputs.py` with one `features` function that reads the model's inputs the same way from a simulated play and a real one, a `train.py` with `example(sample)` (the features and the real output of one real play), `train(season)`, and a CLI, and a `predict` that asks `shared.models.models_of(__file__)` for the season's model. Keep whatever the model doesn't predict in the baseline and call it (the baseline's `predict` takes the part to replace as an argument). Choose features and settings on seasons before the evaluated ones, so the evaluators' scores stay out of sample.
 
 Notes:
 - An event's `__init__.py` must not import `scenarios.play` (the play scenario imports it). Implementations may.
@@ -21,4 +24,5 @@ Notes:
 - Using everything a season's data has: a `priors.py` counts a key only on the samples that can say (`if personnel(sample): ...`), so the key lands in the seasons that have the data, and `predict` reads it like any other. A predictor input that only some seasons fill (`Player.snaps`) needs a fallback in `predict` for when it's empty.
 - A key must mean the same thing in every season's file, because the seasons are summed. Where only some seasons can tell two outcomes apart, count the finer split under its own key on the samples that can (`pass_rush`'s `throwaway`, charted from 2022, next to `dropback`, which every season has). Counting it inside the shared key would water the rate down with the seasons that can't see it.
 - A key whose event changed with a rule is tied to that rule where the predictor loads its priors: `priors_of(__file__, rules={"kickoff_distance": KICKOFF})` (`shared/rulebook`). So far: the kickoff keys of `free_kick`, `kick_result`, and `carry`, and the try keys of `kick_attempt` and `lineups`.
+- A training table is cached per season and never rebuilt on its own: delete `.cache/training/<name>_<season>.parquet` after changing an `inputs.py` or an `example`, or after a season in progress has new games. Building one costs what a priors build does (it makes every real play's context), about 10 minutes for every season on 4 cores.
 - The build's worker processes outlive a killed parent. After interrupting `python -m events.baseline_priors`, kill them too, or they finish their season and write its files.

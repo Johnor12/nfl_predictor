@@ -28,7 +28,7 @@ def main():
     parser.add_argument("--out", default=None)
     args = parser.parse_args()
     seasons, weeks, games = parse_weeks(args.seasons) or EVALUATED, parse_weeks(args.weeks), args.games or None
-    predictors = load_game_predictors("baseline", **dict(swap.split("=") for swap in args.swap))
+    predictors = load_game_predictors(**dict(swap.split("=") for swap in args.swap))
     betting = () if args.no_lines else lines(sample_games(seasons, weeks, games))
     evaluation = evaluate(seasons, weeks, games, args.sims, args.seed, predictors, args.workers, betting)
     path = write_report(evaluation, args.out)

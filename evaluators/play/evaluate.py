@@ -104,7 +104,7 @@ def _score_events(card, predictors, sample, runs, sims, rng):
 
 
 def _evaluate_games(season, games, sims, seed, predictors):
-    predictors = predictors or load_predictors("baseline")
+    predictors = predictors or load_predictors()
     traced, calls = _traced(predictors)
     card, plays, failures, index = Scorecard(), 0, 0, {}
     for sample in real_samples(season, games=games):

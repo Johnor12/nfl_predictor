@@ -24,7 +24,7 @@ def main():
     parser.add_argument("--workers", type=int, default=None)
     parser.add_argument("--out", default=None)
     args = parser.parse_args()
-    predictors = load_predictors("baseline", **dict(swap.split("=") for swap in args.swap))
+    predictors = load_predictors(**dict(swap.split("=") for swap in args.swap))
     evaluation = evaluate(parse_weeks(args.seasons) or EVALUATED, parse_weeks(args.weeks), args.games or None,
                           args.sims, args.seed, predictors, args.workers)
     path = write_report(evaluation, args.out)

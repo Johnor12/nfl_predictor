@@ -25,7 +25,7 @@ class Audit:
 
 def run_audit(season: int = 2026, weeks=None, sims: int = 1, seed: int = 0, predictors=None) -> Audit:
     plays = real_plays(season, weeks)
-    sim = simulate_plays([rp.context for rp in plays], predictors or load_predictors("baseline"), sims, seed)
+    sim = simulate_plays([rp.context for rp in plays], predictors or load_predictors(), sims, seed)
     return Audit(
         season, plays,
         input_errors=[(rp, error) for rp in plays for error in validate_context(rp.context)],

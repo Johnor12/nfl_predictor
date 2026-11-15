@@ -83,7 +83,7 @@ def _line_values(sim, key) -> list:
 
 
 def _evaluate_game(game, sims, seed, predictors, keys):
-    sim = simulate_game(game.context, predictors or load_game_predictors("baseline"), sims, seed)
+    sim = simulate_game(game.context, predictors or load_game_predictors(), sims, seed)
     card = Scorecard()
     simulated = [game_outputs(game.context, outcome) for outcome in sim.outcomes]
     for (name, subject), value in game_outputs(game.context, game.actual).items():
@@ -128,7 +128,7 @@ def _score_timeouts(season, games, predict, sims, seed) -> Scorecard:
 def evaluate(seasons=EVALUATED, weeks=None, games=None, sims: int = 100, seed: int = 0, predictors=None,
              workers: int | None = None, lines=()) -> Evaluation:
     sample = sample_games(seasons, weeks, games)
-    timeout = (predictors or load_game_predictors("baseline")).timeout
+    timeout = (predictors or load_game_predictors()).timeout
     with executor(workers) as pool:  # each season's games are read and its timeouts scored while games are simulated
         loading = [pool.submit(_played, season, ids) for season, ids in sample.items()]
         timeouts = [pool.submit(_score_timeouts, season, ids, timeout, sims, seed) for season, ids in sample.items()]

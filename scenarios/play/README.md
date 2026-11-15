@@ -10,7 +10,7 @@ API (`from scenarios.play import ...`):
 - `describe_play(result)` / `describe_situation(situation)`: human-readable narration.
 - `summarize(result) -> dict`: the outcome in a few values (`action`, `yards`, `points` by team, `touchdown`, `turnover`, `penalty`, `first_down`, `complete`, kick results, `touchback`, `return_yards`, `seconds`), with the names nflverse uses for a real play. `play_summary(result) -> PlaySummary`: the same as an entry in a later play's history.
 - Inputs: `PlayContext(game, situation, players, history, warned)` with `Game`, `Situation`, `Player`, `PlaySummary`. Spots are yard lines from the offense's own goal line (the kicking team's on free kicks); a try's `x` is the two-point spot, and a kicked try is snapped 13 yards farther back.
-- Predictors: `Predictors` bundles one function per event. `load_predictors("baseline")` builds it from each event's implementation of that name (`events/<event>/predictors/<name>/`), and `load_predictors("baseline", carry="other")` swaps one event's. Each event's signature and output type are in `events/<event>/README.md`.
+- Predictors: `Predictors` bundles one function per event. `load_predictors()` builds it from each event's default implementation (the one its `events/<event>/predictors/` names as `DEFAULT`), `load_predictors(carry="other")` swaps in `events/carry/predictors/other/`, and `load_predictors("baseline")` takes every event's baseline. Each event's signature and output type are in `events/<event>/README.md`.
 - `PlayResult`: the record (facts), live and final dead-ball results, accepted/declined fouls, scores, `next` situation, player and team stats, elapsed time, what the clock does next, untimed-down and 10-second-runoff flags, injuries, `disqualified` players, and `warned` (the next play's).
 - The record's facts: `Sack`, `Pass`, `Carry`, `LooseBall`, `Kick`, plus the event outputs kept as they were predicted; `facts(record, type)` reads them.
 - Helpers for predictors: `rel` / `to_x` (team yard lines), `eligible_receivers`, `field_goal_distance`, `allowed_units`, `FREE_KICKS`, `CATALOG` (the fouls).
@@ -22,7 +22,7 @@ The hardcoded NFL rules, the invariants, and what isn't built yet are in [RULES.
 
 Provided by the game scenario:
 
-- **game**: teams playing, game location, weather, time of day, stadium turf type, coaching staffs, referee crew, season (which selects the rulebook), and whether it's a playoff game.
+- **game**: teams playing, game location, weather, time of day, stadium turf type, coaching staffs, referee crew, season (which selects the rulebook), whether it's a playoff game, and the betting lines before the game (`spread`: the points the home team is favored by; `total`).
 - **players**: rosters (including injuries, depth charts, and disqualifications) and each player's information (position, jersey number, aggregate statistics for the season so far (`Player.stats`: his stat line, and how he has been used: offensive snaps, designed carries, dropbacks, scrambles, sacks taken), draft capital for rookies, and `snaps`: his snaps in his team's recent games by unit, as far as the season's data records them).
 - **warned**: the players who already have an unsportsmanlike conduct foul in this game (a second one disqualifies).
 - **situation**: kind of play (scrimmage down, try after a touchdown, or kickoff/safety kick), possession, field location, down and distance, score, quarter, game clock time, whether the game clock is running, play clock time, and team timeouts remaining.
