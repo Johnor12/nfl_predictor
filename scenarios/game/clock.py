@@ -5,6 +5,7 @@
 # - has_warning(game, quarter): whether the period has a two-minute warning.
 # - cut_before_snap(game, s, result) -> "period_end" | "two_minute_warning" | None: the running clock reached
 #   the end of the period, or the two-minute warning, before the ball was snapped.
+# - at_timeout(game, s, seconds) -> float: the clock when a timeout is called `seconds` into the play clock.
 # - last_period(game, quarter): the period's end ends the game (unless the score is tied after the fourth).
 # - try_matters(game, s): whether a try after time has expired is played (it's skipped when the game is
 #   ending and it can't change who wins).
@@ -34,6 +35,15 @@ def cut_before_snap(game, s, result) -> str | None:
     if has_warning(game, s.quarter) and s.clock > WARNING >= s.clock - used:
         return "two_minute_warning"
     return None
+
+
+def at_timeout(game, s, seconds) -> float:
+    """A running clock runs until the timeout is called, which is before it reaches the two-minute warning
+    or the end of the period: a team calling one gets it in."""
+    if not s.clock_running:
+        return s.clock
+    floor = WARNING if has_warning(game, s.quarter) and s.clock > WARNING else 0
+    return max(s.clock - seconds, min(s.clock, floor + 1.0))
 
 
 def last_period(game, quarter) -> bool:

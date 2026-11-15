@@ -13,7 +13,8 @@
 #   teams' for a game),
 #   _game (schedule row -> Game), _kind / _situation (pbp row -> Situation; clock state inferred from the
 #   previous row by _clock_state), _actual (pbp row -> outcome dict), _summary (row -> PlaySummary history),
-#   _seconds_to_next (real snap-to-snap game time, for clock audits).
+#   _seconds_to_next (real snap-to-snap game time: actual["seconds_to_next"] for clock audits, and
+#   actual["seconds_since_snap"], the same gap on the play that follows, for the pre-snap priors).
 # Timeouts: actual["timeout"] is the team that called one before the play (None if nobody did; a lost
 #   challenge on the previous play counts), and actual["timeout_clock_running"] whether the clock would have
 #   been running at the snap without it. The context itself is the state after the timeout.
@@ -56,6 +57,11 @@ SEASON_STATS = [  # (stat, player id column, value column), summed over earlier 
     ("rush_att", "rusher_player_id", "rush_attempt"),
     ("rush_yds", "rusher_player_id", "rushing_yards"),
     ("rush_td", "rusher_player_id", "rush_touchdown"),
+    ("carries", "rusher_player_id", "carry"),          # designed runs: rush_att without scrambles and kneels
+    ("scrambles", "rusher_player_id", "qb_scramble"),
+    ("dropbacks", "passer_player_id", "qb_dropback"),  # passes and sacks...
+    ("dropbacks", "rusher_player_id", "qb_scramble"),  # ...and scrambles
+    ("times_sacked", "passer_player_id", "sack"),
     ("targets", "receiver_player_id", "attempt"),
     ("receptions", "receiver_player_id", "complete_pass"),
     ("rec_yds", "receiver_player_id", "receiving_yards"),
@@ -114,8 +120,9 @@ class _Rosters:
         depth = depth_charts(season)
         self.depth = {key: frame for key, frame in depth.groupby(["team", "dt"])}
         self.snapshots = {team: sorted(dt for t, dt in self.depth if t == team) for team in depth.team.unique()}
-        self.stats = self._season_stats(pbp)
-        self.snaps = self._recent_snaps(_weekly_snaps(season, pbp, self.rosters), pbp)
+        weekly_snaps = _weekly_snaps(season, pbp, self.rosters)
+        self.stats = self._season_stats(pbp, weekly_snaps)
+        self.snaps = self._recent_snaps(weekly_snaps, pbp)
 
     @staticmethod
     def _recent_snaps(weekly, pbp):
@@ -130,12 +137,15 @@ class _Rosters:
         return by_week
 
     @staticmethod
-    def _season_stats(pbp):
+    def _season_stats(pbp, weekly_snaps):
         plays = pbp[(pbp.play_type != "no_play") & (pbp.two_point_attempt != 1)].copy()
         plays["attempt"] = plays.complete_pass + plays.incomplete_pass + plays.interception
         plays["fg_made"] = (plays.field_goal_result == "made").astype(int)
+        plays["carry"] = ((plays.play_type == "run") & (plays.qb_scramble != 1)).astype(int)
         parts = [plays[[pid, "week", value]].dropna(subset=[pid]).set_axis(["player", "week", "value"], axis=1)
                  .assign(stat=stat) for stat, pid, value in SEASON_STATS]
+        snaps = weekly_snaps.rename("value").reset_index()
+        parts.append(snaps[snaps.unit == "offense"][["player", "week", "value"]].assign(stat="offense_snaps"))
         weekly = pd.concat(parts).groupby(["player", "week", "stat"]).value.sum().reset_index()
         by_week = {}
         for week in [*sorted(pbp.week.unique()), pbp.week.max() + 1]:  # the last is for games not yet played
@@ -352,8 +362,11 @@ def _rows(frame):
 
 
 def _seconds_to_next(game_plays):
-    """Real game time from each snap to the next one in the same quarter (None at the end of a quarter)."""
+    """Real game time from each snap to the next one in the same quarter (None at the end of a quarter), on
+    both plays: seconds_to_next on the first, seconds_since_snap on the second."""
+    since = None
     for play, following in zip(game_plays, game_plays[1:] + [None]):
         s = play.context.situation
         same = following is not None and following.context.situation.quarter == s.quarter
-        play.actual["seconds_to_next"] = s.clock - following.context.situation.clock if same else None
+        play.actual["seconds_since_snap"] = since
+        play.actual["seconds_to_next"] = since = s.clock - following.context.situation.clock if same else None

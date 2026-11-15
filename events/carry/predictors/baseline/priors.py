@@ -1,13 +1,16 @@
 # START
 # Builds the baseline carry priors from real plays.
-# - observe(tally, sample): yardage histograms by kind of carry: run, scramble, catch (yards after the
-#   catch), interception, punt_return, kick_return; run_goal / catch_goal[goal bucket]: goal-to-go histograms;
+# - observe(tally, sample): yardage histograms by kind of carry: run[position group of the carrier],
+#   scramble, catch[air bucket|position group of the receiver] (yards after the catch), interception,
+#   punt_return, kick_return; run_goal / catch_goal[goal bucket]: goal-to-go histograms;
 #   carry_end[kind]: tackled, out_of_bounds, or fumble; lateral[run|catch]: yes or no;
 #   tackler[scrimmage|kick][position group]; assisted: yes or no.
 # Run, scramble, and catch histograms only use carries that started 50+ yards from the goal line, so long
 # gains aren't cut short by touchdowns.
 # END
-from shared.priors import goal_bucket, group, kickoff_result, present
+from shared.priors import air_bucket, goal_bucket, group, kickoff_result, present
+
+CARRIERS = {"run": ("QB", "RB", "WR", "TE"), "catch": ("RB", "WR", "TE")}  # position groups with their own histogram
 
 
 def observe(t, sample):
@@ -18,8 +21,12 @@ def observe(t, sample):
         kind = "catch" if action == "pass" else action
         yards = row.yards_after_catch if kind == "catch" else row.yards_gained
         to_goal = row.yardline_100 - (row.air_yards if kind == "catch" else 0)
-        if to_goal >= 50:
+        carrier = sample.context.by_id.get(row.receiver_player_id if kind == "catch" else row.rusher_player_id)
+        if to_goal >= 50 and kind == "scramble":
             t.hist[kind].append(yards)
+        elif to_goal >= 50 and carrier and group(carrier) in CARRIERS[kind]:
+            cell = f"{air_bucket(row.air_yards)}|{group(carrier)}" if kind == "catch" else group(carrier)
+            t.hist[f"{kind}|{cell}"].append(yards)
         elif 0 < to_goal <= 10 and kind != "scramble":
             t.hist[f"{kind}_goal|{goal_bucket(to_goal)}"].append(yards)
         end = "fumble" if row.fumble == 1 else "out_of_bounds" if row.out_of_bounds == 1 else "tackled"

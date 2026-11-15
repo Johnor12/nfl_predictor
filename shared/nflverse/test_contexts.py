@@ -7,6 +7,8 @@
 # - test_week_one_games: every game's inputs are valid and match its plays'; its real outcome and stat lines.
 # - test_recent_snaps: players carry their recent snaps: per kicking unit where the season records who was on
 #   the field (2025), otherwise from the per-game snap counts (2026); nobody has any before week 1.
+# - test_usage_and_snap_gaps: a starter's season stats say how he has been used (snaps, carries, dropbacks),
+#   and a play knows the game time since the snap before it.
 # - test_old_seasons: a season in nflverse's older formats (2014: weekly depth charts, detailed positions,
 #   teams that have since moved, no charting or participation) gives valid inputs. Skipped unless cached.
 # END
@@ -87,6 +89,20 @@ def test_recent_snaps(plays):
     assert units == {"offense", "defense", "punt", "punt_return", "field_goal", "field_goal_block", "kickoff", "kick_return"}
     on_field = sample.participation.players_on_play.split(";")
     assert len(on_field) == 22 and set(on_field) <= set(sample.context.by_id)
+
+
+def test_usage_and_snap_gaps(plays):
+    from shared.nflverse import real_plays
+    assert not any(p.season_stats for p in plays[0].context.players)  # week 1: nothing to go on yet
+    later = real_plays(2026, weeks=[3])
+    starters = [p for p in later[0].context.players if p.position == "QB" and p.stats.get("dropbacks", 0) > 40]
+    assert starters and all(p.stats["offense_snaps"] >= p.stats["dropbacks"] >= p.stats["pass_att"] for p in starters)
+    backs = [p for p in later[0].context.players if p.position == "RB" and p.stats.get("carries", 0) > 10]
+    assert backs and all(p.stats["carries"] == p.stats["rush_att"] <= p.stats["offense_snaps"] for p in backs)
+    assert later[0].actual["seconds_since_snap"] is None  # the opening kickoff
+    gaps = [p.actual["seconds_since_snap"] for p in later
+            if p.context.situation.clock_running and p.context.situation.play_clock == 40]
+    assert 35 < sum(gaps) / len(gaps) < 40  # a play and most of a play clock
 
 
 @pytest.mark.skipif(not (CACHE / "play_by_play_2014.parquet").exists(), reason="2014 nflverse cache missing")

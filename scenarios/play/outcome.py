@@ -15,7 +15,7 @@ from events.pre_snap import PreSnap
 from scenarios.play import stats
 from scenarios.play.context import FREE_KICKS
 from scenarios.play.field import other, rel
-from scenarios.play.record import Carry, Kick, LooseBall, PlayResult, facts
+from scenarios.play.record import Carry, Kick, LooseBall, Pass, PlayResult, facts
 
 RUNOFF_FOULS = ("intentional_grounding", "illegal_forward_pass")
 
@@ -118,7 +118,7 @@ def _elapsed(ctx, record, live):
     if live is None:
         return seconds
     for f in record:
-        if isinstance(f, (PassRush, Carry, LooseBall)):
+        if isinstance(f, (PassRush, Pass, Carry, LooseBall)):
             seconds += f.seconds
         elif isinstance(f, Kick) and f.kind in ("punt", "field_goal", "pat"):
             seconds += f.seconds  # a free kick's hang time doesn't run the clock

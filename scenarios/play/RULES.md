@@ -69,7 +69,7 @@ The play scenario encodes the rulebook. This is a sketch of what it must cover, 
 - A half can't end on a play with an accepted defensive foul or offsetting fouls (untimed down). In the last minute of a half, an offensive foul that stops a running clock (one that prevents the snap, intentional grounding, an illegal forward pass) carries a 10-second runoff option, avoidable with a timeout.
 
 ### clock (play level)
-- The play reports how much game time it used and what the clock does afterward. Quarter ends, the two-minute warning, and timeouts belong to the game scenario.
+- The play reports how much game time it used (the play clock used before the snap, if the game clock was running, then the play itself: the dropback, the pass in the air, each carry and loose ball, a punt's or a place kick's flight) and what the clock does afterward. Quarter ends, the two-minute warning, and timeouts belong to the game scenario.
 - The clock stops on incomplete passes, scores, changes of possession, penalties, spikes, and runners going out of bounds. After an out-of-bounds play it restarts on the ready-for-play signal, except in the last 2 minutes of the first half and the last 5 minutes of the second half, when it waits for the snap.
 - After a penalty the clock starts as it would have without the foul: on the snap if the play ended with it stopped (an incomplete pass), otherwise on the ready-for-play signal, since it stopped for the flag, accepted or declined. In the last 2 minutes of the first half and the last 5 of the second, it waits for the snap after any accepted penalty, a pre-snap foul included.
 - An injury stoppage inside the last 2 minutes of a half costs a timeout, or a 10-second runoff if the team has none.

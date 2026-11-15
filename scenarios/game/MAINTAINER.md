@@ -7,7 +7,7 @@
 - predictors.py: the `GamePredictors` bundle and `load_game_predictors`.
 - record.py: `Stoppage` and `GameResult`.
 - game.py: `run_game`, the chain: one step per play (timeout, play, clock, period).
-- clock.py: the clock's rules as small functions (two-minute warning, the snap that never came, the try after time expires, the runoff choice, overtime's setup) and constants.
+- clock.py: the clock's rules as small functions (two-minute warning, the snap that never came, the clock at a timeout, the try after time expires, the runoff choice, overtime's setup) and constants.
 - overtime.py: `Overtime`, which tracks each team's possession and says when the score ends the game.
 - roster.py: `Availability`, who can play the next play (injuries and disqualifications).
 - validate.py: `validate_game`, the invariants.

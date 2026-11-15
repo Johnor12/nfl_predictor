@@ -87,11 +87,12 @@ class _Game:
 
     def step(self, s):
         ctx = self.play_context(s)
-        caller = self.p.timeout(ctx, self.rng)
-        if caller is not None:
-            if s.timeouts.get(caller, 0) < 1:
-                raise IllegalChoice(f"{caller} has no timeout to call")
-            s = self.charge_timeout(s, caller)
+        timeout = self.p.timeout(ctx, self.rng)
+        if timeout is not None:
+            if s.timeouts.get(timeout.team, 0) < 1 or timeout.seconds < 0:
+                raise IllegalChoice(f"{timeout} with timeouts {s.timeouts}")
+            s = dataclasses.replace(s, clock=clock.at_timeout(self.game, s, timeout.seconds))
+            s = self.charge_timeout(s, timeout.team)
             ctx = self.play_context(s)
         result = run_play(ctx, self.p.play, self.rng)
         cut = clock.cut_before_snap(self.game, s, result)  # the play is discarded: it was never snapped

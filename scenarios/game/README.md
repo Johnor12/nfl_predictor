@@ -22,7 +22,7 @@ The hardcoded NFL rules, the invariants, and what isn't built yet are in [RULES.
 coin toss scenario -> opening kickoff -> play -> play -> ... -> final whistle
 
 before every play:
-  timeout?  -> the clock stops and the team is charged
+  timeout?  -> a running clock runs until it is called; then it stops and the team is charged
   play scenario (run_play), from the situation the last play left
 
 after every play:

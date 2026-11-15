@@ -9,12 +9,14 @@ Sampling, for predictors:
 - `hist(histogram, rng) -> float`: a value from a `{"value": count}` histogram.
 - `rate(counts, key) -> float`: the key's share of the counts.
 - `blend(counts, fallback, k=10)`: counts backed off to a coarser distribution worth `k` samples.
+- `wait(gaps, rng) -> float`: how long a team let the clock go before a snap or a timeout, from a histogram of the game seconds between two snaps (what the data records), less what the first play itself took (`PLAY_SECONDS`).
 
 Buckets, the keys priors are counted and sampled by:
 - `role(player)` (`"RB1"`, `"WR3"`), `group(player)` (position group), `dist_bucket(distance)`, `field_bucket(x)`, `air_bucket(air_yards)`, `goal_bucket(yards_to_goal)`, `fg_bin(distance)`, `script(situation)` (hurry, bleed, normal).
 
 Players on the field:
 - `on_field(ctx, lineups, team)`, `pick(ctx, players, group_weights, rng, exclude=())`, `pick_many(ctx, players, group_weights, n, rng)`, `returner(ctx, players, slot, rng)`, `fouler(ctx, lineups, name, team, rng)`.
+- `usage(player, stat, got, on_play, per_snap) -> float`: how often a player gets the ball on a play he is on the field for. His depth chart role's rate (`on_play[role]`, counts of `got` or `other`), scaled by how his own season (`Player.stats[stat]` per offensive snap) compares with his role's rate per snap (`per_snap[role]`). His own rate is shrunk toward his role's, and counts as much as it once he has played `USAGE_SNAPS` snaps; with no snaps yet he is his role.
 
 Priors files:
 - `priors_of(file, rules=None, decay=None) -> load(season, week) -> dict`: a cached loader for the `priors_<season>.json` files next to `file`. A season's file holds the counts of that season's plays, week by week. `load(season, week)` pools what was played before that week: the earlier seasons, and the season's own earlier weeks (for week 6, weeks 1 to 5). Every top-level key is the sum of their counts, with a season counting `decay` times the one after it (`DECAY`, 0.5, unless given). So a game is always predicted from what was known before its week, and recent seasons count most. Games of the same week don't inform each other.

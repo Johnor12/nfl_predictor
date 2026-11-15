@@ -10,7 +10,7 @@ Each event package `events/<event>/` has:
 
 Events, in the order the play scenario chains them: `lineups`, `offensive_formation`, `defensive_formation`, `pre_snap`, `snap`, `pass_rush`, `target`, `pass_result`, `punt_kick`, `punt_result`, `kick_attempt`, `free_kick`, `kick_result`, `carry`, `loose_ball`, `fouls`, `injuries` (the chain itself is in `play/README.md`).
 
-The coin toss scenario's events: `coin_toss`, `toss_choice`. The game scenario's: `timeout`, asked before every play. Their inputs are in their own READMEs; `game.load_game_predictors("baseline", timeout="other")` chooses implementations for all 20.
+The coin toss scenario's events: `coin_toss`, `toss_choice`. The game scenario's: `timeout` (who calls one, and how far into the play clock), asked before every play. Their inputs are in their own READMEs; `game.load_game_predictors("baseline", timeout="other")` chooses implementations for all 20.
 
 Inputs common to every play event's predictor:
 

@@ -118,10 +118,10 @@ def _score_timeouts(season, games, predict, sims, seed) -> Scorecard:
     for play in real_plays(season, games=games):
         ctx, caller = timeout_case(play)
         s = ctx.situation
-        side = {s.offense: "offense", s.defense: "defense", None: "none"}
+        side = lambda timeout: "none" if timeout is None else "offense" if timeout.team == s.offense else "defense"
         left = s.clock + (900 if s.quarter in (1, 3) else 0)
         label = "last 2:00 of a half" if left <= 120 else "rest of the game"
-        card.add(f"timeout: caller ({label})", [side[predict(ctx, rng)] for _ in range(sims)], caller)
+        card.add(f"timeout: caller ({label})", [side(predict(ctx, rng)) for _ in range(sims)], caller)
     return card
 
 

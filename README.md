@@ -65,11 +65,9 @@ not built: coach's challenges, multiple timeouts per dead ball, injury stoppages
 
 current goals:
 
-1. take a first pass at improving our predictors, focusing on easy wins, without getting deep into trained machine learning models.
+1. pick a predictor which you think would be improved by a ML model and attempt it.
 
-2. pick a predictor which you think would be improved by a ML model and attempt it.
-
-3. our core development loop involves A/B testing changes via our evaluators. That means that minimizing evaluator runtimes is very high leverage. take a pass at optimizing them without sacrificing quality (if we can't optimize, I will throw more compute at the problem)
+2. follow up on our game scenario implementation, building out any remaining edge cases.
 
 notes:
 Do you want a priced source for player props? Without prices a prop can only be treated as a coin flip at the line, and priced history most likely means a paid odds API.

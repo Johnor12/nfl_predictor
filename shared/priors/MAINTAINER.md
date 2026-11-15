@@ -1,12 +1,12 @@
 # MAINTAINER
 
 - __init__.py: the public API (re-exports).
-- sampling.py: `choice`, `hist`, `rate`, `blend`.
+- sampling.py: `choice`, `hist`, `rate`, `blend`, `wait`, and `PLAY_SECONDS` (hand-set).
 - buckets.py: `role`, `group`, and the situation buckets.
-- players.py: `on_field`, `pick`, `pick_many`, `returner`, `fouler`, and `FOULERS` (hand-set: which positions commit each foul).
+- players.py: `on_field`, `pick`, `pick_many`, `returner`, `fouler`, and `FOULERS` (hand-set: which positions commit each foul); `usage` and `USAGE_SNAPS` (hand-set).
 - files.py: `priors_of` (pooling what was played before a game, per key: the earlier seasons and its own season's earlier weeks, `DECAY`, the rules a key is tied to, `NFL_PRIORS_DECAY`), `save_priors`.
 - building.py: `Sample`, `Tally`, `present`, and the nflverse row readers more than one event needs (`flag` with the `FOULS` name map and `PRESNAP`, `flagrant`, `kickoff_result`, `nullified`, `timeout_case`, and the participation readers `personnel`, `package`, `played`).
-- test_priors.py: `blend` ordering, `Tally`, and `priors_of`: pooling with decay, the season's earlier weeks, the first season of a key, the environment variable, and keys tied to rules.
+- test_priors.py: `blend` ordering, `Tally`, `usage`, and `priors_of`: pooling with decay, the season's earlier weeks, the first season of a key, the environment variable, and keys tied to rules.
 
 Notes:
 - Counts are stored raw (not normalized) so small samples stay visible; predictors normalize when sampling.
@@ -27,3 +27,6 @@ Notes:
   - 1 (every season equally) is worse where the league has drifted: the fourth-down unit +7.6% (3 standard errors), punt distance +2.7%, the kickoff result +1.3%. 0.8 shows the same on the fourth-down unit (+2.8%).
   - The thin counts lean the other way without reaching 2 standard errors: interception returns -4% to -6%, field goals by distance -1.5% to -3%.
   - 0.5 keeps most of the weight on the last two seasons and still gives a thin key a few seasons to draw on. A predictor that wants another weight passes `decay=` to `priors_of`; none does yet.
+- `usage` was measured on the game evaluator's player rows (48 games of 2021-2026 at 40 sims, case by case against the role alone): quarterback rushing yards -18%, a first tight end's receiving yards -11%, a first back's receptions -8%, receivers' receptions -3% to -5%, backs' carries within noise (the lineups already put the right back on the field). `USAGE_SNAPS` at 25, 50, 100, and 200 are within noise of each other, so it isn't worth tuning further.
+- `usage` only knows this season: in week 1 everybody is his role, and a player who changed teams or roles is his old self until the snaps add up. Last season's stats would be the next thing to feed it.
+- `PLAY_SECONDS` is one number for every kind of play because the data can't tell them apart (a gap between two snaps is the play and the wait together). The baselines' play durations are set to it; change them together.

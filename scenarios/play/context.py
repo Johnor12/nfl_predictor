@@ -45,13 +45,19 @@ class Player:
     depth: tuple[tuple[str, int], ...] = ()    # depth chart (slot, rank) pairs, e.g. ("RB", 1), ("KR", 2)
     years_exp: int | None = None
     draft_pick: int | None = None              # overall pick; None if undrafted
-    season_stats: tuple[tuple[str, float], ...] = ()  # this season's totals before this game
+    season_stats: tuple[tuple[str, float], ...] = ()  # this season's totals before this game (see `stats`)
     snaps: tuple[tuple[str, float], ...] = ()  # (unit, snaps) in his team's recent games: offense, defense, and
                                                # special_teams or, where the data has them, each kicking unit
 
     def rank(self, slot: str) -> int | None:
         ranks = [r for s, r in self.depth if s == slot]
         return min(ranks) if ranks else None
+
+    @cached_property
+    def stats(self) -> dict[str, float]:
+        """season_stats by name: the play scenario's stat names, plus what a player's usage is read from:
+        offense_snaps, carries (designed runs), dropbacks, scrambles, times_sacked."""
+        return dict(self.season_stats)
 
 
 @dataclass(frozen=True)

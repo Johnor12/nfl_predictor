@@ -6,11 +6,15 @@
 # - pick_many(ctx, players, group_weights, n, rng): n distinct players.
 # - returner(ctx, players, slot, rng): the best-ranked player at a depth chart slot ("PR", "KR"), else a pick.
 # - fouler(ctx, lineups, name, team, rng): who committed a foul, by the positions that usually do (FOULERS, hand-set).
+# - usage(player, stat, got, on_play, per_snap): how often the player gets the ball on a play he is on the field
+#   for: his depth chart role's rate, scaled by how his own season compares with his role's (USAGE_SNAPS, hand-set).
 # END
 from collections import Counter
 
-from shared.priors.buckets import group
+from shared.priors.buckets import group, role
+from shared.priors.sampling import rate
 
+USAGE_SNAPS = 100  # a player's own season counts as much as his role once he has played this many snaps
 ANYONE = {"DL": 1, "LB": 1, "DB": 1, "OL": 1, "WR": 1, "TE": 1, "RB": 1}
 FOULERS = {
     "false_start": {"OL": 8, "TE": 1, "WR": 1}, "delay_of_game": {"QB": 1}, "encroachment": {"DL": 1},
@@ -51,3 +55,16 @@ def returner(ctx, players, slot, rng) -> str:
 
 def fouler(ctx, lineups, name, team, rng) -> str:
     return pick(ctx, on_field(ctx, lineups, team), FOULERS.get(name, ANYONE), rng)
+
+
+def usage(player, stat, got, on_play, per_snap) -> float:
+    """`on_play[role]` and `per_snap[role]` count {got: n, "other": n} for the players of a depth chart role:
+    on the plays where the ball goes to somebody (designed runs, targeted passes), and on every offensive
+    snap. A player's own season only comes per snap (Player.stats[stat] over offense_snaps), so his rate per
+    snap, shrunk toward his role's by USAGE_SNAPS snaps, scales his role's rate on such a play."""
+    key = role(player)
+    base, snap_rate = rate(on_play.get(key, {}), got), rate(per_snap.get(key, {}), got)
+    snaps = player.stats.get("offense_snaps", 0)
+    if not snaps or not snap_rate:
+        return base
+    return base * (player.stats.get(stat, 0) + USAGE_SNAPS * snap_rate) / (snaps + USAGE_SNAPS) / snap_rate

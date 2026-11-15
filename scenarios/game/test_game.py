@@ -3,8 +3,9 @@
 # - test_fuzz_invariants: games from random legal predictors, regular season and playoff; every invariant holds.
 # - test_baseline_games: baseline games are valid, repeat by seed, and look like football.
 # - test_kneel_downs_end_in_a_tie / test_a_playoff_game_has_a_winner: how a game ends.
-# - test_timeouts / test_the_snap_that_never_came: stoppages called by a predictor, and the clock running
-#   out (or reaching the two-minute warning) before the snap.
+# - test_timeouts / test_a_timeout_takes_what_ran_before_it / test_the_snap_that_never_came: stoppages called
+#   by a predictor, the running clock before the call, and the clock running out (or reaching the
+#   two-minute warning) before the snap.
 # - test_overtime_formats: who has had a possession and when the score ends the game, on hand-built plays.
 # - test_injured_players_sit_out: availability, and the last players at a required position playing through.
 # - test_disqualified_players_are_out_for_the_game: a second unsportsmanlike conduct foul, over two plays.
@@ -20,7 +21,8 @@ from events.fouls import Foul
 from events.injuries import Injury
 from events.lineups import Lineup, Lineups
 from events.pre_snap import PreSnap
-from scenarios.game import Stoppage, describe_game, load_game_predictors, run_game, validate_game, validate_game_context
+from events.timeout import Timeout
+from scenarios.game import Stoppage, clock, describe_game, load_game_predictors, run_game, validate_game, validate_game_context
 from scenarios.game.overtime import Overtime
 from scenarios.game.roster import Availability
 from scenarios.game.testing import chaos_game_predictors, synthetic_game, with_events
@@ -100,7 +102,7 @@ def test_a_playoff_game_has_a_winner():
 def test_timeouts():
     def home_at_the_start_of_the_second(ctx, rng):
         s = ctx.situation
-        return H if s.quarter == 2 and s.timeouts[H] == 3 else None
+        return Timeout(H) if s.quarter == 2 and s.timeouts[H] == 3 else None
 
     result = run_game(synthetic_game(), with_events(QUIET, timeout=home_at_the_start_of_the_second), random.Random(0))
     assert validate_game(result) == []
@@ -110,7 +112,26 @@ def test_timeouts():
     third = next(p.context.situation for p in result.plays if p.context.situation.quarter == 3)
     assert third.timeouts == {H: 3, A: 3}
     with pytest.raises(IllegalChoice):  # a fourth timeout in a half
-        run_game(synthetic_game(), with_events(QUIET, timeout=lambda ctx, rng: H), random.Random(0))
+        run_game(synthetic_game(), with_events(QUIET, timeout=lambda ctx, rng: Timeout(H)), random.Random(0))
+
+
+def test_a_timeout_takes_what_ran_before_it():
+    def late_in_the_play_clock(ctx, rng):
+        s = ctx.situation
+        return Timeout(H, 35.0) if s.quarter == 1 and s.clock_running and s.timeouts[H] == 3 else None
+
+    result = run_game(synthetic_game(), with_events(QUIET, timeout=late_in_the_play_clock), random.Random(0))
+    assert validate_game(result) == []
+    called = stoppages(result, "timeout")[0]
+    before, after = [(a, b) for a, b in zip(result.plays, result.plays[1:])
+                     if b.context.situation.timeouts[H] == 2 and a.next.timeouts[H] == 3][0]
+    assert called.clock == after.context.situation.clock == pytest.approx(before.next.clock - 35)
+    assert not after.context.situation.clock_running
+    game = synthetic_game().game
+    running = SimpleNamespace(quarter=4, clock=130.0, clock_running=True)
+    assert clock.at_timeout(game, running, 35.0) == 121.0  # called before the two-minute warning stops the clock
+    assert clock.at_timeout(game, SimpleNamespace(quarter=4, clock=20.0, clock_running=True), 35.0) == 1.0
+    assert clock.at_timeout(game, SimpleNamespace(quarter=1, clock=500.0, clock_running=False), 35.0) == 500.0
 
 
 def test_the_snap_that_never_came():

@@ -10,8 +10,8 @@ Inputs (besides the [common ones](../README.md)):
 
 Output (`from events.pass_result import ...`):
 
-- `PassResult(result, defender)`: `result` is one of `RESULTS` (`complete`, `incomplete`, `intercepted`); `defender` defended or intercepted the pass.
+- `PassResult(result, defender, seconds)`: `result` is one of `RESULTS` (`complete`, `incomplete`, `intercepted`); `defender` defended or intercepted the pass; `seconds` is the game time from the throw until the pass is caught, intercepted, or dead.
 
-The play scenario raises `IllegalChoice` unless the result is one of `RESULTS`; an interception has a defender; the defender is on the field for the defense.
+The play scenario raises `IllegalChoice` unless the result is one of `RESULTS`; an interception has a defender; the defender is on the field for the defense; `seconds` isn't negative.
 
 Implementations are in [predictors/](predictors/README.md).

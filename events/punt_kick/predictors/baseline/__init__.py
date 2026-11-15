@@ -14,4 +14,4 @@ def predict(ctx, lineups, punter, rng):
     if rng.random() < rate(p["punt_blocked"], "yes"):
         return PuntKick(0.0, pick(ctx, lineups.defense.players, {"DL": 5, "LB": 3, "DB": 2}, rng), 2.0)
     distances = p["punt_distance"].get(field_bucket(ctx.situation.x)) or p["punt_distance"]["3"]
-    return PuntKick(hist(distances, rng), None, max(4.5, rng.gauss(6.0, 0.5)))
+    return PuntKick(hist(distances, rng), None, max(5.0, rng.gauss(7.0, 0.5)))

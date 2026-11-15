@@ -164,11 +164,11 @@ class _Play:
         spot = min(109.5, max(-9.5, los + target.air_yards))  # a pass caught beyond the end line is incomplete
         target = dataclasses.replace(target, air_yards=spot - los)
         result = self.p.pass_result(ctx, self.lineups, target, self.rng)
-        _require(result.result in PASS_RESULTS, f"pass result {result}")
+        _require(result.result in PASS_RESULTS and result.seconds >= 0, f"pass result {result}")
         _require(result.result != "intercepted" or result.defender, "interception without a defender")
         if result.defender:
             self.check_player(result.defender, de, "pass defender")
-        self.add(Pass(f.qb, target.receiver, spot, target.direction, result.result, result.defender))
+        self.add(Pass(f.qb, target.receiver, spot, target.direction, result.result, result.defender, result.seconds))
         if result.result == "incomplete":
             return Dead(off, los, "incomplete")
         if result.result == "complete":

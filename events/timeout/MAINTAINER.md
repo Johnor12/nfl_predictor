@@ -1,4 +1,4 @@
 # MAINTAINER
 
-- __init__.py: documentation only (the output is a team name or None, so there is no output type).
+- __init__.py: `Timeout` (no imports from the scenarios, which import this).
 - predictors/: the implementations (see its MAINTAINER.md).

@@ -29,6 +29,7 @@ class Pass:
     direction: str | None
     result: str                    # complete, incomplete, intercepted, throwaway, spike
     defender: str | None = None
+    seconds: float = 0.0           # in the air
 
 
 @dataclass(frozen=True)

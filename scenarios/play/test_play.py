@@ -110,6 +110,12 @@ def test_turnover_on_downs_after_incomplete_pass():
     assert r.stats["HOME-QB1"] == {"pass_att": 1} and r.stats["AWAY-DB1"] == {"passes_defended": 1}
 
 
+def test_a_pass_takes_the_time_to_throw_it_and_its_flight():
+    r = play(situation(clock_running=False), snap=Snap("pass"), pass_rush=PassRush(4, "throw", 3.0),
+             target=Target("HOME-WR1", 12, "left"), pass_result=PassResult("incomplete", seconds=2.0))
+    assert r.elapsed == 5.0 and r.clock_after == "snap"
+
+
 def test_completion_with_fumble_credits_yards_to_the_fumble_spot():
     r = play(situation(x=30), snap=Snap("pass"), pass_rush=PassRush(4, "throw", 2.5),
              target=Target("HOME-TE1", 8, "middle"), pass_result=PassResult("complete"),

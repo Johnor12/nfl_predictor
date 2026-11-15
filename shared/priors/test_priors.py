@@ -6,10 +6,15 @@
 #   discounted, plus its own season's earlier weeks; a key no earlier season has comes from the first that
 #   does; NFL_PRIORS_DECAY overrides.
 # - test_priors_stay_within_a_rule: a key tied to rulebook fields only pools the seasons with the same rules.
+# - test_usage_moves_a_role_toward_the_player: a player's own season scales his role's rate, by how much he has played.
 # END
 import random
+from types import SimpleNamespace
 
-from shared.priors import Tally, blend, choice, priors_of, save_priors
+import pytest
+
+from shared.priors import Tally, blend, choice, priors_of, save_priors, usage
+from shared.priors.players import USAGE_SNAPS
 from shared.rulebook import KICKOFF
 
 
@@ -57,3 +62,15 @@ def test_priors_stay_within_a_rule(tmp_path):
     assert load(2026, 1) == {"kickoff": {"2025": 1}, "punt": {"2022": 1, "2023": 1, "2024": 1, "2025": 1}}
     assert load(2023, 1)["kickoff"] == {"2022": 1} and load(2023, 2)["kickoff"] == {"2022": 1, "2023": 1}
     assert load(2024, 2)["kickoff"] == {"2024": 1} and load(2025, 1)["kickoff"] == {"2025": 1}  # each the first season of a rule
+
+
+def test_usage_moves_a_role_toward_the_player():
+    on_play = {"RB2": {"carried": 80, "other": 20}}   # an RB2 carries 80% of the runs he is out there for,
+    per_snap = {"RB2": {"carried": 40, "other": 60}}  # which is 40% of his snaps
+    back = lambda **stats: SimpleNamespace(position="RB", rank=lambda slot: 2, stats=stats)
+    rate = lambda player: usage(player, "carries", "carried", on_play, per_snap)
+    assert rate(back()) == 0.8  # he hasn't played: his role
+    assert rate(back(offense_snaps=USAGE_SNAPS, carries=0.4 * USAGE_SNAPS)) == pytest.approx(0.8)  # he is his role
+    assert rate(back(offense_snaps=USAGE_SNAPS)) == pytest.approx(0.4)  # no carries yet: halfway to none
+    assert rate(back(offense_snaps=9 * USAGE_SNAPS, carries=0.2 * 9 * USAGE_SNAPS)) == pytest.approx(0.44)
+    assert usage(back(offense_snaps=50, carries=9), "carries", "carried", {}, {}) == 0.0  # a role nobody counted

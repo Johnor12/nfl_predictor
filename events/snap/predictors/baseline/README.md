@@ -1,12 +1,12 @@
 # baseline snap predictor
 
-Run or pass by game script, down, and distance; the ball carrier by how often each back on the field carries when he is out there.
+Run or pass by game script, down, and distance; the ball carrier by how often each back on the field carries when he is out there: his depth chart role's rate, moved toward his own this season.
 
 API (`from events.snap.predictors.baseline import predict`, or `play.load_predictors("baseline")`):
 
 - `predict(ctx, lineups, formation, defense, allowed_actions, rng) -> Snap`
 
-From data: pass rate by game script, down, and distance (`pass_rate`), the two-point play mix (`two_point_play`), and how often a player on the field for a designed run carries it, by depth chart role (`carry_rate`, from seasons whose data records who was on the field).
+From data: pass rate by game script, down, and distance (`pass_rate`), the two-point play mix (`two_point_play`), and how often a player on the field for a designed run carries it, by depth chart role (`carry_rate`, from seasons whose data records who was on the field). A player's own season scales his role's rate (`shared.priors.usage`): his designed carries per offensive snap (`Player.stats`) against his role's (`carries_per_snap`), so a second back who has been getting the carries gets them, and a quarterback who runs keeps running. Before he has played, he is his role.
 
 Hand-set: the bad snap rate, kneels from the victory formation, and spikes late in a half with no timeouts. Punt and field goal units always kick (no fakes).
 

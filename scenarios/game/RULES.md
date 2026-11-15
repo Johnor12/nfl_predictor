@@ -17,7 +17,7 @@ The NFL rules the game scenario hardcodes, the invariants every game satisfies, 
 - Play clock: 25 seconds after a timeout, the two-minute warning, and the start of a period.
 
 ### timeouts
-- Three per team per half. Calling one stops the clock until the snap.
+- Three per team per half. Calling one stops the clock until the snap. A running clock runs until the timeout is called, and a team that calls one gets it in before the two-minute warning or the end of the period.
 - One timeout at most before each play.
 
 ### overtime (rule-versioned)

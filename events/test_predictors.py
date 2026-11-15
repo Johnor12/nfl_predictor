@@ -33,7 +33,9 @@ def test_baseline_timeouts_need_a_timeout():
     ctx = synthetic_context(rng, **late, score={"HOME": 20, "AWAY": 17}, timeouts={"HOME": 0, "AWAY": 3},
                             offense="HOME", defense="AWAY")
     calls = [timeout(ctx, rng) for _ in range(500)]
-    assert set(calls) == {"AWAY", None} and calls.count("AWAY") > 100  # the trailing defense stops the clock
+    teams = [call.team for call in calls if call]
+    assert set(teams) == {"AWAY"} and len(teams) > 100  # the trailing defense stops the clock
+    assert all(0 <= call.seconds < 40 for call in calls if call)
     ctx = synthetic_context(rng, **late, score={"HOME": 20, "AWAY": 17}, timeouts={"HOME": 0, "AWAY": 0},
                             offense="HOME", defense="AWAY")
     assert {timeout(ctx, rng) for _ in range(200)} == {None}

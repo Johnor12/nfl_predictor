@@ -8,6 +8,7 @@
 # END
 import dataclasses
 
+from events.timeout import Timeout
 from scenarios.coin_toss import TossPredictors
 from scenarios.game.context import GameContext
 from scenarios.game.predictors import GamePredictors
@@ -29,7 +30,7 @@ def chaos_game_predictors(timeouts: float = 0.03) -> GamePredictors:
 
     def timeout(ctx, rng):
         able = sorted(team for team, left in ctx.situation.timeouts.items() if left)
-        return rng.choice(able) if able and rng.random() < timeouts else None
+        return Timeout(rng.choice(able), rng.uniform(0, 40)) if able and rng.random() < timeouts else None
 
     return GamePredictors(chaos_predictors(), TossPredictors(coin_toss, toss_choice), timeout)
 

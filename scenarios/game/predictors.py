@@ -19,7 +19,7 @@ from scenarios.play import Predictors, load_predictors
 class GamePredictors:
     play: Predictors
     toss: TossPredictors
-    timeout: Callable              # (ctx, rng) -> team | None; ctx is the next play's PlayContext
+    timeout: Callable              # (ctx, rng) -> Timeout | None; ctx is the next play's PlayContext
 
 
 def load_game_predictors(default: str = "baseline", **overrides: str) -> GamePredictors:
