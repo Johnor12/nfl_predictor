@@ -8,6 +8,7 @@ The folders follow the architecture in README.md:
 
 - README.md: project goals, concepts, and phases (plain text, edited by hand only).
 - .claude/rules/general.md: working rules for agents.
+- .claude/keepalive/: keeps the codespace awake while Claude Code is working, through the hooks in `.claude/settings.json` (`node .claude/keepalive/keepalive.js status`).
 - pyproject.toml / uv.lock: Python 3.12+ project managed with uv (pandas, pyarrow; pytest for dev).
 - events/: one package per event: its output type, and under `predictors/` one package per implementation (`baseline/` for all 20 so far: 17 play events, `coin_toss`, `toss_choice`, `timeout`), with a priors file per season from 2011 on, counted week by week. Also `baseline_priors.py`, which rebuilds every baseline's priors.
 - scenarios/play/: the play scenario: inputs, event chain, rules, enforcement, stats, validator, narration, outcome summary, and the `Predictors` bundle (`load_predictors`).
