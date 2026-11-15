@@ -5,8 +5,9 @@
 # END
 from events.kick_attempt import KickAttempt
 from shared.priors import choice, fg_bin, pick, priors_of
+from shared.rulebook import TRY
 
-load_priors = priors_of(__file__)  # season -> priors dict
+load_priors = priors_of(__file__, rules={"pat": TRY})  # season -> priors dict
 
 
 def predict(ctx, lineups, kicker, distance, rng):

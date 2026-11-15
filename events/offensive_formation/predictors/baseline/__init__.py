@@ -36,9 +36,10 @@ def _formation(ctx, lineup, shotgun) -> Formation:
         line = tuple(rest[:3] + [snapper] + rest[3:6])
         return Formation("punt", line, tuple([punter] + rest[6:]), punter, False)
     if lineup.unit == "field_goal":
-        kicker = of("K")[0]
-        holder = (of("P") or [pid for pid in lineup.players if pid != kicker and position[pid] != "OL"][:1])[0]
+        kicker = (of("K") or of("P") or [lineup.players[0]])[0]  # a punter kicks when no kicker is out there
         snapper = (of("LS") or of("OL")[:1])[0]
+        others = [pid for pid in lineup.players if pid not in (kicker, snapper)]
+        holder = ([pid for pid in others if position[pid] == "P"] or [pid for pid in others if position[pid] != "OL"])[0]
         others = [pid for pid in lineup.players if pid not in (kicker, holder, snapper)]
         others.sort(key=lambda pid: position[pid] != "OL")
         line = tuple(others[:3] + [snapper] + others[3:6])

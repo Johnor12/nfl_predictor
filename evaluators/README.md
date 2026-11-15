@@ -10,4 +10,14 @@ Evaluators score a simulator's output against something external (see the root R
 
 Reports are written to `evaluation_output/` (`audit_output/` for the audit); both are gitignored.
 
-`from evaluators import parse_weeks` reads a CLI's `--weeks` value (`1-3` or `1,4`).
+## which games
+
+An evaluation covers a sample of games drawn from several seasons, not one season: the aim is accuracy on any given game, and one score over many seasons says more about that than a score per season.
+
+- `--seasons 2021-2026` (the default, `sample.EVALUATED`: the six most recent) or `--seasons 2026`, and `--weeks` to narrow them.
+- `--games 160` (the default): a sample of that many of the seasons' played games. It is always the same sample, and a larger one contains a smaller one, so two runs compare on the same games. `--games 0` is every game.
+- Every game is predicted from the seasons before its own (`shared/priors/README.md`), so the scores are out of sample. Three exceptions, where a season has nothing earlier to learn from and uses its own plays: kickoffs in 2024 and 2025 (each the first season of a kickoff rule), and the charted outputs in 2022 (box count, pass rushers, throwaways).
+
+API (`from evaluators.sample import ...`): `EVALUATED`, `sample_games(seasons, weeks=None, n=None) -> {season: [game id]}` (what `evaluate` covers; `evaluators.lines.lines` takes it), and `label(seasons)` for report names.
+
+`from evaluators import parse_weeks` reads a CLI's `--weeks` or `--seasons` value (`1-3` or `1,4`).

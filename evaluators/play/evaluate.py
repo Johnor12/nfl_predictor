@@ -1,13 +1,15 @@
 # START
 # Scoring the play scenario and each of its event predictors against real plays.
-# - evaluate(season=2026, weeks=None, sims=100, seed=0, predictors=None, workers=None) -> Evaluation: every
-#   real play of the weeks is simulated `sims` times and scored; each week runs in its own process.
-# - Evaluation: season, weeks, sims, plays, failures (simulated plays that raised or broke an invariant), and
-#   card, a scoring.Scorecard with outputs named "play: yards (scrimmage)" or "carry: yards (run)".
+# - evaluate(seasons=EVALUATED, weeks=None, games=None, sims=100, seed=0, predictors=None, workers=None) ->
+#   Evaluation: every real play of the seasons' games (of `games` of them, sampled by evaluators.sample_games)
+#   is simulated `sims` times and scored, a few games per process.
+# - Evaluation: seasons, games, sims, plays, failures (simulated plays that raised or broke an invariant),
+#   and card, a scoring.Scorecard with outputs named "play: yards (scrimmage)" or "carry: yards (run)".
 # - play_outputs(ctx, outcome) -> {name: value}: the play scenario's scored outputs, read the same way from a
 #   real outcome (RealPlay.actual) and a simulated one (simulators.play.summarize). The clock isn't one of
 #   them: nflverse times a play from its snap to the next snap, the scenario from the previous play's end.
-# Internals: _evaluate_week (one week's scorecard), _score_play (the scenario: the simulated outcomes against
+# Internals: _evaluate_games (some games' scorecard; a play's seed comes from its game and its place in it,
+#   so it doesn't depend on which other games are evaluated), _score_play (the scenario: the simulated outcomes against
 #   the real one), _score_events (each event case: `sims` samples of its predictor against the real output,
 #   each sample with another simulated run standing in for the inputs the data doesn't record, so the forecast
 #   is spread over what they might have been instead of pinned to one draw),
@@ -15,20 +17,22 @@
 # END
 import dataclasses
 import random
+import zlib
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 
+from evaluators.sample import EVALUATED, sample_games
 from evaluators.play.cases import Run, event_cases, read
 from evaluators.scoring import Scorecard
 from scenarios.play import load_predictors
-from shared.nflverse import load, real_samples
+from shared.nflverse import real_samples
 from simulators.play import simulate_play, summarize
 
 
 @dataclass
 class Evaluation:
-    season: int
-    weeks: list
+    seasons: list
+    games: int
     sims: int
     plays: int
     failures: int
@@ -99,29 +103,34 @@ def _score_events(card, predictors, sample, runs, sims, rng):
             card.add(f"{case.event}: {name}{label}", [outputs[name] for outputs in samples], value)
 
 
-def _evaluate_week(season, week, sims, seed, predictors):
+def _evaluate_games(season, games, sims, seed, predictors):
     predictors = predictors or load_predictors("baseline")
     traced, calls = _traced(predictors)
-    card, plays, failures = Scorecard(), 0, 0
-    for i, sample in enumerate(real_samples(season, [week])):
+    card, plays, failures, index = Scorecard(), 0, 0, {}
+    for sample in real_samples(season, games=games):
+        game = sample.context.game.game_id
+        i = index[game] = index.get(game, -1) + 1  # the play's place in its game
         calls.clear()
-        results, failed = simulate_play(sample.context, traced, sims, seed * 100 + week, i)
+        results, failed = simulate_play(sample.context, traced, sims, zlib.crc32(f"{seed} {game}".encode()), i)
         plays, failures = plays + 1, failures + len(failed)
         _score_play(card, sample.context, sample.actual, results)
-        _score_events(card, predictors, sample, _runs(calls), sims, random.Random(f"{seed} {week} {i}"))
+        _score_events(card, predictors, sample, _runs(calls), sims, random.Random(f"{seed} {game} {i}"))
     return card, plays, failures
 
 
-def evaluate(season: int = 2026, weeks=None, sims: int = 100, seed: int = 0, predictors=None,
+def evaluate(seasons=EVALUATED, weeks=None, games=None, sims: int = 100, seed: int = 0, predictors=None,
              workers: int | None = None) -> Evaluation:
-    weeks = sorted(int(week) for week in (weeks or load("pbp", season).week.unique()))
-    jobs = [[season] * len(weeks), weeks, [sims] * len(weeks), [seed] * len(weeks), [predictors] * len(weeks)]
-    if workers == 1 or len(weeks) == 1:
-        parts = list(map(_evaluate_week, *jobs))
+    sample = sample_games(seasons, weeks, games)
+    chunks = [(season, ids[i:i + 8]) for season, ids in sample.items() for i in range(0, len(ids), 8)]
+    jobs = [[season for season, _ in chunks], [ids for _, ids in chunks],
+            [sims] * len(chunks), [seed] * len(chunks), [predictors] * len(chunks)]
+    if workers == 1 or len(chunks) == 1:
+        parts = list(map(_evaluate_games, *jobs))
     else:
         with ProcessPoolExecutor(workers) as pool:
-            parts = list(pool.map(_evaluate_week, *jobs))
+            parts = list(pool.map(_evaluate_games, *jobs))
     card = Scorecard()
     for part, _, _ in parts:
         card.merge(part)
-    return Evaluation(season, weeks, sims, sum(p for _, p, _ in parts), sum(f for _, _, f in parts), card)
+    return Evaluation(sorted(sample), sum(map(len, sample.values())), sims, sum(p for _, p, _ in parts),
+                      sum(f for _, _, f in parts), card)

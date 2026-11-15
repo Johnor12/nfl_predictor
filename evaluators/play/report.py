@@ -1,12 +1,13 @@
 # START
 # The play evaluation report.
-# - write_report(evaluation, path=None) -> Path: markdown at evaluation_output/play_<season>.md: the play
+# - write_report(evaluation, path=None) -> Path: markdown at evaluation_output/play_<seasons>.md: the play
 #   scenario's scores, each event predictor's scores (in chain order), PIT histograms for the numeric outputs,
 #   and reliability for the yes/no and categorical ones.
 # END
 import dataclasses
 from pathlib import Path
 
+from evaluators.sample import label
 from evaluators.scoring import GUIDE, OUT, pit_table, reliability_table, score_table
 from scenarios.play import Predictors
 
@@ -14,7 +15,8 @@ EVENTS = [f.name for f in dataclasses.fields(Predictors)]
 
 
 def write_report(evaluation, path=None) -> Path:
-    path = Path(path) if path else OUT / f"play_{evaluation.season}.md"
+    seasons = label(evaluation.seasons)
+    path = Path(path) if path else OUT / f"play_{seasons}.md"
     path.parent.mkdir(parents=True, exist_ok=True)
     rows = evaluation.card.rows()
     play = [r for r in rows if r["name"].startswith("play: ")]
@@ -22,8 +24,8 @@ def write_report(evaluation, path=None) -> Path:
                     key=lambda r: (EVENTS.index(r["name"].split(": ")[0]), r["name"]))
     numeric = [r["name"] for r in play + events if r["kind"] == "numeric"]
     other = [r["name"] for r in play + events if r["kind"] != "numeric"]
-    lines = [f"# Play evaluation, {evaluation.season}", "",
-             f"- weeks: {', '.join(map(str, evaluation.weeks))}",
+    lines = [f"# Play evaluation, {seasons}", "",
+             f"- real games: {evaluation.games}",
              f"- real plays: {evaluation.plays}, each simulated {evaluation.sims} times",
              f"- simulated plays that raised or broke an invariant: {evaluation.failures}", "", *GUIDE,
              "- unscored: real cases left with fewer than 2 samples (for an event, mostly no simulated run sent "

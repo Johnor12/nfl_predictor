@@ -1,0 +1,88 @@
+{
+ "flagrant": {
+  "no": 613,
+  "yes": 3
+ },
+ "fouls": {
+  "field_goal": {
+   "defensive_holding|defense": 4,
+   "illegal_forward_pass|defense": 1,
+   "offensive_holding|offense": 4,
+   "unnecessary_roughness|defense": 5,
+   "unnecessary_roughness|offense": 3,
+   "unsportsmanlike_conduct|defense": 4
+  },
+  "kickoff": {
+   "face_mask|offense": 3,
+   "illegal_block_in_the_back|defense": 18,
+   "illegal_forward_pass|defense": 2,
+   "offensive_holding|defense": 56,
+   "offensive_holding|offense": 3,
+   "unnecessary_roughness|defense": 5,
+   "unnecessary_roughness|offense": 16,
+   "unsportsmanlike_conduct|defense": 1,
+   "unsportsmanlike_conduct|offense": 2
+  },
+  "pass": {
+   "defensive_holding|defense": 250,
+   "defensive_pass_interference|defense": 242,
+   "face_mask|defense": 43,
+   "face_mask|offense": 13,
+   "illegal_block_in_the_back|defense": 5,
+   "illegal_block_in_the_back|offense": 12,
+   "illegal_contact|defense": 58,
+   "illegal_touch_pass|offense": 6,
+   "ineligible_downfield_pass|offense": 18,
+   "intentional_grounding|offense": 34,
+   "offensive_holding|offense": 259,
+   "offensive_pass_interference|offense": 104,
+   "roughing_the_passer|defense": 104,
+   "unnecessary_roughness|defense": 89,
+   "unnecessary_roughness|offense": 45,
+   "unsportsmanlike_conduct|defense": 28,
+   "unsportsmanlike_conduct|offense": 25
+  },
+  "punt": {
+   "defensive_holding|defense": 3,
+   "face_mask|defense": 2,
+   "face_mask|offense": 12,
+   "fair_catch_interference|offense": 5,
+   "illegal_block_in_the_back|defense": 88,
+   "illegal_touch_kick|offense": 23,
+   "offensive_holding|defense": 114,
+   "offensive_holding|offense": 27,
+   "roughing_the_kicker|defense": 2,
+   "running_into_the_kicker|defense": 13,
+   "unnecessary_roughness|defense": 17,
+   "unnecessary_roughness|offense": 12,
+   "unsportsmanlike_conduct|defense": 4,
+   "unsportsmanlike_conduct|offense": 10
+  },
+  "run": {
+   "defensive_holding|defense": 52,
+   "face_mask|defense": 34,
+   "face_mask|offense": 6,
+   "illegal_block_in_the_back|offense": 5,
+   "illegal_contact|defense": 2,
+   "illegal_forward_pass|offense": 6,
+   "offensive_holding|offense": 297,
+   "unnecessary_roughness|defense": 63,
+   "unnecessary_roughness|offense": 45,
+   "unsportsmanlike_conduct|defense": 15,
+   "unsportsmanlike_conduct|offense": 10
+  }
+ },
+ "personal": {
+  "face_mask": 113,
+  "roughing_the_passer": 104,
+  "unnecessary_roughness": 300,
+  "unsportsmanlike_conduct": 99
+ },
+ "snaps": {
+  "field_goal": 2298,
+  "kickoff": 2745,
+  "pass": 21480,
+  "punt": 2578,
+  "run": 14380
+ }
+}

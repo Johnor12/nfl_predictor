@@ -14,7 +14,7 @@ API (`from simulators.game import ...`):
 - `replay(ctx, predictors, seed, run) -> GameResult`: one run again, in full (to narrate it with `game.describe_game`).
 - `distribution(values) -> dict`: mean and the 10th, 25th, 50th, 75th, and 90th percentiles.
 - `forecast(sim) -> str`: win probabilities, the distributions of the score, margin, total, and plays, and the main players' stat lines.
-- CLI: `python -m simulators.game 2026_10_NE_DET [--sims 1000] [--workers N] [--swap carry=other]` forecasts a real game from `shared.nflverse`'s inputs, played or not.
+- CLI: `python -m simulators.game 2026_10_NE_DET [--sims 1000] [--workers N] [--swap carry=other]` forecasts a real game from `shared.nflverse`'s inputs, played or not, of any season from 2011 on. The baseline predictors know the seasons before the game's; `NFL_PRIORS_THROUGH=2026` in the environment adds this season's games so far for an upcoming 2026 game (`shared/priors/README.md`).
 
 Every run has its own seed (from `seed`, the game id, and the run number), so any game can be replayed.
 

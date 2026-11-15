@@ -2,11 +2,14 @@
 # Spot checks of the baseline lineups predictor on synthetic contexts (no network needed).
 # - test_lineups_follow_the_depth_chart / test_kneel_rule / test_fourth_down_long_punts.
 # - test_players_are_on_the_field_as_often_as_they_have_been: recent snaps decide who plays, and how often.
+# - test_a_wrong_depth_chart_still_fields_a_kicking_unit: a punter listed at kicker and a quarterback listed
+#   at guard (older depth charts have such rows) don't take the kicker's or a lineman's place.
 # END
 import dataclasses
 import random
 
 from events.lineups.predictors.baseline import predict
+from events.lineups.predictors.baseline.depth_chart import offense_lineup, unit_lineup
 from scenarios.play.testing import synthetic_context
 
 
@@ -43,3 +46,12 @@ def test_players_are_on_the_field_as_often_as_they_have_been():
     assert all(("HOME-RB1" in players) != ("HOME-RB2" in players) for players in one_back)
     assert all("HOME-QB1" in l.offense.players and "HOME-OL8" in l.offense.players for l in lineups)
     assert all("AWAY-DB9" in l.defense.players for l in lineups)  # the only defender with snaps always plays
+
+
+def test_a_wrong_depth_chart_still_fields_a_kicking_unit():
+    ctx = synthetic_context(random.Random(1), kind="scrimmage", offense="HOME", defense="AWAY", down=4, distance=5.0, x=75.0)
+    wrong = {"HOME-P1": (("PK", 1), ("P", 1), ("H", 1)), "HOME-K1": (("P", 2),), "HOME-QB2": (("LG", 1), ("QB", 2))}
+    ctx = dataclasses.replace(ctx, players=tuple(dataclasses.replace(p, depth=wrong.get(p.id, p.depth)) for p in ctx.players))
+    unit = unit_lineup(ctx, "HOME", "field_goal", random.Random(0))
+    assert len(set(unit)) == 11 and {"HOME-K1", "HOME-P1"} <= set(unit)
+    assert "HOME-QB2" not in offense_lineup(ctx, "HOME", "11", random.Random(0))

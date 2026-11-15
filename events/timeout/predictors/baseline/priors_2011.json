@@ -1,0 +1,143 @@
+{
+ "timeout": {
+  "first|1:00|any|running": {
+   "defense": 56,
+   "none": 394,
+   "offense": 279
+  },
+  "first|1:00|any|stopped": {
+   "defense": 31,
+   "none": 651,
+   "offense": 20
+  },
+  "first|2:00|any|running": {
+   "defense": 75,
+   "none": 396,
+   "offense": 58
+  },
+  "first|2:00|any|stopped": {
+   "defense": 12,
+   "none": 756,
+   "offense": 21
+  },
+  "first|5:00|any|running": {
+   "defense": 43,
+   "none": 1244,
+   "offense": 26
+  },
+  "first|5:00|any|stopped": {
+   "defense": 10,
+   "none": 548,
+   "offense": 9
+  },
+  "first|early|any|running": {
+   "defense": 42,
+   "none": 10114,
+   "offense": 151
+  },
+  "first|early|any|stopped": {
+   "defense": 44,
+   "none": 4930,
+   "offense": 63
+  },
+  "other": {
+   "defense": 13,
+   "none": 4009,
+   "offense": 5
+  },
+  "second|1:00|ahead|running": {
+   "defense": 15,
+   "none": 135,
+   "offense": 19
+  },
+  "second|1:00|ahead|stopped": {
+   "none": 63
+  },
+  "second|1:00|behind|running": {
+   "defense": 7,
+   "none": 221,
+   "offense": 41
+  },
+  "second|1:00|behind|stopped": {
+   "defense": 17,
+   "none": 262,
+   "offense": 5
+  },
+  "second|1:00|tied|running": {
+   "defense": 11,
+   "none": 21,
+   "offense": 16
+  },
+  "second|1:00|tied|stopped": {
+   "none": 38,
+   "offense": 2
+  },
+  "second|2:00|ahead|running": {
+   "defense": 80,
+   "none": 117,
+   "offense": 17
+  },
+  "second|2:00|ahead|stopped": {
+   "defense": 4,
+   "none": 195,
+   "offense": 3
+  },
+  "second|2:00|behind|running": {
+   "defense": 9,
+   "none": 194,
+   "offense": 14
+  },
+  "second|2:00|behind|stopped": {
+   "defense": 10,
+   "none": 404,
+   "offense": 5
+  },
+  "second|2:00|tied|running": {
+   "defense": 16,
+   "none": 24,
+   "offense": 1
+  },
+  "second|2:00|tied|stopped": {
+   "none": 49,
+   "offense": 1
+  },
+  "second|5:00|ahead|running": {
+   "defense": 236,
+   "none": 464,
+   "offense": 17
+  },
+  "second|5:00|ahead|stopped": {
+   "defense": 9,
+   "none": 239,
+   "offense": 9
+  },
+  "second|5:00|behind|running": {
+   "defense": 9,
+   "none": 658,
+   "offense": 20
+  },
+  "second|5:00|behind|stopped": {
+   "defense": 12,
+   "none": 590,
+   "offense": 9
+  },
+  "second|5:00|tied|running": {
+   "defense": 6,
+   "none": 77,
+   "offense": 1
+  },
+  "second|5:00|tied|stopped": {
+   "none": 45
+  },
+  "second|early|any|running": {
+   "defense": 78,
+   "none": 10077,
+   "offense": 163
+  },
+  "second|early|any|stopped": {
+   "defense": 47,
+   "none": 5274,
+   "offense": 75
+  }
+ }
+}

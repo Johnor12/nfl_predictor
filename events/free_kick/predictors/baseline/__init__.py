@@ -5,8 +5,9 @@
 # END
 from events.free_kick import FreeKick
 from shared.priors import hist, priors_of, rate
+from shared.rulebook import KICKOFF
 
-load_priors = priors_of(__file__)  # season -> priors dict
+load_priors = priors_of(__file__, rules={"kickoff_oob": KICKOFF, "kickoff_distance": KICKOFF})  # season -> priors dict
 
 
 def predict(ctx, lineups, onside, rng):

@@ -1,14 +1,16 @@
 # START
 # Real play contexts from nflverse data: every real snap or free kick as a play scenario input.
-# - real_plays(season, weeks=None) -> list[RealPlay]: in game order; each has the PlayContext, a dict of what
-#   actually happened (actual), and the pbp row index (row).
-# - real_samples(season, weeks=None) -> iterator of shared.priors.Sample: each real play with its nflverse
-#   rows (the pbp row, the FTN charting row or None, and the participation row or None), for code that reads
-#   what an event's output was.
+# - real_plays(season, weeks=None, games=None) -> list[RealPlay]: in game order; each has the PlayContext, a
+#   dict of what actually happened (actual), and the pbp row index (row). weeks and games (game ids) each
+#   narrow it down.
+# - real_samples(season, weeks=None, games=None) -> iterator of shared.priors.Sample: each real play with its
+#   nflverse rows (the pbp row, the FTN charting row or None, and the participation row or None), for code
+#   that reads what an event's output was.
 # Pipeline: _Rosters (active players per team-week: weekly roster status ACT minus injury-report Outs, plus
 #   anyone who appears in the game's pbp; depth chart slots from the last snapshot before gameday, draft
 #   pick, season-to-date stats from earlier weeks, and recent snaps by unit from _weekly_snaps: the
-#   participation file where the season has one, else the per-game snap counts), _players (both teams' for a game),
+#   participation file where the season has one, else the per-game snap counts, else none), _players (both
+#   teams' for a game),
 #   _game (schedule row -> Game), _kind / _situation (pbp row -> Situation; clock state inferred from the
 #   previous row by _clock_state), _actual (pbp row -> outcome dict), _summary (row -> PlaySummary history),
 #   _seconds_to_next (real snap-to-snap game time, for clock audits).
@@ -20,10 +22,12 @@
 #   there; a try's x is the two-point spot even when the row is a kick (see scenarios/play/context.py).
 # END
 import bisect
+import dataclasses
 from dataclasses import dataclass
 
 import pandas as pd
 
+from shared.nflverse.depth import depth_charts
 from shared.nflverse.download import load
 from scenarios.play import Game, PlayContext, PlaySummary, Player, Situation
 from shared.priors import Sample
@@ -38,6 +42,10 @@ UNITS = {  # play type -> (the unit of the team nflverse lists in possession, th
     "kickoff": ("kick_return", "kickoff"),
 }
 SNAP_COUNTS = {"offense_snaps": "offense", "defense_snaps": "defense", "st_snaps": "special_teams"}
+GROUPS = {  # the detailed roster positions of the seasons before 2016 -> the play scenario's
+    "T": "OL", "G": "OL", "C": "OL", "DE": "DL", "DT": "DL", "NT": "DL", "OLB": "LB", "ILB": "LB", "MLB": "LB",
+    "CB": "DB", "SS": "DB", "FS": "DB", "S": "DB", "KR": "WR", "PR": "WR",
+}
 UNSPORTSMANLIKE = ("Unsportsmanlike Conduct", "Taunting")
 SEASON_STATS = [  # (stat, player id column, value column), summed over earlier weeks
     ("pass_att", "passer_player_id", "attempt"),
@@ -75,7 +83,7 @@ def _plain(name) -> str:
 def _weekly_snaps(season, pbp, rosters) -> pd.Series:
     """Snaps by (player, week, unit). From who was on the field for each play, by the play scenario's units,
     where the season has a participation file; else from the per-game snap counts (offense, defense,
-    special_teams), matched to players by their PFR id or their team and name."""
+    special_teams), matched to players by their PFR id or their team and name. Empty for a season with neither."""
     participation = load("participation", season)
     if participation is not None:
         plays = pbp[pbp.play_type.isin(list(UNITS))][["game_id", "play_id", "week", "play_type"]].merge(
@@ -85,6 +93,8 @@ def _weekly_snaps(season, pbp, rosters) -> pd.Series:
         on_field = pd.concat(sides)[["player", "week", "unit"]].explode("player")
         return on_field[on_field.player.str.len() > 0].groupby(["player", "week", "unit"]).size()
     counts = load("snap_counts", season)
+    if counts is None or counts.empty:  # before 2013: nobody has snaps
+        return pd.Series(dtype=float, index=pd.MultiIndex.from_arrays([[], [], []], names=["player", "week", "unit"]))
     known = rosters.dropna(subset=["gsis_id"])
     by_pfr = known.dropna(subset=["pfr_id"]).drop_duplicates("pfr_id").set_index("pfr_id").gsis_id
     by_name = dict(zip(zip(known.team, known.full_name.map(_plain)), known.gsis_id))
@@ -100,8 +110,7 @@ class _Rosters:
         injuries = load("injuries", season)
         self.out = set(zip(injuries[injuries.report_status == "Out"].gsis_id,
                            injuries[injuries.report_status == "Out"].week))
-        depth = load("depth_charts", season)
-        depth = depth[depth.dt >= f"{season}-08-01"]
+        depth = depth_charts(season)
         self.depth = {key: frame for key, frame in depth.groupby(["team", "dt"])}
         self.snapshots = {team: sorted(dt for t, dt in self.depth if t == team) for team in depth.team.unique()}
         self.stats = self._season_stats(pbp)
@@ -160,12 +169,17 @@ class _Rosters:
             active = r.status == "ACT" and (r.gsis_id, week) not in self.out
             if pd.isna(r.gsis_id) or not (active or r.gsis_id in appeared):
                 continue
-            position = "FB" if r.depth_chart_position == "FB" else r.position
+            position = "FB" if r.depth_chart_position == "FB" else GROUPS.get(r.position, r.position)
             jersey = int(r.jersey_number) if pd.notna(r.jersey_number) else None
             players.append(Player(r.gsis_id, r.full_name, team, position, jersey,
-                                  tuple(slots.get(r.gsis_id, ())), int(r.years_exp),
+                                  tuple(slots.get(r.gsis_id, ())), int(r.years_exp) if pd.notna(r.years_exp) else None,
                                   int(r.draft_number) if pd.notna(r.draft_number) else None,
                                   stats.get(r.gsis_id, ()), snaps.get(r.gsis_id, ())))
+        punters = [p for p in players if p.position == "P"]
+        if len(punters) > 1 and not any(p.position == "K" for p in players):
+            # the roster lists the kicker as a punter (the 2022 Chargers): he is the depth chart's kicker
+            kicker = min(punters, key=lambda p: p.rank("PK") or 99)
+            players[players.index(kicker)] = dataclasses.replace(kicker, position="K")
         return tuple(players)
 
 
@@ -273,10 +287,11 @@ def _summary(row, s) -> PlaySummary:
     return PlaySummary(s.offense, _action(row), float(_num(row["yards_gained"], 0.0)), ", ".join(tags))
 
 
-def real_plays(season: int, weeks=None) -> list[RealPlay]:
+def real_plays(season: int, weeks=None, games=None) -> list[RealPlay]:
     rules = rules_for(season)
     season_pbp = load("pbp", season)
     pbp = season_pbp if weeks is None else season_pbp[season_pbp.week.isin(list(weeks))]
+    pbp = pbp if games is None else pbp[pbp.game_id.isin(list(games))]
     schedule = load("games", season).set_index("game_id")
     rosters = _Rosters(season, season_pbp)  # season-to-date stats need the earlier weeks too
     plays = []
@@ -311,17 +326,20 @@ def real_plays(season: int, weeks=None) -> list[RealPlay]:
     return plays
 
 
-def real_samples(season: int, weeks=None):
+def real_samples(season: int, weeks=None, games=None):
     pbp = load("pbp", season)
-    ftn = load("ftn", season).set_index(["nflverse_game_id", "nflverse_play_id"])
+    ftn = load("ftn", season)
+    if ftn is not None:
+        ftn = ftn.set_index(["nflverse_game_id", "nflverse_play_id"])
     participation = load("participation", season)
     if participation is not None:
         participation = participation.drop_duplicates(["nflverse_game_id", "play_id"]).set_index(["nflverse_game_id", "play_id"])
-    for play in real_plays(season, weeks):
+    for play in real_plays(season, weeks, games):
         row = pbp.loc[play.row]
         key = (row.game_id, int(row.play_id))
         on_field = participation.loc[key] if participation is not None and key in participation.index else None
-        yield Sample(play.context, play.actual, row, ftn.loc[key] if key in ftn.index else None, on_field)
+        charting = ftn.loc[key] if ftn is not None and key in ftn.index else None
+        yield Sample(play.context, play.actual, row, charting, on_field)
 
 
 def _seconds_to_next(game_plays):

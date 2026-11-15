@@ -1,6 +1,6 @@
 # START
 # Evaluator packages (see README.md).
-# - parse_weeks(text) -> list[int] | None: a CLI's --weeks value ("1-3" or "1,4"; None for every week).
+# - parse_weeks(text) -> list[int] | None: a CLI's --weeks or --seasons value ("1-3" or "1,4"; None if empty).
 # END
 
 

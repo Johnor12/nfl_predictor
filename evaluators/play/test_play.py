@@ -7,6 +7,8 @@
 #   real inputs and output; without a matching simulated run the cases have no arguments and go unscored.
 # - test_week_one_evaluation: a real week scores every event, with skill where the baseline has information.
 #   Skipped unless the 2026 files are already in .cache/nflverse.
+# - test_a_sample_of_seasons: a few games sampled across seasons, old ones included, score in one card.
+#   Skipped unless the 2016 files are cached.
 # END
 import random
 from types import SimpleNamespace
@@ -99,7 +101,7 @@ def test_no_stand_in_no_score():
 
 @pytest.mark.skipif(not (CACHE / "play_by_play_2026.parquet").exists(), reason="nflverse cache missing")
 def test_week_one_evaluation(tmp_path):
-    evaluation = evaluate(2026, weeks=[1], sims=4, workers=1)
+    evaluation = evaluate([2026], weeks=[1], sims=4, workers=1)
     rows = {row["name"]: row for row in evaluation.card.rows()}
     assert evaluation.plays > 2000 and evaluation.failures == 0
     assert {name.split(": ")[0] for name in rows} == {"play", *EVENTS}
@@ -109,3 +111,16 @@ def test_week_one_evaluation(tmp_path):
     assert rows["carry: yards (run)"]["unscored"] < 0.05 * rows["carry: yards (run)"]["n"]
     report = write_report(evaluation, tmp_path / "play.md").read_text()
     assert "## Event predictors" in report and "## Reliability" in report
+
+
+@pytest.mark.skipif(not (CACHE / "play_by_play_2016.parquet").exists(), reason="2016 nflverse cache missing")
+def test_a_sample_of_seasons():
+    from evaluators.sample import sample_games
+    sample = sample_games([2016, 2019, 2026], n=3)
+    assert sum(map(len, sample.values())) == 3 and sample == sample_games([2016, 2019, 2026], n=3)
+    larger = sample_games([2016, 2019, 2026], n=40)
+    assert all(set(ids) <= set(larger[season]) for season, ids in sample.items())  # a larger sample keeps the games
+    evaluation = evaluate([2016, 2019, 2026], games=3, sims=3, workers=1)
+    rows = {row["name"]: row for row in evaluation.card.rows()}
+    assert evaluation.games == 3 and evaluation.plays > 400 and evaluation.failures == 0
+    assert rows["play: yards (scrimmage)"]["n"] > 300 and rows["kick_result: result"]["n"] > 10

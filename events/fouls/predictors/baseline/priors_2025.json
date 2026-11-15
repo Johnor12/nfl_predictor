@@ -1,6 +1,6 @@
 {
  "flagrant": {
-  "no": 505,
+  "no": 508,
   "yes": 7
  },
  "fouls": {
@@ -19,7 +19,7 @@
    "illegal_touch_kick|offense": 2,
    "offensive_holding|defense": 127,
    "offensive_holding|offense": 4,
-   "unnecessary_roughness|defense": 12,
+   "unnecessary_roughness|defense": 15,
    "unnecessary_roughness|offense": 12,
    "unsportsmanlike_conduct|defense": 2,
    "unsportsmanlike_conduct|offense": 2
@@ -75,7 +75,7 @@
  "personal": {
   "face_mask": 102,
   "roughing_the_passer": 94,
-  "unnecessary_roughness": 253,
+  "unnecessary_roughness": 256,
   "unsportsmanlike_conduct": 63
  },
  "snaps": {

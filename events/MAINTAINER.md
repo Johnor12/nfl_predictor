@@ -2,9 +2,9 @@
 
 - __init__.py: package marker.
 - <event>/: one package per event (see its README.md and MAINTAINER.md).
-- baseline_priors.py: `build` / `save` and the CLI. One pass over a season's real plays, handing each one (a `shared.priors.Sample`) to every `<event>/predictors/baseline/priors.py`'s `observe(tally, sample)`.
+- baseline_priors.py: `build` / `save` and the CLI (one season, or a range of them in parallel processes). One pass over a season's real plays, handing each one (a `shared.priors.Sample`) to every `<event>/predictors/baseline/priors.py`'s `observe(tally, sample)`.
 - test_predictors.py: every baseline predictor together produces valid plays on synthetic contexts; `load_predictors` rejects unknown events; the baseline timeout predictor only names a team that has a timeout.
-- test_baseline_priors.py: a week 1 priors build covers every event that has a `priors.py` (18) with the committed files' keys, for a season with on-field data (2025) and one without (2026). Skipped if the nflverse cache is missing.
+- test_baseline_priors.py: a week 1 priors build covers every event that has a `priors.py` (18) with the committed files' keys, for a season with on-field data (2025), one without (2026), and one in the older data formats (2016). Skipped if the nflverse cache is missing.
 
 Adding an event: create `events/<event>/` with the output type in `__init__.py`, a `predictors/baseline/` exporting `predict`, and the READMEs; add a field to `scenarios.play.Predictors` and call it from `scenarios/play/chain.py`; add its cases to `evaluators/play/cases.py` so it gets scored.
 
@@ -17,5 +17,8 @@ Notes:
 - In an implementation's `__init__.py`, don't give a module-level name the name of a sibling module: importing `priors.py` replaces a `priors` attribute on the package. That's why the loaders are called `load_priors`.
 - A baseline's `priors.py` is only imported by `baseline_priors.py`; `predict` reads the built JSON.
 - `python -m events.baseline_priors` rebuilds every event's file from the data as it is now. `timeout`'s was added later than the rest, from a few more games.
-- After changing a `priors.py`, rebuild the priors of every season (`python -m events.baseline_priors 2025`, then `2026`) and rerun `python -m evaluators.play` and `python -m evaluators.audit` to see the effect.
+- After changing a `priors.py`, rebuild the priors of every season (`python -m events.baseline_priors`) and rerun `python -m evaluators.play` and `python -m evaluators.audit` to see the effect.
 - Using everything a season's data has: a `priors.py` counts a key only on the samples that can say (`if personnel(sample): ...`), so the key lands in the seasons that have the data, and `predict` reads it like any other. A predictor input that only some seasons fill (`Player.snaps`) needs a fallback in `predict` for when it's empty.
+- A key must mean the same thing in every season's file, because the seasons are summed. Where only some seasons can tell two outcomes apart, count the finer split under its own key on the samples that can (`pass_rush`'s `throwaway`, charted from 2022, next to `dropback`, which every season has). Counting it inside the shared key would water the rate down with the seasons that can't see it.
+- A key whose event changed with a rule is tied to that rule where the predictor loads its priors: `priors_of(__file__, rules={"kickoff_distance": KICKOFF})` (`shared/rulebook`). So far: the kickoff keys of `free_kick`, `kick_result`, and `carry`, and the try keys of `kick_attempt` and `lineups`.
+- The build's worker processes outlive a killed parent. After interrupting `python -m events.baseline_priors`, kill them too, or they finish their season and write its files.

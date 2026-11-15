@@ -153,7 +153,7 @@ def _snap(sample, runs):
             actual["sack yards"] = max(0.0, -float(row.yards_gained))
         if charting is not None and charting.n_pass_rushers > 0:
             actual["rushers"] = float(charting.n_pass_rushers)
-        yield Case("pass_rush", args and (lineups, formation, defense), actual)
+        yield Case("pass_rush", args and (lineups, formation, defense), actual, real=charting is not None)
     if action == "pass" and present(row.receiver_player_id):
         actual = {}
         if row.receiver_player_id in ctx.by_id:
@@ -292,7 +292,8 @@ def _lineups_read(ctx, case, out):
 
 def _pass_rush(ctx, case, out):
     sack = out.result in ("sack", "strip_sack")
-    return {"result": "sack" if sack else out.result, "sack yards": float(out.sack_yards) if sack else None,
+    throw = out.result == "throwaway" and not case.real  # an uncharted play can't tell a throwaway from a throw
+    return {"result": "sack" if sack else "throw" if throw else out.result, "sack yards": float(out.sack_yards) if sack else None,
             "rushers": float(out.rushers)}
 
 

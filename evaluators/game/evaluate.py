@@ -1,10 +1,11 @@
 # START
 # Scoring the game scenario against real games, and the timeout predictor against real timeouts.
-# - evaluate(season=2026, weeks=None, sims=100, seed=0, predictors=None, workers=None, lines=()) ->
-#   Evaluation: every played game of the weeks is simulated `sims` times from its inputs at kickoff and
-#   scored against what happened; games run in parallel processes. `lines` are evaluators.lines Lines: the
-#   simulated values behind each one are kept so the simulator can be scored on them.
-# - Evaluation: season, weeks, sims, games, failures (simulated games that raised or broke an invariant),
+# - evaluate(seasons=EVALUATED, weeks=None, games=None, sims=100, seed=0, predictors=None, workers=None,
+#   lines=()) -> Evaluation: every played game of the seasons (`games` of them, sampled by
+#   evaluators.sample_games) is simulated `sims` times from its inputs at kickoff and scored against what
+#   happened; games run in parallel processes. `lines` are evaluators.lines Lines: the simulated values
+#   behind each one are kept so the simulator can be scored on them.
+# - Evaluation: seasons, sims, games, failures (simulated games that raised or broke an invariant),
 #   card (a scoring.Scorecard with outputs named "game: margin", "team: pass_yds", "player: rec_yds (WR1)",
 #   "timeout: caller (...)"), lines, and samples ({line key: simulated values}, for lines.score_lines).
 # - evaluate_games(games, sims, seed, predictors, workers, lines) -> (card, samples, failures): the same for
@@ -21,6 +22,7 @@ import random
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 
+from evaluators.sample import EVALUATED, sample_games
 from evaluators.scoring import Scorecard
 from scenarios.game import load_game_predictors
 from shared.nflverse import real_games, real_samples
@@ -39,8 +41,7 @@ PLAYER_STATS = {
 
 @dataclass
 class Evaluation:
-    season: int
-    weeks: list
+    seasons: list
     sims: int
     games: int
     failures: int
@@ -105,9 +106,9 @@ def evaluate_games(games, sims: int = 100, seed: int = 0, predictors=None, worke
     return card, samples, sum(failures for _, _, failures in parts)
 
 
-def _score_timeouts(card, season, weeks, predict, sims, seed):
-    rng = random.Random(f"{seed} timeouts")
-    for sample in real_samples(season, weeks):
+def _score_timeouts(card, season, games, predict, sims, seed):
+    rng = random.Random(f"{seed} timeouts {season}")
+    for sample in real_samples(season, games=games):
         ctx, caller = timeout_case(sample)
         s = ctx.situation
         side = {s.offense: "offense", s.defense: "defense", None: "none"}
@@ -116,11 +117,12 @@ def _score_timeouts(card, season, weeks, predict, sims, seed):
         card.add(f"timeout: caller ({label})", [side[predict(ctx, rng)] for _ in range(sims)], caller)
 
 
-def evaluate(season: int = 2026, weeks=None, sims: int = 100, seed: int = 0, predictors=None,
+def evaluate(seasons=EVALUATED, weeks=None, games=None, sims: int = 100, seed: int = 0, predictors=None,
              workers: int | None = None, lines=()) -> Evaluation:
-    games = [game for game in real_games(season, weeks) if game.actual is not None]
-    weeks = sorted({game.context.game.week for game in games})
-    card, samples, failures = evaluate_games(games, sims, seed, predictors, workers, lines)
+    sample = sample_games(seasons, weeks, games)
+    played = [game for season, ids in sample.items() for game in real_games(season, games=ids) if game.actual]
+    card, samples, failures = evaluate_games(played, sims, seed, predictors, workers, lines)
     timeout = (predictors or load_game_predictors("baseline")).timeout
-    _score_timeouts(card, season, weeks, timeout, sims, seed)
-    return Evaluation(season, weeks, sims, len(games), failures, card, list(lines), samples)
+    for season, ids in sample.items():
+        _score_timeouts(card, season, ids, timeout, sims, seed)
+    return Evaluation(sorted(sample), sims, len(played), failures, card, list(lines), samples)

@@ -13,6 +13,8 @@ SECONDS = {"throw": (2.7, 0.6), "scramble": (3.3, 0.7), "throwaway": (3.6, 0.8)}
 def predict(ctx, lineups, formation, defense, rng):
     p = load_priors(ctx.game.season)
     outcome = choice(p["dropback"], rng)
+    if outcome == "throw" and rng.random() < rate(p["throwaway"], "yes"):
+        outcome = "throwaway"
     rushers = int(min(8, max(3, hist(p["rushers"], rng))))
     defenders = lineups.defense.players
     if outcome == "sack":

@@ -1,0 +1,298 @@
+{
+ "carry_rate": {
+  "FB": {
+   "carried": 45,
+   "other": 1897
+  },
+  "QB1": {
+   "carried": 872,
+   "other": 10503
+  },
+  "QB2": {
+   "carried": 118,
+   "other": 1678
+  },
+  "QB3": {
+   "carried": 85,
+   "other": 723
+  },
+  "RB1": {
+   "carried": 7240,
+   "other": 1101
+  },
+  "RB2": {
+   "carried": 3040,
+   "other": 618
+  },
+  "RB3": {
+   "carried": 2000,
+   "other": 521
+  },
+  "TE1": {
+   "carried": 19,
+   "other": 9483
+  },
+  "TE2": {
+   "carried": 77,
+   "other": 5862
+  },
+  "TE3": {
+   "carried": 14,
+   "other": 4796
+  },
+  "WR1": {
+   "carried": 291,
+   "other": 20621
+  },
+  "WR2": {
+   "carried": 152,
+   "other": 7422
+  },
+  "WR3": {
+   "carried": 62,
+   "other": 3987
+  }
+ },
+ "pass_rate": {
+  "bleed|1|1": {
+   "run": 4
+  },
+  "bleed|1|11+": {
+   "pass": 2,
+   "run": 6
+  },
+  "bleed|1|2-3": {
+   "run": 5
+  },
+  "bleed|1|4-6": {
+   "pass": 2,
+   "run": 5
+  },
+  "bleed|1|7-10": {
+   "pass": 37,
+   "run": 336
+  },
+  "bleed|2|1": {
+   "run": 16
+  },
+  "bleed|2|11+": {
+   "pass": 16,
+   "run": 38
+  },
+  "bleed|2|2-3": {
+   "pass": 4,
+   "run": 28
+  },
+  "bleed|2|4-6": {
+   "pass": 12,
+   "run": 91
+  },
+  "bleed|2|7-10": {
+   "pass": 40,
+   "run": 130
+  },
+  "bleed|3|1": {
+   "pass": 3,
+   "run": 37
+  },
+  "bleed|3|11+": {
+   "pass": 25,
+   "run": 26
+  },
+  "bleed|3|2-3": {
+   "pass": 19,
+   "run": 28
+  },
+  "bleed|3|4-6": {
+   "pass": 35,
+   "run": 44
+  },
+  "bleed|3|7-10": {
+   "pass": 43,
+   "run": 47
+  },
+  "bleed|4|1": {
+   "pass": 3,
+   "run": 11
+  },
+  "bleed|4|11+": {
+   "run": 2
+  },
+  "bleed|4|2-3": {
+   "pass": 8,
+   "run": 4
+  },
+  "bleed|4|4-6": {
+   "pass": 5,
+   "run": 1
+  },
+  "bleed|4|7-10": {
+   "pass": 1,
+   "run": 2
+  },
+  "hurry|1|1": {
+   "pass": 9,
+   "run": 14
+  },
+  "hurry|1|11+": {
+   "pass": 60,
+   "run": 7
+  },
+  "hurry|1|2-3": {
+   "pass": 17,
+   "run": 14
+  },
+  "hurry|1|4-6": {
+   "pass": 38,
+   "run": 30
+  },
+  "hurry|1|7-10": {
+   "pass": 1586,
+   "run": 359
+  },
+  "hurry|2|1": {
+   "pass": 77,
+   "run": 49
+  },
+  "hurry|2|11+": {
+   "pass": 184,
+   "run": 21
+  },
+  "hurry|2|2-3": {
+   "pass": 154,
+   "run": 56
+  },
+  "hurry|2|4-6": {
+   "pass": 292,
+   "run": 71
+  },
+  "hurry|2|7-10": {
+   "pass": 644,
+   "run": 82
+  },
+  "hurry|3|1": {
+   "pass": 65,
+   "run": 69
+  },
+  "hurry|3|11+": {
+   "pass": 156,
+   "run": 16
+  },
+  "hurry|3|2-3": {
+   "pass": 110,
+   "run": 34
+  },
+  "hurry|3|4-6": {
+   "pass": 214,
+   "run": 15
+  },
+  "hurry|3|7-10": {
+   "pass": 260,
+   "run": 16
+  },
+  "hurry|4|1": {
+   "pass": 27,
+   "run": 28
+  },
+  "hurry|4|11+": {
+   "pass": 46,
+   "run": 1
+  },
+  "hurry|4|2-3": {
+   "pass": 31,
+   "run": 7
+  },
+  "hurry|4|4-6": {
+   "pass": 36,
+   "run": 1
+  },
+  "hurry|4|7-10": {
+   "pass": 43,
+   "run": 1
+  },
+  "normal|1|1": {
+   "pass": 22,
+   "run": 71
+  },
+  "normal|1|11+": {
+   "pass": 356,
+   "run": 151
+  },
+  "normal|1|2-3": {
+   "pass": 43,
+   "run": 98
+  },
+  "normal|1|4-6": {
+   "pass": 81,
+   "run": 199
+  },
+  "normal|1|7-10": {
+   "pass": 5471,
+   "run": 6457
+  },
+  "normal|2|1": {
+   "pass": 109,
+   "run": 393
+  },
+  "normal|2|11+": {
+   "pass": 1171,
+   "run": 284
+  },
+  "normal|2|2-3": {
+   "pass": 391,
+   "run": 606
+  },
+  "normal|2|4-6": {
+   "pass": 1157,
+   "run": 1163
+  },
+  "normal|2|7-10": {
+   "pass": 3045,
+   "run": 1466
+  },
+  "normal|3|1": {
+   "pass": 173,
+   "run": 620
+  },
+  "normal|3|11+": {
+   "pass": 999,
+   "run": 75
+  },
+  "normal|3|2-3": {
+   "pass": 690,
+   "run": 303
+  },
+  "normal|3|4-6": {
+   "pass": 1352,
+   "run": 120
+  },
+  "normal|3|7-10": {
+   "pass": 1602,
+   "run": 68
+  },
+  "normal|4|1": {
+   "pass": 62,
+   "run": 188
+  },
+  "normal|4|11+": {
+   "pass": 14,
+   "run": 1
+  },
+  "normal|4|2-3": {
+   "pass": 112,
+   "run": 25
+  },
+  "normal|4|4-6": {
+   "pass": 70,
+   "run": 3
+  },
+  "normal|4|7-10": {
+   "pass": 34,
+   "run": 3
+  }
+ },
+ "two_point_play": {
+  "pass": 94,
+  "run": 32
+ }
+}

@@ -17,13 +17,15 @@
 # - package(sample) -> str: the defense's package by its defensive backs: goal_line (3 or fewer), base,
 #   nickel, dime (6 or more).
 # - played(sample) -> (offense ids, defense ids): the 11 players each team had on the field.
-# - kickoff_result(sample) -> (zone, result) | None: a kickoff that came down in the landing zone or end zone.
+# - kickoff_result(sample) -> (zone, result) | None: a kickoff that came down in the landing zone or end
+#   zone: return, touchback, fair_catch, or muff.
 # - nullified(sample) -> run, pass, punt, field_goal, or kickoff: what a play wiped out by a penalty was
 #   (nflverse labels it no_play; its description still says).
 # - timeout_case(sample) -> (context, "offense" | "defense" | "none"): the play's context as it stood before
 #   any timeout was called (the clock as it was, the caller's timeout given back), and who called one.
 # END
 import dataclasses
+import re
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 
@@ -48,6 +50,11 @@ FOULS = {
     "Player Out of Bounds on Kick": "illegal_touch_kick", "Ineligible Downfield Kick": "illegal_touch_kick",
     "Kick Catch Interference": "fair_catch_interference", "Hip Drop Tackle": "unnecessary_roughness",
     "Disqualification": "unnecessary_roughness",
+    # names from earlier seasons
+    "Personal Foul": "unnecessary_roughness", "Lowering the Head to Initiate Contact": "unnecessary_roughness",
+    "Clipping": "unnecessary_roughness", "Illegal Crackback": "unnecessary_roughness",
+    "Illegal Double-Team Block": "unnecessary_roughness", "Player Out of Bounds on Punt": "illegal_touch_kick",
+    "Defensive 12 On-field": "defensive_too_many_men", "Offensive 12 On-field": "offensive_too_many_men",
     "Illegal Use of Hands": ("offensive_holding", "defensive_holding"),
     "Illegal Substitution": ("offensive_too_many_men", "defensive_too_many_men"),
 }
@@ -104,7 +111,7 @@ def flagrant(sample) -> bool:
 
 
 def _positions(text) -> Counter:
-    return Counter({position: int(count) for count, position in (part.split() for part in str(text).split(", "))})
+    return Counter({position: int(count) for count, position in re.findall(r"(\d+) (\w+)", str(text))})
 
 
 def personnel(sample):
@@ -112,8 +119,10 @@ def personnel(sample):
     if row is None or not present(row.offense_personnel):
         return None
     counts = _positions(row.offense_personnel)
-    backs, linemen = counts["RB"] + counts["FB"], counts["C"] + counts["G"] + counts["T"] + counts["OL"]
-    if counts["QB"] != 1 or linemen < 5 or 1 + backs + counts["TE"] + counts["WR"] + linemen != 11:
+    backs, receivers = counts["RB"] + counts["FB"], counts["TE"] + counts["WR"]
+    quarterbacks = counts.get("QB", 1)  # before 2023 one quarterback and five linemen go without saying
+    linemen = counts["C"] + counts["G"] + counts["T"] + counts["OL"] or 5
+    if quarterbacks != 1 or linemen < 5 or 1 + backs + receivers + linemen != 11:
         return None
     return f"{backs}{counts['TE']}" + "+" * (linemen - 5)
 
@@ -131,9 +140,10 @@ def package(sample):
 
 def played(sample):
     row, ctx = sample.participation, sample.context
-    if row is None or not present(row.players_on_play):
+    if row is None or not (present(row.offense_players) and present(row.defense_players)):
         return None
-    teams = {team: tuple(pid for pid in row.players_on_play.split(";") if pid in ctx.by_id and ctx.by_id[pid].team == team)
+    ids = f"{row.offense_players};{row.defense_players}".split(";")  # in every season's ids, unlike players_on_play
+    teams = {team: tuple(pid for pid in ids if pid in ctx.by_id and ctx.by_id[pid].team == team)
              for team in (ctx.situation.offense, ctx.situation.defense)}
     return tuple(teams.values()) if all(len(players) == 11 for players in teams.values()) else None
 
@@ -147,7 +157,8 @@ def kickoff_result(sample):
     land = s.x + row.kick_distance
     if land < 80:  # short of the landing zone
         return None
-    result = "touchback" if row.touchback == 1 else "muff" if row.fumble == 1 and row.return_yards == 0 else "return"
+    result = ("touchback" if row.touchback == 1 else "fair_catch" if row.kickoff_fair_catch == 1
+              else "muff" if row.fumble == 1 and row.return_yards == 0 else "return")
     return "end_zone" if land >= 100 else "landing_zone", result
 
 

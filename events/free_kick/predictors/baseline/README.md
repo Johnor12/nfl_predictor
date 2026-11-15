@@ -10,4 +10,4 @@ From data: kickoff distance (`kickoff_distance`) and the out-of-bounds rate (`ki
 
 Hand-set: onside kicks travel 10-15 yards, and hang time. The kicker is the K (else the P) on the field.
 
-The priors come from the `priors_<season>.json` files next to the code: each key from the latest season that has it and isn't after the game's (see `shared/priors/README.md`). Rebuild every event's with `python -m events.baseline_priors 2026`.
+The priors come from the `priors_<season>.json` files next to the code: a game is predicted from the counts of the seasons before its own, older seasons counting less (see `shared/priors/README.md`). `kickoff_distance` and `kickoff_oob` only pool the seasons played under the game's kickoff rules (`shared.rulebook.KICKOFF`). Rebuild every event's with `python -m events.baseline_priors` (`2026` for one season).

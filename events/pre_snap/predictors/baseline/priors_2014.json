@@ -1,0 +1,19 @@
+{
+ "fouls": {
+  "defensive_offside|defense": 138,
+  "defensive_too_many_men|defense": 42,
+  "delay_of_game|defense": 1,
+  "delay_of_game|offense": 143,
+  "encroachment|defense": 61,
+  "false_start|defense": 3,
+  "false_start|offense": 612,
+  "illegal_formation|defense": 4,
+  "illegal_formation|offense": 39,
+  "illegal_shift|offense": 28,
+  "neutral_zone_infraction|defense": 125,
+  "offensive_too_many_men|offense": 21
+ },
+ "snaps": {
+  "n": 41608
+ }
+}

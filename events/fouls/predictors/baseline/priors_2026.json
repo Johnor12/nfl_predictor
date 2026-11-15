@@ -1,6 +1,6 @@
 {
  "flagrant": {
-  "no": 268,
+  "no": 270,
   "yes": 2
  },
  "fouls": {
@@ -17,7 +17,7 @@
    "illegal_block_in_the_back|defense": 15,
    "illegal_touch_kick|offense": 1,
    "offensive_holding|defense": 78,
-   "unnecessary_roughness|defense": 4,
+   "unnecessary_roughness|defense": 6,
    "unnecessary_roughness|offense": 7
   },
   "pass": {
@@ -71,7 +71,7 @@
  "personal": {
   "face_mask": 56,
   "roughing_the_passer": 61,
-  "unnecessary_roughness": 123,
+  "unnecessary_roughness": 125,
   "unsportsmanlike_conduct": 30
  },
  "snaps": {

@@ -1,13 +1,14 @@
 # START
 # Baseline kick result predictor: return, touchback, or muff by where the kickoff comes down.
 # - predict(ctx, lineups, landing_x, allowed, rng) -> KickResult.
-# Hand-set: onside recovery rate, muff rate, and fair catch rate (where fair catches are allowed).
+# Hand-set: onside recovery rate, muff rate, and the fair catch rate on safety kicks (the data has too few).
 # The returner is the top kick returner on the field by depth chart.
 # END
 from events.kick_result import KickResult
 from shared.priors import choice, priors_of, returner
+from shared.rulebook import KICKOFF
 
-load_priors = priors_of(__file__)  # season -> priors dict
+load_priors = priors_of(__file__, rules={"kickoff_result": KICKOFF})  # season -> priors dict
 
 
 def predict(ctx, lineups, landing_x, allowed, rng):
@@ -21,7 +22,7 @@ def predict(ctx, lineups, landing_x, allowed, rng):
     total = sum(weights.values())
     if "muff" in allowed:
         weights["muff"] = weights.get("muff", 0) + 0.01 * total
-    if "fair_catch" in allowed:
+    if "fair_catch" in allowed and ctx.situation.kind == "safety_kick":
         weights["fair_catch"] = 0.3 * total
     result = choice(weights, rng)
     return KickResult(result, None if result == "touchback" else returner(ctx, receivers, "KR", rng))

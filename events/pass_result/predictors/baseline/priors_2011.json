@@ -1,0 +1,44 @@
+{
+ "defended": {
+  "no": 4564,
+  "yes": 1958
+ },
+ "pass_result": {
+  "behind": {
+   "complete": 2177,
+   "incomplete": 759,
+   "intercepted": 33
+  },
+  "deep": {
+   "complete": 783,
+   "incomplete": 1242,
+   "intercepted": 167
+  },
+  "medium": {
+   "complete": 2268,
+   "incomplete": 1804,
+   "intercepted": 170
+  },
+  "short": {
+   "complete": 5230,
+   "incomplete": 2199,
+   "intercepted": 124
+  }
+ },
+ "pass_result_goal": {
+  "1-2": {
+   "complete": 93,
+   "incomplete": 78
+  },
+  "3-5": {
+   "complete": 149,
+   "incomplete": 187,
+   "intercepted": 10
+  },
+  "6-10": {
+   "complete": 273,
+   "incomplete": 253,
+   "intercepted": 17
+  }
+ }
+}

@@ -3,13 +3,15 @@
 # - build(season, weeks=None) -> {event: priors dict}: feeds each real play (a shared.priors.Sample) to
 #   every events/<event>/predictors/baseline/priors.py observe(tally, sample).
 # - save(season) -> list[Path]: builds and writes each event's priors_<season>.json next to its predictor.
-# - CLI: `python -m events.baseline_priors 2026`.
+# - CLI: `python -m events.baseline_priors 2026`, or `2011-2026` for a range of seasons (the default), built
+#   in parallel processes.
 # END
 import sys
+from concurrent.futures import ProcessPoolExecutor
 from importlib import import_module
 from pathlib import Path
 
-from shared.nflverse import real_samples
+from shared.nflverse import SEASONS, real_samples
 from shared.priors import Tally, save_priors
 
 HERE = Path(__file__).resolve().parent
@@ -35,5 +37,7 @@ def save(season: int) -> list[Path]:
 
 
 if __name__ == "__main__":
-    for path in save(int(sys.argv[1]) if len(sys.argv) > 1 else 2026):
-        print(path)
+    first, _, last = (sys.argv[1] if len(sys.argv) > 1 else f"{SEASONS[0]}-{SEASONS[-1]}").partition("-")
+    with ProcessPoolExecutor() as pool:
+        for paths in pool.map(save, range(int(first), int(last or first) + 1)):
+            print(len(paths), "files:", paths[0].name)

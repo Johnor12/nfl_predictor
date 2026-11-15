@@ -34,7 +34,7 @@ def test_the_scenario_scores_against_itself(tmp_path):
     assert rows["player: pass_yds (QB1)"]["n"] == 6 and rows["player: rec_yds (WR3)"]["n"] == 18  # 3 of 5 receivers
     assert rows["game: home win"]["kind"] == "binary" and rows["player: touchdown (RB1)"]["kind"] == "binary"
     assert all(row["score"] >= 0 for row in rows.values())
-    evaluation = Evaluation(2026, [1], 4, 3, failures, card, lines, samples)
+    evaluation = Evaluation([2026], 4, 3, failures, card, lines, samples)
     text = write_report(evaluation, tmp_path / "game.md").read_text()
     assert "## Betting lines" in text and "| spread | 1 |" in text and "| game: plays |" in text
     assert "sim CRPS" in text and "## Reliability" in text
@@ -42,7 +42,7 @@ def test_the_scenario_scores_against_itself(tmp_path):
 
 @pytest.mark.skipif(not (CACHE / "play_by_play_2026.parquet").exists(), reason="nflverse cache missing")
 def test_week_one_evaluation(tmp_path):
-    evaluation = evaluate(2026, weeks=[1], sims=2, workers=1)
+    evaluation = evaluate([2026], weeks=[1], sims=2, workers=1)
     rows = {row["name"]: row for row in evaluation.card.rows()}
     assert evaluation.games == 16 and evaluation.failures == 0
     assert rows["game: total"]["n"] == 16 and rows["team: points"]["n"] == 32

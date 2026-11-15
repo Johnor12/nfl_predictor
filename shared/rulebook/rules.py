@@ -1,10 +1,16 @@
 # START
 # Season-versioned NFL rule constants. Nothing outside this file hardcodes a season-dependent value.
 # - Rules: dataclass of constants (yard lines are measured from the named team's own goal line).
-# - rules_for(season): builds the Rules for a season by applying rule changes in order.
+# - rules_for(season): builds the Rules for a season by applying rule changes in order (2011 on).
+# - same_rules(season, other, fields) -> bool: the two seasons agree on those Rules fields.
+# - KICKOFF, TRY: the fields that change how kickoffs and tries are played, for same_rules: what was learned
+#   from kickoffs under one set of rules says little about them under another.
 # Values are from memory of the rulebook and should be checked against the official rules per season.
 # END
 from dataclasses import dataclass
+
+KICKOFF = ("kickoff_line", "dynamic_kickoff", "kickoff_touchback_line")
+TRY = ("pat_line", "defensive_try_points")
 
 
 @dataclass(frozen=True)
@@ -27,6 +33,7 @@ class Rules:
     kickoff_short_line: int = 40        # dynamic: short of the landing zone or out of bounds -> receiving team's 40
     kickoff_out_of_bounds_line: int = 40
     kickoff_fair_catch: bool = False    # fair catch allowed on kickoffs (not under the dynamic kickoff)
+    kickoff_fair_catch_line: int = 0    # a kickoff fair-caught inside this yard line comes out to it (2023: the 25)
     onside_declared: str = "trailing"   # when an onside kick may be declared: "any", "trailing_q4", "trailing"
     onside_min_distance: int = 10
     # clock
@@ -53,6 +60,8 @@ def rules_for(season: int) -> Rules:
     if season < 2024:
         r.update(dynamic_kickoff=False, onside_declared="any", kickoff_fair_catch=True,
                  kickoff_touchback_line=25 if season >= 2016 else 20)
+    if season == 2023:
+        r.update(kickoff_fair_catch_line=25)
     if season == 2024:
         r.update(kickoff_touchback_line=30, onside_declared="trailing_q4")
     if season < 2025:
@@ -64,3 +73,8 @@ def rules_for(season: int) -> Rules:
     if season < 2012:
         r.update(overtime_format="sudden_death")
     return Rules(**r)
+
+
+def same_rules(season: int, other: int, fields) -> bool:
+    a, b = rules_for(season), rules_for(other)
+    return all(getattr(a, field) == getattr(b, field) for field in fields)

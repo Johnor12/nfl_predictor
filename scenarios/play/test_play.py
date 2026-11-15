@@ -2,7 +2,8 @@
 # Tests for the play scenario.
 # - test_fuzz_invariants: thousands of plays from random legal predictors and situations; every invariant holds.
 # - Hand-built rule tests: scripted predictor outputs for specific rules (scoring, end zones, kicks, fouls,
-#   laterals, re-kicks, illegal touching, disqualifications, the clock after penalties).
+#   laterals, re-kicks, illegal touching, disqualifications, the clock after penalties, kickoffs under the
+#   rules of earlier seasons).
 # Helpers: situation(...) builds a HOME-offense context; base() is a quiet scripted predictor set
 # (fixed lineups/formation, no fouls); play(ctx, **outputs) runs one play with outputs scripted.
 # END
@@ -211,6 +212,22 @@ def test_dynamic_kickoff_rules():
     assert (r.next.offense, r.next.x) == (A, 28) and r.stats["AWAY-DB1"]["kick_ret_yds"] == 25
     r = play(ctx, **ko, free_kick=FreeKick("HOME-K1", 50, out_of_bounds=True))
     assert (r.next.offense, r.next.x) == (A, 40)
+
+
+def test_kickoffs_before_the_dynamic_kickoff():
+    ko = dict(lineups=Lineups(KICKOFF, RETURN))
+    ctx = situation("kickoff", x=35, down=None, distance=None)
+    season = lambda year: dataclasses.replace(ctx, game=dataclasses.replace(ctx.game, season=year))
+    fair_catch = dict(free_kick=FreeKick("HOME-K1", 55), kick_result=KickResult("fair_catch", "AWAY-DB1"))
+    assert play(season(2022), **ko, **fair_catch).next.x == 10  # where it was caught
+    assert play(season(2023), **ko, **fair_catch).next.x == 25  # 2023: inside the 25 comes out to the 25
+    touchback = dict(free_kick=FreeKick("HOME-K1", 70), kick_result=KickResult("touchback"))
+    assert [play(season(year), **ko, **touchback).next.x for year in (2015, 2016, 2023)] == [20, 25, 25]
+    r = play(season(2019), **ko, free_kick=FreeKick("HOME-K1", 40), kick_result=KickResult("return", "AWAY-DB1"),
+             carry=CarryEnd(10, "tackled", ("HOME-LB1",)))
+    assert (r.next.offense, r.next.x) == (A, 35)  # a short kick is just a short kick
+    r = play(season(2019), **ko, free_kick=FreeKick("HOME-K1", 50, out_of_bounds=True))
+    assert (r.next.offense, r.next.x) == (A, 40)  # out of bounds: 25 yards from the kick
 
 
 def test_half_the_distance_and_presnap_fouls():

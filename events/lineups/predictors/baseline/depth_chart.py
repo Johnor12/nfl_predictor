@@ -10,8 +10,8 @@
 #   and specialists are the ones with the most snaps; the quarterback and returners are the depth chart's.
 #   Without snaps (week 1, synthetic rosters) everyone lines up by depth chart rank.
 # Internals: _snaps (a player's snaps in a unit, from whatever the season's data records), _ranked (players
-#   at depth slots or positions, in the order they'd take the field), _take (fill quotas without reusing
-#   anyone), _fill (top up to 11), _specialist.
+#   at depth slots or positions, in the order they'd take the field), _linemen (offensive linemen), _take
+#   (fill quotas without reusing anyone), _fill (top up to 11). SPECIALISTS: each kicking unit's specialists.
 # END
 OL_SLOTS = ("LT", "LG", "C", "RG", "RT")
 FRONT_SLOTS = ("LDE", "LDT", "NT", "RDT", "RDE", "WLB", "MLB", "SLB", "LILB", "RILB", "DL", "LB")  # the last come off first
@@ -20,6 +20,10 @@ BACKS = {"goal_line": 3, "base": 4, "nickel": 5, "dime": 6}  # defensive backs i
 COVERAGE = (("LB", 3), ("DB", 3), ("TE", 2), ("RB", 1))  # punt and kickoff coverage players, after specialists
 KICK_UNITS = ("punt", "punt_return", "kickoff", "kick_return")  # where a team's regular special teamers play
 REGULARS = ("RB", "FB", "WR", "TE", "OL", "DL", "LB", "DB")  # positions a kicking unit is filled from
+SPECIALISTS = {  # unit -> its specialists as (depth slot, position), in the order they are picked
+    "punt": (("P", "P"), ("LS", "LS")), "kickoff": (("PK", "K"),),
+    "field_goal": (("PK", "K"), ("H", "P"), ("LS", "LS")),
+}
 INF = float("inf")
 SHARPEN = 1.5  # draw by snaps to this power: plain shares put the regulars on the field too rarely
 
@@ -64,17 +68,19 @@ def _fill(ctx, team, chosen, positions=REGULARS):
     return tuple((chosen + extra)[:11])
 
 
-def _specialist(ctx, team, unit, slot, position, chosen):
-    return _ranked(ctx, team, unit, (slot,), (position,), chosen)[:1]
+def _linemen(ctx, team, unit, chosen, count):
+    """Offensive linemen by position only: a depth chart that lists someone else at a line slot is wrong."""
+    ranked = _ranked(ctx, team, unit, OL_SLOTS, ("OL",), chosen)
+    return [pid for pid in ranked if ctx.by_id[pid].position == "OL"][:count]
 
 
 def offense_lineup(ctx, team, group, rng) -> tuple[str, ...]:
     backs, tight_ends, receivers, linemen = quotas(group)
     chosen = _ranked(ctx, team, None, ("QB",), ("QB",))[:1]  # the depth chart knows the starter better than snaps do
-    chosen += _ranked(ctx, team, "offense", OL_SLOTS, ("OL",), chosen)[:linemen]
+    chosen += _linemen(ctx, team, "offense", chosen, linemen)
     chosen += _ranked(ctx, team, "offense", ("RB",), ("RB",), chosen, rng=rng)[:min(backs, 1)]
     fullbacks = _ranked(ctx, team, "offense", ("FB",), ("FB",), chosen)[:1]  # a second back is the fullback
-    chosen += (fullbacks + _ranked(ctx, team, "offense", ("RB",), ("RB",), chosen, rng=rng))[:max(0, backs - 1)]
+    chosen += (fullbacks + _ranked(ctx, team, "offense", ("RB",), ("RB",), chosen + fullbacks, rng=rng))[:max(0, backs - 1)]
     chosen = _take(ctx, team, "offense", chosen, (("TE", tight_ends), ("WR", receivers)), rng=rng)
     return _fill(ctx, team, chosen, ("WR", "TE", "RB", "FB"))
 
@@ -92,15 +98,11 @@ def unit_lineup(ctx, team, unit, rng) -> tuple[str, ...]:
     if unit == "defense":
         return defense_lineup(ctx, team, "base", rng)
     unit = "kickoff" if unit == "onside_kickoff" else unit
-    specialist = lambda slot, position: _specialist(ctx, team, unit, slot, position, chosen)
     chosen = []
-    if unit == "punt":
-        chosen += specialist("P", "P") + specialist("LS", "LS")
-    elif unit == "kickoff":
-        chosen += specialist("PK", "K")
-    elif unit == "field_goal":
-        chosen += specialist("PK", "K") + specialist("H", "P") + specialist("LS", "LS")
-    elif unit == "punt_return":
+    for slot, position in SPECIALISTS.get(unit, ()):  # one at a time, so nobody fills two jobs
+        ranked = _ranked(ctx, team, unit, (slot,), (position,), chosen)
+        chosen += sorted(ranked, key=lambda pid: ctx.by_id[pid].position != position)[:1]  # a kicker before a punter listed at kicker
+    if unit == "punt_return":
         chosen += _ranked(ctx, team, None, ("PR",), (), chosen)[:1]
     elif unit == "kick_return":
         chosen += _ranked(ctx, team, None, ("KR",), (), chosen)[:2]
@@ -111,7 +113,7 @@ def unit_lineup(ctx, team, unit, rng) -> tuple[str, ...]:
     elif unit == "kickoff":
         chosen = _take(ctx, team, unit, chosen, (("LB", 3), ("DB", 4), ("TE", 1), ("RB", 1), ("WR", 1)), backups=True)
     elif unit == "field_goal":
-        chosen += _ranked(ctx, team, unit, OL_SLOTS, ("OL",), chosen)[:5]
+        chosen += _linemen(ctx, team, unit, chosen, 5)
         chosen = _take(ctx, team, unit, chosen, (("TE", 11),))
     elif unit == "punt_return":
         chosen = _take(ctx, team, unit, chosen, (("DL", 2), ("LB", 3), ("DB", 4)), backups=True)

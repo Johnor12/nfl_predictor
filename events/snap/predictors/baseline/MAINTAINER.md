@@ -2,7 +2,7 @@
 
 - __init__.py: `predict` and `_pass_rate`.
 - priors.py: `observe(tally, sample)`, which counts one real play into this predictor's priors.
-- priors_<season>.json: the built priors (raw counts and histograms), one file per season.
+- priors_<season>.json: the built priors (raw counts and histograms), one file per season (2011 on).
 
 Notes:
 - A hurry or bleed script's pass rate is blended with the normal script's for the same down and distance.

@@ -246,6 +246,8 @@ class _Play:
             self.add(Kick(kind, kick.kicker, spot, land, "illegal_touch", result.player, kick.seconds))
             return Dead(de, land, "illegal_touch", kick=True)
         self.add(Kick(kind, kick.kicker, spot, land, result.result, result.player, kick.seconds))
+        if result.result == "fair_catch" and s.kind == "kickoff":  # 2023: caught inside the 25, out to the 25
+            land = min(land, to_x(ctx, de, rules.kickoff_fair_catch_line)) if rules.kickoff_fair_catch_line else land
         if dynamic:
             touchback = rules.kickoff_touchback_line if land >= 100 else rules.landing_zone_touchback_line
         else:

@@ -1,12 +1,13 @@
 # START
 # The game evaluation report.
-# - write_report(evaluation, path=None) -> Path: markdown at evaluation_output/game_<season>.md: the game
+# - write_report(evaluation, path=None) -> Path: markdown at evaluation_output/game_<seasons>.md: the game
 #   scenario's scores (game, team, and player outputs), the timeout predictor's, the betting lines scored for
 #   the market and for the simulator (when the evaluation was given lines), PIT histograms for the numeric
 #   outputs, and reliability for the yes/no and categorical ones.
 # END
 from pathlib import Path
 
+from evaluators.sample import label
 from evaluators.game.evaluate import PLAYER_STATS
 from evaluators.lines import lines_table, score_lines
 from evaluators.scoring import GUIDE, OUT, pit_table, reliability_table, score_table
@@ -15,7 +16,8 @@ LEVELS = ("game", "team", "player")
 
 
 def write_report(evaluation, path=None) -> Path:
-    path = Path(path) if path else OUT / f"game_{evaluation.season}.md"
+    seasons = label(evaluation.seasons)
+    path = Path(path) if path else OUT / f"game_{seasons}.md"
     path.parent.mkdir(parents=True, exist_ok=True)
     rows = evaluation.card.rows()
     level = lambda row: row["name"].split(": ")[0]
@@ -24,8 +26,7 @@ def write_report(evaluation, path=None) -> Path:
     events = [r for r in rows if level(r) not in LEVELS]
     numeric = [r["name"] for r in scenario + events if r["kind"] == "numeric"]
     other = [r["name"] for r in scenario + events if r["kind"] != "numeric"]
-    lines = [f"# Game evaluation, {evaluation.season}", "",
-             f"- weeks: {', '.join(map(str, evaluation.weeks))}",
+    lines = [f"# Game evaluation, {seasons}", "",
              f"- real games: {evaluation.games}, each simulated {evaluation.sims} times from its inputs at kickoff",
              f"- simulated games that raised or broke an invariant: {evaluation.failures}", "", *GUIDE,
              "", "## Game scenario", "",

@@ -1,0 +1,42 @@
+{
+ "fg": {
+  "29": {
+   "blocked": 2,
+   "made": 260,
+   "missed": 4
+  },
+  "39": {
+   "blocked": 6,
+   "made": 281,
+   "missed": 24
+  },
+  "44": {
+   "blocked": 2,
+   "made": 136,
+   "missed": 20
+  },
+  "49": {
+   "blocked": 4,
+   "made": 128,
+   "missed": 30
+  },
+  "54": {
+   "made": 85,
+   "missed": 34
+  },
+  "59": {
+   "blocked": 2,
+   "made": 10,
+   "missed": 8
+  },
+  "60+": {
+   "made": 2,
+   "missed": 3
+  }
+ },
+ "pat": {
+  "blocked": 4,
+  "failed": 1,
+  "good": 1316
+ }
+}

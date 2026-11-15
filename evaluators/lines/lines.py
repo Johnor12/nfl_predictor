@@ -6,8 +6,8 @@
 #   ends above the line, with the bookmaker's margin removed (0.5 for player props, whose prices aren't
 #   published); actual is what the number turned out to be (None if the game hasn't been played, or the
 #   player has no stat line for it).
-# - lines(season, weeks=None) -> list[Line]: every game line (the moneyline is a line of 0 on the margin) and
-#   every player prop.
+# - lines(games) -> list[Line]: every game line (the moneyline is a line of 0 on the margin) and every
+#   player prop of the games, given as {season: [game id]} (evaluators.sample_games).
 # - no_vig(odds, other) -> float: the probability of one side of a two-way bet from both American odds.
 # - score_lines(lines, samples=None) -> list[dict], one per market: n, over (how often the number went
 #   over), brier and log_loss of p_over, and mae of the line as a forecast of the number (not for the
@@ -46,18 +46,21 @@ def no_vig(odds, other) -> float:
     return implied[0] / sum(implied)
 
 
-def lines(season: int, weeks=None) -> list[Line]:
-    weeks = None if weeks is None else list(weeks)
+def lines(games) -> list[Line]:
+    return [line for season, ids in games.items() for line in _season_lines(season, set(ids))]
+
+
+def _season_lines(season, ids) -> list[Line]:
     results = load("games", season).set_index("game_id")
     stats = load("player_stats", season).set_index(["game_id", "player_id"])
     out = []
     for g in game_lines(season).itertuples():
-        if weeks is None or g.week in weeks:
+        if g.game_id in ids:
             margin, total = (None if math.isnan(v) else float(v) for v in results.loc[g.game_id, ["result", "total"]])
             out += [Line("moneyline", ("margin", g.game_id), 0.0, no_vig(g.home_moneyline, g.away_moneyline), margin),
                     Line("spread", ("margin", g.game_id), g.spread, no_vig(g.home_spread_odds, g.away_spread_odds), margin),
                     Line("total", ("total", g.game_id), g.total, no_vig(g.over_odds, g.under_odds), total)]
-    for p in player_lines(season, weeks).itertuples():
+    for p in player_lines(season, games=ids).itertuples():
         played = (p.game_id, p.player_id) in stats.index
         actual = float(stats.at[(p.game_id, p.player_id), ACTUAL[p.stat]]) if played else None
         out.append(Line(p.stat, (p.stat, p.game_id, p.player_id), p.line, 0.5, actual))

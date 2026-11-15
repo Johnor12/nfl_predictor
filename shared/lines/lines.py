@@ -3,7 +3,8 @@
 # - game_lines(season) -> DataFrame, one row per game: game_id, week, home, away, spread (points the home
 #   team is favored by) with home_spread_odds / away_spread_odds, total with over_odds / under_odds, and
 #   home_moneyline / away_moneyline. Closing lines with American odds, from the nflverse schedule.
-# - player_lines(season, weeks=None) -> DataFrame, one row per game, player, and stat: game_id, week,
+# - player_lines(season, weeks=None, games=None) -> DataFrame, one row per game, player, and stat (weeks and
+#   games, a list of game ids, each narrow it down): game_id, week,
 #   player_id (gsis), player, stat (a play scenario stat name: pass_yds, rush_yds, receptions, ...), line
 #   (latest, which is the closing line once the game is played) and open. DraftKings' player props as
 #   published by ESPN's public API, which gives the lines but not their prices.
@@ -82,9 +83,14 @@ def _props(event, played) -> list:
     return rows
 
 
-def player_lines(season: int, weeks=None) -> pd.DataFrame:
-    games = load("games", season)
-    games = games[games.espn.notna() & (games.week.isin(list(weeks)) if weeks is not None else True)]
+def player_lines(season: int, weeks=None, games=None) -> pd.DataFrame:
+    schedule = load("games", season)
+    keep = schedule.espn.notna()
+    if weeks is not None:
+        keep &= schedule.week.isin(list(weeks))
+    if games is not None:
+        keep &= schedule.game_id.isin(list(games))
+    games = schedule[keep]
     rosters = load("rosters", season).dropna(subset=["espn_id", "gsis_id"]).drop_duplicates("espn_id")
     players = {str(r.espn_id): (r.gsis_id, r.full_name) for r in rosters.itertuples()}
     rows = []

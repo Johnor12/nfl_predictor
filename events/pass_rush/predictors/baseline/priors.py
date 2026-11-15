@@ -1,8 +1,9 @@
 # START
 # Builds the baseline pass rush priors from real plays.
-# - observe(tally, sample): dropback: throw, sack, scramble, or throwaway; rushers: histogram of charted
-#   pass rushers; sack_yards: histogram; strip_sack: fumble or no; sacker[position group]; qb_hit: hit or no
-#   on targeted passes.
+# - observe(tally, sample): dropback: throw, sack, or scramble; sack_yards: histogram; strip_sack: fumble or
+#   no; sacker[position group]; qb_hit: hit or no on targeted passes.
+#   From the charting, in seasons that have it: throwaway: yes or no on throws; rushers: histogram of pass
+#   rushers.
 # END
 from shared.priors import group, present
 
@@ -12,8 +13,9 @@ def observe(t, sample):
     if action == "no_play" or s.kind == "try":
         return
     if action in ("pass", "sack", "scramble"):
-        throwaway = f is not None and bool(f.is_throw_away)
-        t.c["dropback"][action if action != "pass" else "throwaway" if throwaway else "throw"] += 1
+        t.c["dropback"][action if action != "pass" else "throw"] += 1
+        if f is not None and action == "pass":
+            t.c["throwaway"]["yes" if f.is_throw_away else "no"] += 1
         if f is not None and f.n_pass_rushers > 0:
             t.hist["rushers"].append(f.n_pass_rushers)
     if action == "sack":

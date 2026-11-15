@@ -13,9 +13,9 @@ from events.lineups import Lineup, Lineups
 from events.lineups.predictors.baseline.depth_chart import defense_lineup, offense_lineup, unit_lineup
 from scenarios.play import FREE_KICKS, allowed_units
 from shared.priors import blend, choice, dist_bucket, field_bucket, priors_of, rate, script
-from shared.rulebook import rules_for
+from shared.rulebook import TRY, rules_for
 
-load_priors = priors_of(__file__)  # season -> priors dict
+load_priors = priors_of(__file__, rules={"two_point": TRY})  # season -> priors dict
 DEFENSE_UNITS = {"punt": "punt_return", "field_goal": "field_goal_block", "victory": "defense"}
 
 

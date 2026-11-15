@@ -7,6 +7,8 @@
 # - test_week_one_games: every game's inputs are valid and match its plays'; its real outcome and stat lines.
 # - test_recent_snaps: players carry their recent snaps: per kicking unit where the season records who was on
 #   the field (2025), otherwise from the per-game snap counts (2026); nobody has any before week 1.
+# - test_old_seasons: a season in nflverse's older formats (2014: weekly depth charts, detailed positions,
+#   teams that have since moved, no charting or participation) gives valid inputs. Skipped unless cached.
 # END
 import pytest
 
@@ -85,3 +87,19 @@ def test_recent_snaps(plays):
     assert units == {"offense", "defense", "punt", "punt_return", "field_goal", "field_goal_block", "kickoff", "kick_return"}
     on_field = sample.participation.players_on_play.split(";")
     assert len(on_field) == 22 and set(on_field) <= set(sample.context.by_id)
+
+
+@pytest.mark.skipif(not (CACHE / "play_by_play_2014.parquet").exists(), reason="2014 nflverse cache missing")
+def test_old_seasons():
+    from scenarios.play.context import POSITIONS
+    from shared.nflverse import real_games, real_samples
+    samples = list(real_samples(2014, weeks=[2]))
+    assert len(samples) > 2000 and all(s.charting is None and s.participation is None for s in samples)
+    assert [e for s in samples[::50] for e in validate_context(s.context)] == []
+    ctx = next(s.context for s in samples if s.context.game.game_id == "2014_02_KC_DEN")
+    assert {p.position for p in ctx.players} <= set(POSITIONS)
+    assert {slot for p in ctx.players for slot, _ in p.depth} >= {"QB", "RB", "WR", "LT", "PK", "KR", "LCB"}
+    assert sum(bool(p.snaps) for p in ctx.players) > 0.8 * len(ctx.players)  # week 1's snap counts
+    game = real_games(2014, games=["2014_02_STL_TB"])[0]  # the Rams have moved since: they are LA everywhere
+    assert (game.context.game.home, game.context.game.away) == ("TB", "LA")
+    assert set(game.actual["teams"]) == {"TB", "LA"} and {p.team for p in game.context.players} == {"TB", "LA"}

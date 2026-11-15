@@ -1,0 +1,84 @@
+{
+ "shotgun": {
+  "1|1": {
+   "shotgun": 15,
+   "under_center": 110
+  },
+  "1|11+": {
+   "shotgun": 385,
+   "under_center": 201
+  },
+  "1|2-3": {
+   "shotgun": 61,
+   "under_center": 101
+  },
+  "1|4-6": {
+   "shotgun": 160,
+   "under_center": 173
+  },
+  "1|7-10": {
+   "shotgun": 6656,
+   "under_center": 7083
+  },
+  "2|1": {
+   "shotgun": 248,
+   "under_center": 366
+  },
+  "2|11+": {
+   "shotgun": 1352,
+   "under_center": 415
+  },
+  "2|2-3": {
+   "shotgun": 498,
+   "under_center": 516
+  },
+  "2|4-6": {
+   "shotgun": 1388,
+   "under_center": 1120
+  },
+  "2|7-10": {
+   "shotgun": 3316,
+   "under_center": 2010
+  },
+  "3|1": {
+   "shotgun": 266,
+   "under_center": 557
+  },
+  "3|11+": {
+   "shotgun": 1355,
+   "under_center": 54
+  },
+  "3|2-3": {
+   "shotgun": 934,
+   "under_center": 156
+  },
+  "3|4-6": {
+   "shotgun": 1584,
+   "under_center": 98
+  },
+  "3|7-10": {
+   "shotgun": 1979,
+   "under_center": 83
+  },
+  "4|1": {
+   "shotgun": 43,
+   "under_center": 128
+  },
+  "4|11+": {
+   "shotgun": 41,
+   "under_center": 7
+  },
+  "4|2-3": {
+   "shotgun": 75,
+   "under_center": 13
+  },
+  "4|4-6": {
+   "shotgun": 72,
+   "under_center": 14
+  },
+  "4|7-10": {
+   "shotgun": 65,
+   "under_center": 10
+  }
+ }
+}

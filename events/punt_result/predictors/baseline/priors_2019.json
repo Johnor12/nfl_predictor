@@ -1,0 +1,25 @@
+{
+ "punt_result": {
+  "inside_10": {
+   "downed": 155,
+   "fair_catch": 131,
+   "muff": 14,
+   "out_of_bounds": 44,
+   "return": 113
+  },
+  "inside_20": {
+   "downed": 65,
+   "fair_catch": 270,
+   "muff": 17,
+   "out_of_bounds": 59,
+   "return": 256
+  },
+  "open": {
+   "downed": 110,
+   "fair_catch": 234,
+   "muff": 26,
+   "out_of_bounds": 141,
+   "return": 474
+  }
+ }
+}

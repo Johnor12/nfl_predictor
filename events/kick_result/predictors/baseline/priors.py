@@ -1,6 +1,6 @@
 # START
 # Builds the baseline kick result priors from real plays.
-# - observe(tally, sample): kickoff_result[landing_zone|end_zone]: return, touchback, or muff.
+# - observe(tally, sample): kickoff_result[landing_zone|end_zone]: return, touchback, fair_catch, or muff.
 # END
 from shared.priors import kickoff_result
 

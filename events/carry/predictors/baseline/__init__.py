@@ -8,8 +8,9 @@
 # END
 from events.carry import CarryEnd
 from shared.priors import choice, goal_bucket, group, hist, on_field, pick, pick_many, priors_of, rate
+from shared.rulebook import KICKOFF
 
-load_priors = priors_of(__file__)  # season -> priors dict
+load_priors = priors_of(__file__, rules={"kick_return": KICKOFF})  # season -> priors dict
 RECOVERY_YARDS = {"0": 70, "2": 10, "5": 8, "10": 5, "20": 4, "40": 2, "70": 1}
 RETURN_ENDS = {"tackled": 93, "out_of_bounds": 6, "fumble": 1}
 LATERAL_TO = {"RB": 3, "WR": 2, "TE": 1}

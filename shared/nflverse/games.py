@@ -1,6 +1,7 @@
 # START
 # Real games from nflverse data: every game of a season as a game scenario input, with what happened.
-# - real_games(season, weeks=None) -> list[RealGame]: in schedule order, played or not.
+# - real_games(season, weeks=None, games=None) -> list[RealGame]: in schedule order, played or not. weeks
+#   and games (game ids) each narrow it down.
 # - RealGame(context, actual): the GameContext (the same game info and active players as the game's real
 #   plays), and the real outcome, or None if the game hasn't been played. actual has the keys of
 #   simulators.game.summarize: points by team, margin (home minus away), total, winner (None for a tie),
@@ -50,10 +51,12 @@ def _actual(game, schedule, plays, stats) -> dict:
             "overtime": schedule["overtime"] == 1, "plays": plays, "teams": teams, "players": players}
 
 
-def real_games(season: int, weeks=None) -> list[RealGame]:
+def real_games(season: int, weeks=None, games=None) -> list[RealGame]:
     schedule = load("games", season)
     if weeks is not None:
         schedule = schedule[schedule.week.isin(list(weeks))]
+    if games is not None:
+        schedule = schedule[schedule.game_id.isin(list(games))]
     pbp = load("pbp", season)
     rosters = _Rosters(season, pbp)
     rows = dict(tuple(pbp.groupby("game_id", sort=False)))

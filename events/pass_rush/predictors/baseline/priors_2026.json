@@ -2,8 +2,7 @@
  "dropback": {
   "sack": 643,
   "scramble": 497,
-  "throw": 8579,
-  "throwaway": 407
+  "throw": 8986
  },
  "qb_hit": {
   "hit": 826,
@@ -51,5 +50,9 @@
  "strip_sack": {
   "fumble": 70,
   "no": 573
+ },
+ "throwaway": {
+  "no": 8579,
+  "yes": 407
  }
 }

@@ -1,15 +1,15 @@
 # game evaluator
 
-Scores the game scenario against real games and against the betting lines. Every played game of a season is simulated many times from its inputs at kickoff; each simulated distribution is scored against what really happened with `evaluators.scoring`, and against the market on its own lines with `evaluators.lines`.
+Scores the game scenario against real games and against the betting lines. Every game of a sample of played games is simulated many times from its inputs at kickoff; each simulated distribution is scored against what really happened with `evaluators.scoring`, and against the market on its own lines with `evaluators.lines`.
 
 API (`from evaluators.game import ...`):
 
-- `evaluate(season=2026, weeks=None, sims=100, seed=0, predictors=None, workers=None, lines=()) -> Evaluation`: `predictors` is a `game.GamePredictors` (the baseline set if omitted). Games run in parallel processes (`workers=1` to stay in this one). `lines` are `evaluators.lines.Line`s (from `lines.lines(season, weeks)`); without them the lines section is left out. Half a season at 100 sims takes about half an hour on 2 cores.
-- `Evaluation`: `season`, `weeks`, `sims`, `games`, `failures` (simulated games that raised or broke an invariant), `card` (a `scoring.Scorecard`), `lines`, and `samples` (`{line key: simulated values}`, what `lines.score_lines` takes).
+- `evaluate(seasons=EVALUATED, weeks=None, games=None, sims=100, seed=0, predictors=None, workers=None, lines=()) -> Evaluation`: the played games of `seasons` (and `weeks`), or a fixed sample of `games` of them (see `evaluators/README.md`). `predictors` is a `game.GamePredictors` (the baseline set if omitted). Games run in parallel processes (`workers=1` to stay in this one). `lines` are `evaluators.lines.Line`s (from `lines.lines(sample_games(...))`); without them the lines section is left out. It costs about 0.35 core-seconds per game and sim: the CLI's default (160 games, 100 sims) is about 6 minutes on 16 cores and 45 on 2.
+- `Evaluation`: `seasons`, `sims`, `games`, `failures` (simulated games that raised or broke an invariant), `card` (a `scoring.Scorecard`), `lines`, and `samples` (`{line key: simulated values}`, what `lines.score_lines` takes).
 - `evaluate_games(games, sims, seed, predictors, workers, lines) -> (card, samples, failures)`: the same for a list of games (anything with `.context` and `.actual`).
 - `game_outputs(ctx, outcome) -> {(name, subject): value}`: the scored outputs, read the same way from a real outcome and a simulated one.
-- `write_report(evaluation, path=None)`: markdown at `evaluation_output/game_<season>.md` (gitignored): score tables, the betting lines, PIT histograms, reliability.
-- CLI: `python -m evaluators.game --season 2026 [--weeks 1-3] [--sims 100] [--swap carry=tuned] [--no-lines]`. `--swap` evaluates `events/carry/predictors/tuned/` in place of the baseline: run it with and without, and compare the rows. The first run downloads each game's player props.
+- `write_report(evaluation, path=None)`: markdown at `evaluation_output/game_<seasons>.md` (gitignored; `game_2021-2026.md`): score tables, the betting lines, PIT histograms, reliability.
+- CLI: `python -m evaluators.game [--seasons 2021-2026] [--games 160] [--weeks 1-3] [--sims 100] [--swap carry=tuned] [--no-lines]`. `--swap` evaluates `events/carry/predictors/tuned/` in place of the baseline: run it with and without, and compare the rows. The first run downloads each game's player props.
 
 ## what is scored
 
@@ -26,8 +26,8 @@ API (`from evaluators.game import ...`):
 ## reading the results
 
 - The score columns are explained in `evaluators/scoring/README.md`.
-- **In-sample**: the baseline priors are built from 2026's plays, so 2026 scores are in-sample. They are league-wide rates, though, not fit to any game.
+- **Out of sample**: a game is predicted from the seasons before its own (the exceptions are listed in `evaluators/README.md`).
 - **Inputs at kickoff**: the active players include everyone who appeared in the real game, which is the inactive list announced before kickoff, not hindsight about who got hurt.
-- The market is the benchmark: the simulator's Brier, log loss, and MAE on a market are directly comparable with the market's own columns. Player props are scored at 50% for the market because prices aren't published.
+- The market is the benchmark: the simulator's Brier, log loss, and MAE on a market are directly comparable with the market's own columns. Player props are scored at 50% for the market because prices aren't published, and only 2026's games have any (`shared/lines/README.md`).
 - A simulated probability is the smoothed share of samples over the line, so with few sims it is coarse; `sim CRPS` doesn't depend on the number of sims.
 - `game: plays` is where the clock gets scored (the play evaluator can't): too many plays means the simulated game uses too little clock per play.

@@ -47,15 +47,16 @@ def test_score_lines():
                     reason="lines cache missing")
 def test_season_lines(tmp_path):
     from evaluators.lines import lines, write_report
+    from evaluators.sample import sample_games
     from shared.nflverse import load
     played = load("games", 2026).dropna(subset=["result"])
     week = int(played.week.min())
     if not all((CACHE / f"props_{int(event)}.json").exists() for event in played[played.week == week].espn):
         pytest.skip("lines cache incomplete")
-    every = lines(2026, weeks=[week])
-    games = sum(played.week == week)
-    assert sum(l.market == "moneyline" for l in every) == games
+    games = sample_games([2026], weeks=[week])
+    every = lines(games)
+    assert sum(l.market == "moneyline" for l in every) == sum(played.week == week)
     assert all(0 < l.p_over < 1 for l in every) and sum(l.actual is not None for l in every) > 0.8 * len(every)
     rows = {row["market"]: row for row in score_lines(every)}
     assert {"moneyline", "spread", "total", "pass_yds", "rec_yds"} <= set(rows) and 30 < rows["pass_yds"]["mae"] < 100
-    assert "Moneyline reliability" in write_report(2026, [week], path=tmp_path / "lines.md").read_text()
+    assert "Moneyline reliability" in write_report(games, path=tmp_path / "lines.md").read_text()

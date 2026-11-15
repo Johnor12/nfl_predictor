@@ -1,0 +1,13 @@
+{
+ "kickoff_result": {
+  "end_zone": {
+   "return": 834,
+   "touchback": 1359
+  },
+  "landing_zone": {
+   "fair_catch": 2,
+   "muff": 3,
+   "return": 430
+  }
+ }
+}

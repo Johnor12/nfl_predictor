@@ -2,7 +2,7 @@
 
 - __init__.py: `predict` and `_play_clock_used`.
 - priors.py: `observe(tally, sample)`, which counts one real play into this predictor's priors.
-- priors_<season>.json: the built priors (raw counts and histograms), one file per season.
+- priors_<season>.json: the built priors (raw counts and histograms), one file per season (2011 on).
 
 Notes:
 - Delay of game comes from the foul rate, not from the clock usage.

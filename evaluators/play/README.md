@@ -1,13 +1,13 @@
 # play evaluator
 
-Scores the play scenario, and each of its event predictors on its own, against real plays. Every real play of a season is simulated many times; the simulated distribution is scored against what really happened with `evaluators.scoring`.
+Scores the play scenario, and each of its event predictors on its own, against real plays. Every real play of a sample of games is simulated many times; the simulated distribution is scored against what really happened with `evaluators.scoring`.
 
 API (`from evaluators.play import ...`):
 
-- `evaluate(season=2026, weeks=None, sims=100, seed=0, predictors=None, workers=None) -> Evaluation`: `predictors` is a `play.Predictors` (the baseline set if omitted). Each week runs in its own process (`workers=1` to stay in this one). A season at 100 sims takes about 5 minutes on 16 cores.
-- `Evaluation`: `season`, `weeks`, `sims`, `plays`, `failures` (simulated plays that raised or broke an invariant), and `card`, a `scoring.Scorecard` (`card.rows()`, `card.pit(name)`, `card.reliability(name)`).
-- `write_report(evaluation, path=None)`: markdown at `evaluation_output/play_<season>.md` (gitignored): score tables, PIT histograms, reliability.
-- CLI: `python -m evaluators.play --season 2026 [--weeks 1-3] [--sims 100] [--swap carry=tuned]`. `--swap` evaluates `events/carry/predictors/tuned/` in place of the baseline: run it with and without, and compare the rows.
+- `evaluate(seasons=EVALUATED, weeks=None, games=None, sims=100, seed=0, predictors=None, workers=None) -> Evaluation`: the played games of `seasons` (and `weeks`), or a fixed sample of `games` of them (see `evaluators/README.md`). `predictors` is a `play.Predictors` (the baseline set if omitted). Games run eight to a process (`workers=1` to stay in this one). It costs about 0.4 core-seconds per game and sim, plus 5 seconds per process to load a season: the CLI's default (160 games, 100 sims) is about 7 minutes on 16 cores and 55 on 2.
+- `Evaluation`: `seasons`, `games`, `sims`, `plays`, `failures` (simulated plays that raised or broke an invariant), and `card`, a `scoring.Scorecard` (`card.rows()`, `card.pit(name)`, `card.reliability(name)`).
+- `write_report(evaluation, path=None)`: markdown at `evaluation_output/play_<seasons>.md` (gitignored; `play_2021-2026.md`): score tables, PIT histograms, reliability.
+- CLI: `python -m evaluators.play [--seasons 2021-2026] [--games 160] [--weeks 1-3] [--sims 100] [--swap carry=tuned]`. `--swap` evaluates `events/carry/predictors/tuned/` in place of the baseline: run it with and without, and compare the rows.
 
 ## what is scored
 
@@ -42,8 +42,8 @@ API (`from evaluators.play import ...`):
 ## reading the results
 
 - The score columns are explained in `evaluators/scoring/README.md`.
-- **Stand-ins**: nflverse doesn't record the formation, the defensive look, or the play record the fouls and injuries predictors read, and it only records who was on the field in some seasons (2025, not 2026 yet). An event case takes those from simulated runs where the offense sent out the same unit as in the real play (and ran the same kind of play, for fouls), a different run for each sample, so the forecast is spread over what the unrecorded inputs might have been. Every other input is real, including the lineups where the season has them. A case with no such run is counted in the `unscored` column.
+- **Stand-ins**: nflverse doesn't record the formation, the defensive look, or the play record the fouls and injuries predictors read, and it only records who was on the field in some seasons (2016 to 2025, not 2026 yet). An event case takes those from simulated runs where the offense sent out the same unit as in the real play (and ran the same kind of play, for fouls), a different run for each sample, so the forecast is spread over what the unrecorded inputs might have been. Every other input is real, including the lineups where the season has them. A case with no such run is counted in the `unscored` column.
 - **Players missed**: how many of the 11 players really on the field a simulated lineup left out (the real value is 0, so the fair CRPS rewards getting close and penalizes nothing else). Scored on the runs that sent out the same unit as the real play.
-- **In-sample**: each season has its own priors, built from its own plays, so a season's scores are in-sample. `NFL_PRIORS_THROUGH=2025 python -m evaluators.play --season 2026` is the out-of-sample check: 2026's plays with priors built from 2025 only.
+- **Out of sample**: a game is predicted from the seasons before its own, so no score has seen its own plays (the exceptions are listed in `evaluators/README.md`). The charted outputs (box, rushers, throwaways) are only scored from 2022 on, where there is charting to score against.
 - An output that only exists on some samples (sack yards, the carrier of a run) is scored on those samples, so its `sims` is lower.
 - The clock isn't scored here: nflverse times a play from its snap to the next snap, the scenario from the end of the previous play. `evaluators/game` scores it as plays per game.
