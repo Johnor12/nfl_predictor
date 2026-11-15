@@ -7,7 +7,7 @@
 # END
 from shared.priors import choice, priors_of
 
-load_priors = priors_of(__file__)  # season -> priors dict
+load_priors = priors_of(__file__)  # (season, week) -> priors dict
 
 
 def situation_key(s) -> str:
@@ -25,7 +25,7 @@ def situation_key(s) -> str:
 
 def predict(ctx, rng):
     s = ctx.situation
-    counts = dict(load_priors(ctx.game.season)["timeout"].get(situation_key(s), {}))
+    counts = dict(load_priors(ctx.game.season, ctx.game.week)["timeout"].get(situation_key(s), {}))
     for side, team in (("offense", s.offense), ("defense", s.defense)):
         if s.timeouts[team] == 0:
             counts["none"] = counts.get("none", 0) + counts.pop(side, 0)

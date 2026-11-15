@@ -1,42 +1,24 @@
 {
- "fg": {
-  "29": {
-   "blocked": 1,
-   "made": 244,
-   "missed": 1
-  },
-  "39": {
-   "blocked": 5,
-   "made": 298,
-   "missed": 17
-  },
-  "44": {
-   "blocked": 3,
-   "made": 126,
-   "missed": 27
-  },
-  "49": {
-   "blocked": 5,
-   "made": 123,
-   "missed": 35
-  },
-  "54": {
-   "blocked": 2,
-   "made": 99,
-   "missed": 37
-  },
-  "59": {
-   "made": 24,
-   "missed": 20
-  },
-  "60+": {
-   "made": 4,
-   "missed": 5
-  }
- },
- "pat": {
-  "blocked": 7,
-  "failed": 79,
-  "good": 1235
- }
+"1": {"fg": {"29": {"made": 16}, "39": {"made": 11, "missed": 1}, "44": {"made": 9, "missed": 1}, "49": {"made": 6, "missed": 1}, "54": {"made": 4, "missed": 3}, "59": {"made": 1, "missed": 1}, "60+": {"missed": 1}}, "pat": {"failed": 3, "good": 77}},
+"2": {"fg": {"29": {"made": 9}, "39": {"made": 17, "missed": 1}, "44": {"blocked": 1, "made": 6, "missed": 2}, "49": {"blocked": 1, "made": 12, "missed": 1}, "54": {"blocked": 1, "made": 4, "missed": 3}, "59": {"made": 3}, "60+": {"made": 1}}, "pat": {"failed": 5, "good": 76}},
+"3": {"fg": {"29": {"made": 16}, "39": {"made": 11, "missed": 1}, "44": {"made": 5, "missed": 2}, "49": {"made": 7, "missed": 2}, "54": {"made": 8, "missed": 2}, "59": {"made": 1, "missed": 1}, "60+": {"made": 1, "missed": 1}}, "pat": {"failed": 7, "good": 71}},
+"4": {"fg": {"29": {"made": 19}, "39": {"made": 8, "missed": 2}, "44": {"made": 5, "missed": 2}, "49": {"made": 5, "missed": 2}, "54": {"made": 2, "missed": 2}, "59": {"made": 1, "missed": 2}}, "pat": {"failed": 3, "good": 77}},
+"5": {"fg": {"29": {"made": 8}, "39": {"blocked": 1, "made": 21, "missed": 2}, "44": {"made": 7, "missed": 1}, "49": {"made": 9, "missed": 3}, "54": {"made": 9, "missed": 3}, "59": {"made": 2, "missed": 2}, "60+": {"missed": 2}}, "pat": {"failed": 13, "good": 63}},
+"6": {"fg": {"29": {"made": 8}, "39": {"made": 15}, "44": {"made": 7, "missed": 2}, "49": {"made": 3, "missed": 2}, "54": {"made": 9, "missed": 2}, "59": {"missed": 1}}, "pat": {"failed": 1, "good": 68}},
+"7": {"fg": {"29": {"made": 4}, "39": {"blocked": 1, "made": 14}, "44": {"blocked": 2, "made": 4, "missed": 2}, "49": {"blocked": 1, "made": 6, "missed": 1}, "54": {"made": 7, "missed": 1}, "59": {"made": 1, "missed": 1}}, "pat": {"failed": 3, "good": 56}},
+"8": {"fg": {"29": {"made": 15}, "39": {"blocked": 1, "made": 13}, "44": {"made": 5, "missed": 1}, "49": {"blocked": 2, "made": 8, "missed": 4}, "54": {"made": 5, "missed": 2}, "59": {"made": 2}}, "pat": {"failed": 3, "good": 64}},
+"9": {"fg": {"29": {"made": 17, "missed": 1}, "39": {"blocked": 1, "made": 18}, "44": {"made": 5, "missed": 2}, "49": {"made": 1, "missed": 1}, "54": {"made": 5, "missed": 2}, "59": {"made": 2}, "60+": {"missed": 1}}, "pat": {"failed": 3, "good": 58}},
+"10": {"fg": {"29": {"blocked": 1, "made": 19}, "39": {"made": 11}, "44": {"made": 2, "missed": 1}, "49": {"made": 8, "missed": 3}, "54": {"made": 3, "missed": 1}, "59": {"made": 1}}, "pat": {"failed": 5, "good": 57}},
+"11": {"fg": {"29": {"made": 11}, "39": {"made": 19, "missed": 4}, "44": {"made": 5, "missed": 2}, "49": {"made": 8, "missed": 2}, "54": {"made": 9, "missed": 2}, "59": {"missed": 2}}, "pat": {"blocked": 1, "failed": 8, "good": 60}},
+"12": {"fg": {"29": {"made": 14}, "39": {"made": 12}, "44": {"made": 4, "missed": 4}, "49": {"made": 8, "missed": 1}, "54": {"made": 3, "missed": 4}, "59": {"made": 1, "missed": 2}}, "pat": {"blocked": 1, "failed": 4, "good": 61}},
+"13": {"fg": {"29": {"made": 5}, "39": {"made": 16, "missed": 2}, "44": {"made": 11}, "49": {"made": 7}, "54": {"made": 4, "missed": 1}, "59": {"made": 2, "missed": 3}}, "pat": {"failed": 8, "good": 46}},
+"14": {"fg": {"29": {"made": 16}, "39": {"made": 19}, "44": {"made": 7, "missed": 1}, "49": {"made": 3, "missed": 4}, "54": {"made": 5, "missed": 1}, "59": {"made": 2}, "60+": {"made": 1}}, "pat": {"blocked": 1, "failed": 4, "good": 63}},
+"15": {"fg": {"29": {"made": 19}, "39": {"made": 17}, "44": {"made": 5}, "49": {"blocked": 1, "made": 6, "missed": 3}, "54": {"made": 4, "missed": 1}, "59": {"made": 2, "missed": 1}}, "pat": {"failed": 2, "good": 57}},
+"16": {"fg": {"29": {"made": 14}, "39": {"made": 20, "missed": 3}, "44": {"made": 8, "missed": 2}, "49": {"made": 7}, "54": {"made": 4, "missed": 4}, "59": {"made": 1, "missed": 2}}, "pat": {"blocked": 1, "failed": 3, "good": 71}},
+"17": {"fg": {"29": {"made": 16}, "39": {"made": 18}, "44": {"made": 10, "missed": 1}, "49": {"made": 6, "missed": 2}, "54": {"blocked": 1, "made": 5}, "59": {"made": 1, "missed": 2}, "60+": {"made": 1}}, "pat": {"blocked": 1, "failed": 1, "good": 70}},
+"18": {"fg": {"29": {"made": 11}, "39": {"made": 21, "missed": 1}, "44": {"made": 14, "missed": 1}, "49": {"made": 7, "missed": 1}, "54": {"made": 3, "missed": 1}}, "pat": {"failed": 2, "good": 79}},
+"19": {"fg": {"29": {"made": 3}, "39": {"made": 5}, "44": {"made": 3}, "49": {"made": 2}, "54": {"made": 3}, "59": {"made": 1}}, "pat": {"blocked": 2, "good": 32}},
+"20": {"fg": {"29": {"made": 3}, "39": {"blocked": 1, "made": 6}, "44": {"made": 1}, "49": {"made": 4, "missed": 2}, "54": {"made": 2, "missed": 1}}, "pat": {"failed": 1, "good": 17}},
+"21": {"fg": {"39": {"made": 5}, "44": {"made": 2}, "54": {"made": 1, "missed": 1}}, "pat": {"good": 8}},
+"22": {"fg": {"29": {"made": 1}, "39": {"made": 1}, "44": {"made": 1}}, "pat": {"good": 4}}
 }

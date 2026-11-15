@@ -7,11 +7,11 @@ from events.kick_attempt import KickAttempt
 from shared.priors import choice, fg_bin, pick, priors_of
 from shared.rulebook import TRY
 
-load_priors = priors_of(__file__, rules={"pat": TRY})  # season -> priors dict
+load_priors = priors_of(__file__, rules={"pat": TRY})  # (season, week) -> priors dict
 
 
 def predict(ctx, lineups, kicker, distance, rng):
-    p = load_priors(ctx.game.season)
+    p = load_priors(ctx.game.season, ctx.game.week)
     if ctx.situation.kind == "try":
         pat = p["pat"]
         counts = {"good": pat.get("good", 0), "no_good": pat.get("failed", 0), "blocked": pat.get("blocked", 0)}

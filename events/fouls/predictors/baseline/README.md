@@ -10,4 +10,4 @@ From data: flags per play by kind of play (`fouls` over `snaps`, for run, pass, 
 
 Hand-set: the foul's timing when several are possible, its spot, and which positions commit it (`shared.priors.fouler`).
 
-The priors come from the `priors_<season>.json` files next to the code: a game is predicted from the counts of the seasons before its own, older seasons counting less (see `shared/priors/README.md`). Rebuild every event's with `python -m events.baseline_priors` (`2026` for one season).
+The priors come from the `priors_<season>.json` files next to the code: a game is predicted from the counts of what was played before it (the earlier seasons and its own season's earlier weeks), older seasons counting less (see `shared/priors/README.md`). Rebuild every event's with `python -m events.baseline_priors` (`2026` for one season).

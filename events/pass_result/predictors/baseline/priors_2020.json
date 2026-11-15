@@ -1,45 +1,23 @@
 {
- "defended": {
-  "no": 3726,
-  "yes": 1739
- },
- "pass_result": {
-  "behind": {
-   "complete": 2795,
-   "incomplete": 654,
-   "intercepted": 30
-  },
-  "deep": {
-   "complete": 809,
-   "incomplete": 1167,
-   "intercepted": 112
-  },
-  "medium": {
-   "complete": 2238,
-   "incomplete": 1460,
-   "intercepted": 133
-  },
-  "short": {
-   "complete": 5846,
-   "incomplete": 1750,
-   "intercepted": 106
-  }
- },
- "pass_result_goal": {
-  "1-2": {
-   "complete": 116,
-   "incomplete": 77,
-   "intercepted": 5
-  },
-  "3-5": {
-   "complete": 218,
-   "incomplete": 148,
-   "intercepted": 9
-  },
-  "6-10": {
-   "complete": 340,
-   "incomplete": 208,
-   "intercepted": 15
-  }
- }
+"1": {"defended": {"no": 225, "yes": 93}, "pass_result": {"behind": {"complete": 178, "incomplete": 43, "intercepted": 1}, "deep": {"complete": 41, "incomplete": 66, "intercepted": 3}, "medium": {"complete": 148, "incomplete": 96, "intercepted": 7}, "short": {"complete": 335, "incomplete": 83, "intercepted": 6}}, "pass_result_goal": {"1-2": {"complete": 9, "incomplete": 7}, "3-5": {"complete": 11, "incomplete": 8, "intercepted": 1}, "6-10": {"complete": 25, "incomplete": 15, "intercepted": 1}}},
+"2": {"defended": {"no": 220, "yes": 98}, "pass_result": {"behind": {"complete": 164, "incomplete": 39, "intercepted": 2}, "deep": {"complete": 55, "incomplete": 56, "intercepted": 5}, "medium": {"complete": 146, "incomplete": 98, "intercepted": 9}, "short": {"complete": 357, "incomplete": 101, "intercepted": 8}}, "pass_result_goal": {"1-2": {"complete": 7, "incomplete": 7}, "3-5": {"complete": 11, "incomplete": 1}, "6-10": {"complete": 20, "incomplete": 16}}},
+"3": {"defended": {"no": 202, "yes": 112}, "pass_result": {"behind": {"complete": 159, "incomplete": 50}, "deep": {"complete": 43, "incomplete": 78, "intercepted": 9}, "medium": {"complete": 149, "incomplete": 80, "intercepted": 8}, "short": {"complete": 353, "incomplete": 85, "intercepted": 9}}, "pass_result_goal": {"1-2": {"complete": 13, "incomplete": 2}, "3-5": {"complete": 15, "incomplete": 8}, "6-10": {"complete": 20, "incomplete": 10, "intercepted": 1}}},
+"4": {"defended": {"no": 196, "yes": 92}, "pass_result": {"behind": {"complete": 150, "incomplete": 27, "intercepted": 1}, "deep": {"complete": 46, "incomplete": 67, "intercepted": 4}, "medium": {"complete": 151, "incomplete": 80, "intercepted": 10}, "short": {"complete": 337, "incomplete": 87, "intercepted": 6}}, "pass_result_goal": {"1-2": {"complete": 6, "incomplete": 2, "intercepted": 1}, "3-5": {"complete": 13, "incomplete": 10}, "6-10": {"complete": 16, "incomplete": 15, "intercepted": 2}}},
+"5": {"defended": {"no": 208, "yes": 96}, "pass_result": {"behind": {"complete": 137, "incomplete": 34, "intercepted": 2}, "deep": {"complete": 52, "incomplete": 62, "intercepted": 8}, "medium": {"complete": 121, "incomplete": 84, "intercepted": 11}, "short": {"complete": 308, "incomplete": 104, "intercepted": 2}}, "pass_result_goal": {"1-2": {"complete": 3, "incomplete": 2}, "3-5": {"complete": 15, "incomplete": 3, "intercepted": 1}, "6-10": {"complete": 12, "incomplete": 15}}},
+"6": {"defended": {"no": 196, "yes": 105}, "pass_result": {"behind": {"complete": 129, "incomplete": 37, "intercepted": 2}, "deep": {"complete": 35, "incomplete": 60, "intercepted": 7}, "medium": {"complete": 104, "incomplete": 75, "intercepted": 12}, "short": {"complete": 280, "incomplete": 101, "intercepted": 5}}, "pass_result_goal": {"1-2": {"complete": 7, "incomplete": 12, "intercepted": 1}, "3-5": {"complete": 7, "incomplete": 3}, "6-10": {"complete": 20, "incomplete": 13, "intercepted": 1}}},
+"7": {"defended": {"no": 176, "yes": 69}, "pass_result": {"behind": {"complete": 145, "incomplete": 28, "intercepted": 2}, "deep": {"complete": 49, "incomplete": 50, "intercepted": 8}, "medium": {"complete": 108, "incomplete": 77, "intercepted": 8}, "short": {"complete": 336, "incomplete": 73, "intercepted": 4}}, "pass_result_goal": {"1-2": {"complete": 5, "incomplete": 4, "intercepted": 1}, "3-5": {"complete": 16, "incomplete": 7, "intercepted": 1}, "6-10": {"complete": 17, "incomplete": 6, "intercepted": 1}}},
+"8": {"defended": {"no": 212, "yes": 84}, "pass_result": {"behind": {"complete": 138, "incomplete": 42, "intercepted": 1}, "deep": {"complete": 31, "incomplete": 55, "intercepted": 6}, "medium": {"complete": 108, "incomplete": 75, "intercepted": 4}, "short": {"complete": 301, "incomplete": 113, "intercepted": 6}}, "pass_result_goal": {"1-2": {"complete": 6}, "3-5": {"complete": 11, "incomplete": 4}, "6-10": {"complete": 19, "incomplete": 7, "intercepted": 1}}},
+"9": {"defended": {"no": 185, "yes": 84}, "pass_result": {"behind": {"complete": 155, "incomplete": 36, "intercepted": 3}, "deep": {"complete": 58, "incomplete": 61, "intercepted": 7}, "medium": {"complete": 116, "incomplete": 62, "intercepted": 3}, "short": {"complete": 319, "incomplete": 92, "intercepted": 2}}, "pass_result_goal": {"1-2": {"complete": 10, "incomplete": 4}, "3-5": {"complete": 5, "incomplete": 6, "intercepted": 3}, "6-10": {"complete": 21, "incomplete": 8}}},
+"10": {"defended": {"no": 206, "yes": 83}, "pass_result": {"behind": {"complete": 160, "incomplete": 31}, "deep": {"complete": 32, "incomplete": 67, "intercepted": 6}, "medium": {"complete": 91, "incomplete": 70, "intercepted": 6}, "short": {"complete": 299, "incomplete": 97, "intercepted": 5}}, "pass_result_goal": {"1-2": {"complete": 3, "incomplete": 2}, "3-5": {"complete": 9, "incomplete": 12}, "6-10": {"complete": 19, "incomplete": 10, "intercepted": 1}}},
+"11": {"defended": {"no": 185, "yes": 95}, "pass_result": {"behind": {"complete": 170, "incomplete": 38, "intercepted": 1}, "deep": {"complete": 41, "incomplete": 66, "intercepted": 8}, "medium": {"complete": 124, "incomplete": 72, "intercepted": 7}, "short": {"complete": 286, "incomplete": 84, "intercepted": 7}}, "pass_result_goal": {"1-2": {"complete": 5, "incomplete": 3}, "3-5": {"complete": 17, "incomplete": 9, "intercepted": 1}, "6-10": {"complete": 16, "incomplete": 8, "intercepted": 2}}},
+"12": {"defended": {"no": 226, "yes": 99}, "pass_result": {"behind": {"complete": 167, "incomplete": 38, "intercepted": 6}, "deep": {"complete": 39, "incomplete": 74, "intercepted": 6}, "medium": {"complete": 116, "incomplete": 76, "intercepted": 7}, "short": {"complete": 322, "incomplete": 102, "intercepted": 8}}, "pass_result_goal": {"1-2": {"complete": 9, "incomplete": 4, "intercepted": 1}, "3-5": {"complete": 12, "incomplete": 11}, "6-10": {"complete": 19, "incomplete": 20}}},
+"13": {"defended": {"no": 227, "yes": 104}, "pass_result": {"behind": {"complete": 152, "incomplete": 32, "intercepted": 2}, "deep": {"complete": 48, "incomplete": 77, "intercepted": 3}, "medium": {"complete": 132, "incomplete": 75, "intercepted": 4}, "short": {"complete": 355, "incomplete": 123, "intercepted": 13}}, "pass_result_goal": {"1-2": {"complete": 8, "incomplete": 8}, "3-5": {"complete": 13, "incomplete": 10, "intercepted": 1}, "6-10": {"complete": 19, "incomplete": 6}}},
+"14": {"defended": {"no": 211, "yes": 96}, "pass_result": {"behind": {"complete": 184, "incomplete": 37, "intercepted": 3}, "deep": {"complete": 37, "incomplete": 62, "intercepted": 8}, "medium": {"complete": 115, "incomplete": 85, "intercepted": 2}, "short": {"complete": 350, "incomplete": 101, "intercepted": 8}}, "pass_result_goal": {"1-2": {"complete": 5, "incomplete": 3}, "3-5": {"complete": 11, "incomplete": 10}, "6-10": {"complete": 18, "incomplete": 9}}},
+"15": {"defended": {"no": 194, "yes": 107}, "pass_result": {"behind": {"complete": 168, "incomplete": 37}, "deep": {"complete": 55, "incomplete": 64, "intercepted": 3}, "medium": {"complete": 129, "incomplete": 82, "intercepted": 5}, "short": {"complete": 331, "incomplete": 98, "intercepted": 3}}, "pass_result_goal": {"1-2": {"complete": 7, "incomplete": 2}, "3-5": {"complete": 16, "incomplete": 7, "intercepted": 1}, "6-10": {"complete": 22, "incomplete": 11, "intercepted": 2}}},
+"16": {"defended": {"no": 233, "yes": 116}, "pass_result": {"behind": {"complete": 148, "incomplete": 29, "intercepted": 1}, "deep": {"complete": 51, "incomplete": 78, "intercepted": 5}, "medium": {"complete": 136, "incomplete": 103, "intercepted": 12}, "short": {"complete": 365, "incomplete": 111, "intercepted": 2}}, "pass_result_goal": {"1-2": {"complete": 4, "incomplete": 11}, "3-5": {"complete": 12, "incomplete": 8}, "6-10": {"complete": 16, "incomplete": 9, "intercepted": 1}}},
+"17": {"defended": {"no": 219, "yes": 110}, "pass_result": {"behind": {"complete": 164, "incomplete": 40, "intercepted": 1}, "deep": {"complete": 54, "incomplete": 65, "intercepted": 9}, "medium": {"complete": 115, "incomplete": 95, "intercepted": 13}, "short": {"complete": 338, "incomplete": 96, "intercepted": 7}}, "pass_result_goal": {"1-2": {"complete": 5, "incomplete": 2, "intercepted": 1}, "3-5": {"complete": 12, "incomplete": 17}, "6-10": {"complete": 23, "incomplete": 14}}},
+"18": {"defended": {"no": 92, "yes": 47}, "pass_result": {"behind": {"complete": 49, "incomplete": 14, "intercepted": 2}, "deep": {"complete": 24, "incomplete": 25, "intercepted": 2}, "medium": {"complete": 71, "incomplete": 48, "intercepted": 1}, "short": {"complete": 116, "incomplete": 43, "intercepted": 3}}, "pass_result_goal": {"1-2": {"incomplete": 1}, "3-5": {"complete": 4, "incomplete": 7}, "6-10": {"complete": 10, "incomplete": 1}}},
+"19": {"defended": {"no": 58, "yes": 30}, "pass_result": {"behind": {"complete": 41, "incomplete": 14}, "deep": {"complete": 11, "incomplete": 18, "intercepted": 1}, "medium": {"complete": 31, "incomplete": 12, "intercepted": 3}, "short": {"complete": 84, "incomplete": 31, "intercepted": 1}}, "pass_result_goal": {"1-2": {"complete": 1}, "3-5": {"complete": 4, "incomplete": 5}, "6-10": {"complete": 3, "incomplete": 8, "intercepted": 1}}},
+"20": {"defended": {"no": 36, "yes": 12}, "pass_result": {"behind": {"complete": 24, "incomplete": 4}, "deep": {"complete": 7, "incomplete": 10, "intercepted": 3}, "medium": {"complete": 18, "incomplete": 9, "intercepted": 1}, "short": {"complete": 51, "incomplete": 16, "intercepted": 1}}, "pass_result_goal": {"1-2": {"complete": 2}, "3-5": {"complete": 4, "incomplete": 2}, "6-10": {"complete": 4, "incomplete": 7}}},
+"21": {"defended": {"no": 19, "yes": 7}, "pass_result": {"behind": {"complete": 13, "incomplete": 4}, "deep": {"incomplete": 6, "intercepted": 1}, "medium": {"complete": 9, "incomplete": 6}, "short": {"complete": 23, "incomplete": 9}}, "pass_result_goal": {"1-2": {"complete": 1, "incomplete": 1}, "6-10": {"complete": 1, "intercepted": 1}}}
 }

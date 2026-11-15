@@ -1,12 +1,13 @@
 # START
 # Rebuilds every event's baseline priors from a season of real plays, in one pass.
-# - build(season, weeks=None) -> {event: priors dict}: feeds each real play (a shared.priors.Sample) to
-#   every events/<event>/predictors/baseline/priors.py observe(tally, sample).
+# - build(season, weeks=None) -> {event: {week: priors dict}}: feeds each real play (a shared.priors.Sample)
+#   to every events/<event>/predictors/baseline/priors.py observe(tally, sample), with a tally per week.
 # - save(season) -> list[Path]: builds and writes each event's priors_<season>.json next to its predictor.
 # - CLI: `python -m events.baseline_priors 2026`, or `2011-2026` for a range of seasons (the default), built
 #   in parallel processes.
 # END
 import sys
+from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
 from importlib import import_module
 from pathlib import Path
@@ -24,16 +25,16 @@ def _builders() -> dict:
 
 def build(season: int, weeks=None) -> dict[str, dict]:
     builders = _builders()
-    tallies = {event: Tally() for event in builders}
+    tallies = {event: defaultdict(Tally) for event in builders}
     for sample in real_samples(season, weeks):
         for event, builder in builders.items():
-            builder.observe(tallies[event], sample)
-    return {event: tally.priors() for event, tally in tallies.items()}
+            builder.observe(tallies[event][sample.context.game.week], sample)
+    return {event: {week: tally.priors() for week, tally in by_week.items()} for event, by_week in tallies.items()}
 
 
 def save(season: int) -> list[Path]:
     builders = _builders()
-    return [save_priors(priors, builders[event].__file__, season) for event, priors in build(season).items()]
+    return [save_priors(by_week, builders[event].__file__, season) for event, by_week in build(season).items()]
 
 
 if __name__ == "__main__":

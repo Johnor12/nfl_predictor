@@ -1,25 +1,24 @@
 {
- "punt_result": {
-  "inside_10": {
-   "downed": 145,
-   "fair_catch": 139,
-   "muff": 12,
-   "out_of_bounds": 44,
-   "return": 143
-  },
-  "inside_20": {
-   "downed": 51,
-   "fair_catch": 274,
-   "muff": 20,
-   "out_of_bounds": 47,
-   "return": 294
-  },
-  "open": {
-   "downed": 94,
-   "fair_catch": 223,
-   "muff": 27,
-   "out_of_bounds": 110,
-   "return": 497
-  }
- }
+"1": {"punt_result": {"inside_10": {"downed": 5, "fair_catch": 14, "out_of_bounds": 2, "return": 10}, "inside_20": {"downed": 1, "fair_catch": 22, "muff": 2, "out_of_bounds": 2, "return": 26}, "open": {"downed": 3, "fair_catch": 8, "muff": 1, "out_of_bounds": 3, "return": 24}}},
+"2": {"punt_result": {"inside_10": {"downed": 5, "fair_catch": 10, "muff": 1, "out_of_bounds": 4, "return": 10}, "inside_20": {"downed": 5, "fair_catch": 17, "muff": 2, "out_of_bounds": 1, "return": 11}, "open": {"downed": 3, "fair_catch": 11, "muff": 3, "out_of_bounds": 8, "return": 29}}},
+"3": {"punt_result": {"inside_10": {"downed": 16, "fair_catch": 3, "muff": 3, "out_of_bounds": 3, "return": 11}, "inside_20": {"downed": 4, "fair_catch": 19, "muff": 1, "out_of_bounds": 3, "return": 14}, "open": {"downed": 2, "fair_catch": 6, "out_of_bounds": 5, "return": 33}}},
+"4": {"punt_result": {"inside_10": {"downed": 7, "fair_catch": 7, "out_of_bounds": 1, "return": 7}, "inside_20": {"downed": 4, "fair_catch": 10, "out_of_bounds": 1, "return": 14}, "open": {"downed": 8, "fair_catch": 13, "muff": 1, "out_of_bounds": 11, "return": 25}}},
+"5": {"punt_result": {"inside_10": {"downed": 9, "fair_catch": 6, "out_of_bounds": 4, "return": 6}, "inside_20": {"downed": 7, "fair_catch": 10, "muff": 1, "out_of_bounds": 1, "return": 12}, "open": {"downed": 7, "fair_catch": 18, "muff": 3, "out_of_bounds": 5, "return": 19}}},
+"6": {"punt_result": {"inside_10": {"downed": 4, "fair_catch": 3, "muff": 1, "out_of_bounds": 1, "return": 10}, "inside_20": {"downed": 2, "fair_catch": 17, "muff": 2, "out_of_bounds": 6, "return": 23}, "open": {"downed": 3, "fair_catch": 13, "muff": 3, "out_of_bounds": 6, "return": 24}}},
+"7": {"punt_result": {"inside_10": {"downed": 7, "fair_catch": 1, "muff": 1, "out_of_bounds": 4, "return": 5}, "inside_20": {"fair_catch": 14, "muff": 2, "out_of_bounds": 3, "return": 11}, "open": {"downed": 9, "fair_catch": 9, "muff": 1, "out_of_bounds": 5, "return": 20}}},
+"8": {"punt_result": {"inside_10": {"downed": 5, "fair_catch": 8, "muff": 1, "return": 15}, "inside_20": {"fair_catch": 17, "out_of_bounds": 1, "return": 18}, "open": {"downed": 2, "fair_catch": 10, "muff": 1, "out_of_bounds": 5, "return": 30}}},
+"9": {"punt_result": {"inside_10": {"downed": 6, "fair_catch": 6, "muff": 1, "out_of_bounds": 1, "return": 8}, "inside_20": {"downed": 2, "fair_catch": 12, "muff": 1, "out_of_bounds": 4, "return": 16}, "open": {"downed": 5, "fair_catch": 14, "out_of_bounds": 4, "return": 29}}},
+"10": {"punt_result": {"inside_10": {"downed": 10, "fair_catch": 7, "out_of_bounds": 2, "return": 9}, "inside_20": {"downed": 4, "fair_catch": 8, "out_of_bounds": 1, "return": 12}, "open": {"downed": 7, "fair_catch": 14, "out_of_bounds": 6, "return": 25}}},
+"11": {"punt_result": {"inside_10": {"downed": 7, "fair_catch": 10, "out_of_bounds": 1, "return": 5}, "inside_20": {"downed": 5, "fair_catch": 14, "muff": 3, "return": 15}, "open": {"downed": 3, "fair_catch": 15, "out_of_bounds": 5, "return": 36}}},
+"12": {"punt_result": {"inside_10": {"downed": 7, "fair_catch": 10, "muff": 1, "out_of_bounds": 1, "return": 5}, "inside_20": {"downed": 3, "fair_catch": 14, "out_of_bounds": 3, "return": 17}, "open": {"downed": 5, "fair_catch": 9, "muff": 2, "out_of_bounds": 6, "return": 26}}},
+"13": {"punt_result": {"inside_10": {"downed": 11, "fair_catch": 8, "out_of_bounds": 3, "return": 8}, "inside_20": {"downed": 2, "fair_catch": 15, "muff": 1, "out_of_bounds": 2, "return": 19}, "open": {"downed": 6, "fair_catch": 12, "out_of_bounds": 3, "return": 24}}},
+"14": {"punt_result": {"inside_10": {"downed": 7, "fair_catch": 2, "muff": 1, "out_of_bounds": 3, "return": 3}, "inside_20": {"downed": 1, "fair_catch": 6, "out_of_bounds": 2, "return": 20}, "open": {"downed": 5, "fair_catch": 10, "muff": 2, "out_of_bounds": 4, "return": 25}}},
+"15": {"punt_result": {"inside_10": {"downed": 12, "fair_catch": 9, "muff": 1, "out_of_bounds": 2, "return": 7}, "inside_20": {"downed": 4, "fair_catch": 21, "muff": 1, "out_of_bounds": 3, "return": 17}, "open": {"downed": 4, "fair_catch": 19, "muff": 1, "out_of_bounds": 10, "return": 24}}},
+"16": {"punt_result": {"inside_10": {"downed": 9, "fair_catch": 7, "out_of_bounds": 2, "return": 6}, "inside_20": {"downed": 2, "fair_catch": 10, "muff": 1, "out_of_bounds": 4, "return": 11}, "open": {"downed": 5, "fair_catch": 11, "muff": 2, "out_of_bounds": 10, "return": 30}}},
+"17": {"punt_result": {"inside_10": {"downed": 10, "fair_catch": 10, "out_of_bounds": 2, "return": 7}, "inside_20": {"fair_catch": 22, "return": 12}, "open": {"downed": 3, "fair_catch": 11, "muff": 1, "out_of_bounds": 8, "return": 22}}},
+"18": {"punt_result": {"inside_10": {"downed": 6, "fair_catch": 8, "out_of_bounds": 4, "return": 6}, "inside_20": {"downed": 4, "fair_catch": 16, "muff": 3, "out_of_bounds": 7, "return": 15}, "open": {"downed": 9, "fair_catch": 11, "muff": 4, "out_of_bounds": 2, "return": 29}}},
+"19": {"punt_result": {"inside_10": {"downed": 1, "fair_catch": 3, "muff": 1, "return": 3}, "inside_20": {"downed": 1, "fair_catch": 7, "out_of_bounds": 2, "return": 3}, "open": {"downed": 2, "fair_catch": 4, "muff": 2, "out_of_bounds": 1, "return": 12}}},
+"20": {"punt_result": {"inside_10": {"downed": 1, "fair_catch": 5, "out_of_bounds": 2, "return": 2}, "inside_20": {"fair_catch": 1, "out_of_bounds": 1, "return": 6}, "open": {"downed": 1, "fair_catch": 5, "out_of_bounds": 2, "return": 3}}},
+"21": {"punt_result": {"inside_10": {"fair_catch": 2, "out_of_bounds": 2}, "inside_20": {"fair_catch": 2, "return": 1}, "open": {"downed": 2, "out_of_bounds": 1, "return": 5}}},
+"22": {"punt_result": {"inside_20": {"return": 1}, "open": {"return": 3}}}
 }

@@ -7,12 +7,12 @@ from events.fouls import Foul
 from events.pre_snap import PreSnap
 from shared.priors import choice, fouler, priors_of, script
 
-load_priors = priors_of(__file__)  # season -> priors dict
+load_priors = priors_of(__file__)  # (season, week) -> priors dict
 
 
 def predict(ctx, lineups, formation, allowed, rng):
     s = ctx.situation
-    p = load_priors(ctx.game.season)
+    p = load_priors(ctx.game.season, ctx.game.week)
     rates = {key: count / p["snaps"]["n"] for key, count in p["fouls"].items()}
     foul = None
     if rng.random() < sum(rates.values()):

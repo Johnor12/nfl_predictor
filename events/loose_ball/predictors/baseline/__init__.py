@@ -7,7 +7,7 @@
 from events.loose_ball import Recovery
 from shared.priors import on_field, priors_of, rate
 
-load_priors = priors_of(__file__)  # season -> priors dict
+load_priors = priors_of(__file__)  # (season, week) -> priors dict
 
 
 def predict(ctx, lineups, cause, x, last_team, rng):
@@ -16,7 +16,7 @@ def predict(ctx, lineups, cause, x, last_team, rng):
     if cause == "fumble" and rng.random() < 0.04:
         ahead = 1 if last_team == s.offense else -1
         return Recovery(None, None, x + ahead * rng.uniform(-2, 4), 1.0)
-    lost = {"fumble": rate(load_priors(ctx.game.season)["fumble_recovery"], "lost"), "bad_snap": 0.2, "muff": 0.45,
+    lost = {"fumble": rate(load_priors(ctx.game.season, ctx.game.week)["fumble_recovery"], "lost"), "bad_snap": 0.2, "muff": 0.45,
             "blocked_kick": 0.6}[cause]
     team = other if rng.random() < lost else last_team
     return Recovery(team, rng.choice(on_field(ctx, lineups, team)), x + rng.uniform(-3, 3), rng.uniform(0.5, 2.0))

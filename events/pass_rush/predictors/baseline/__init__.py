@@ -6,12 +6,12 @@
 from events.pass_rush import PassRush
 from shared.priors import choice, hist, pick, pick_many, priors_of, rate
 
-load_priors = priors_of(__file__)  # season -> priors dict
+load_priors = priors_of(__file__)  # (season, week) -> priors dict
 SECONDS = {"throw": (2.7, 0.6), "scramble": (3.3, 0.7), "throwaway": (3.6, 0.8)}  # mean, sd
 
 
 def predict(ctx, lineups, formation, defense, rng):
-    p = load_priors(ctx.game.season)
+    p = load_priors(ctx.game.season, ctx.game.week)
     outcome = choice(p["dropback"], rng)
     if outcome == "throw" and rng.random() < rate(p["throwaway"], "yes"):
         outcome = "throwaway"

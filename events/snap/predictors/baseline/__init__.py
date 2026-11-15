@@ -8,12 +8,12 @@
 from events.snap import Snap
 from shared.priors import blend, dist_bucket, priors_of, rate, role, script
 
-load_priors = priors_of(__file__)  # season -> priors dict
+load_priors = priors_of(__file__)  # (season, week) -> priors dict
 
 
 def predict(ctx, lineups, formation, defense, allowed, rng):
     s = ctx.situation
-    p = load_priors(ctx.game.season)
+    p = load_priors(ctx.game.season, ctx.game.week)
     bad = rng.random() < 0.003
     unit = lineups.offense.unit
     if unit in ("punt", "field_goal"):

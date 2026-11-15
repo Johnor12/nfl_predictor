@@ -6,11 +6,11 @@
 from events.pass_result import PassResult
 from shared.priors import air_bucket, choice, goal_bucket, pick, priors_of, rate
 
-load_priors = priors_of(__file__)  # season -> priors dict
+load_priors = priors_of(__file__)  # (season, week) -> priors dict
 
 
 def predict(ctx, lineups, target, rng):
-    p = load_priors(ctx.game.season)
+    p = load_priors(ctx.game.season, ctx.game.week)
     los = ctx.situation.x
     counts = p["pass_result_goal"][goal_bucket(100 - los)] if los >= 90 else p["pass_result"][air_bucket(target.air_yards)]
     result = choice(counts, rng)

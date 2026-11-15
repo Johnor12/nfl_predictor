@@ -1,19 +1,23 @@
 {
- "fouls": {
-  "defensive_offside|defense": 138,
-  "defensive_too_many_men|defense": 42,
-  "delay_of_game|defense": 1,
-  "delay_of_game|offense": 143,
-  "encroachment|defense": 61,
-  "false_start|defense": 3,
-  "false_start|offense": 612,
-  "illegal_formation|defense": 4,
-  "illegal_formation|offense": 39,
-  "illegal_shift|offense": 28,
-  "neutral_zone_infraction|defense": 125,
-  "offensive_too_many_men|offense": 21
- },
- "snaps": {
-  "n": 41608
- }
+"1": {"fouls": {"defensive_offside|defense": 9, "defensive_too_many_men|defense": 2, "delay_of_game|offense": 8, "encroachment|defense": 2, "false_start|offense": 40, "illegal_shift|offense": 1, "neutral_zone_infraction|defense": 6}, "snaps": {"n": 2544}},
+"2": {"fouls": {"defensive_offside|defense": 14, "defensive_too_many_men|defense": 3, "delay_of_game|offense": 11, "encroachment|defense": 2, "false_start|offense": 27, "illegal_formation|offense": 1, "neutral_zone_infraction|defense": 10, "offensive_too_many_men|offense": 3}, "snaps": {"n": 2465}},
+"3": {"fouls": {"defensive_offside|defense": 4, "defensive_too_many_men|defense": 7, "delay_of_game|offense": 4, "encroachment|defense": 8, "false_start|offense": 30, "illegal_formation|offense": 4, "illegal_shift|offense": 2, "neutral_zone_infraction|defense": 3, "offensive_too_many_men|offense": 2}, "snaps": {"n": 2476}},
+"4": {"fouls": {"defensive_offside|defense": 3, "defensive_too_many_men|defense": 4, "delay_of_game|offense": 6, "encroachment|defense": 2, "false_start|offense": 38, "illegal_formation|defense": 2, "illegal_formation|offense": 2, "neutral_zone_infraction|defense": 5, "offensive_too_many_men|offense": 3}, "snaps": {"n": 2019}},
+"5": {"fouls": {"defensive_offside|defense": 7, "defensive_too_many_men|defense": 3, "delay_of_game|offense": 11, "encroachment|defense": 2, "false_start|defense": 1, "false_start|offense": 38, "illegal_formation|offense": 2, "illegal_shift|offense": 2, "neutral_zone_infraction|defense": 10, "offensive_too_many_men|offense": 1}, "snaps": {"n": 2388}},
+"6": {"fouls": {"defensive_offside|defense": 7, "defensive_too_many_men|defense": 3, "delay_of_game|offense": 7, "encroachment|defense": 2, "false_start|offense": 44, "illegal_formation|defense": 1, "illegal_formation|offense": 2, "illegal_shift|offense": 3, "neutral_zone_infraction|defense": 10}, "snaps": {"n": 2417}},
+"7": {"fouls": {"defensive_offside|defense": 12, "defensive_too_many_men|defense": 5, "delay_of_game|offense": 14, "encroachment|defense": 3, "false_start|offense": 33, "illegal_formation|offense": 1, "illegal_shift|offense": 2, "neutral_zone_infraction|defense": 7, "offensive_too_many_men|offense": 2}, "snaps": {"n": 2300}},
+"8": {"fouls": {"defensive_offside|defense": 6, "defensive_too_many_men|defense": 2, "delay_of_game|offense": 13, "encroachment|defense": 5, "false_start|offense": 34, "illegal_formation|offense": 5, "illegal_shift|offense": 1, "neutral_zone_infraction|defense": 3, "offensive_too_many_men|offense": 2}, "snaps": {"n": 2359}},
+"9": {"fouls": {"defensive_offside|defense": 5, "delay_of_game|offense": 4, "encroachment|defense": 4, "false_start|offense": 28, "illegal_formation|offense": 2, "illegal_shift|offense": 3, "neutral_zone_infraction|defense": 8}, "snaps": {"n": 2070}},
+"10": {"fouls": {"defensive_offside|defense": 3, "delay_of_game|offense": 4, "encroachment|defense": 1, "false_start|defense": 1, "false_start|offense": 33, "illegal_formation|defense": 1, "illegal_shift|offense": 1, "neutral_zone_infraction|defense": 8, "offensive_too_many_men|offense": 1}, "snaps": {"n": 2053}},
+"11": {"fouls": {"defensive_offside|defense": 8, "defensive_too_many_men|defense": 1, "delay_of_game|defense": 1, "delay_of_game|offense": 2, "encroachment|defense": 3, "false_start|offense": 23, "illegal_formation|offense": 2, "illegal_shift|offense": 1, "neutral_zone_infraction|defense": 8, "offensive_too_many_men|offense": 1}, "snaps": {"n": 2112}},
+"12": {"fouls": {"defensive_offside|defense": 7, "defensive_too_many_men|defense": 3, "delay_of_game|offense": 4, "encroachment|defense": 3, "false_start|offense": 40, "illegal_formation|offense": 1, "illegal_shift|offense": 1, "neutral_zone_infraction|defense": 7}, "snaps": {"n": 2339}},
+"13": {"fouls": {"defensive_offside|defense": 7, "defensive_too_many_men|defense": 2, "delay_of_game|offense": 10, "encroachment|defense": 10, "false_start|offense": 35, "illegal_formation|offense": 6, "illegal_shift|offense": 2, "neutral_zone_infraction|defense": 7, "offensive_too_many_men|offense": 2}, "snaps": {"n": 2475}},
+"14": {"fouls": {"defensive_offside|defense": 8, "delay_of_game|offense": 15, "encroachment|defense": 1, "false_start|offense": 37, "illegal_formation|offense": 4, "illegal_shift|offense": 1, "neutral_zone_infraction|defense": 11}, "snaps": {"n": 2487}},
+"15": {"fouls": {"defensive_offside|defense": 11, "delay_of_game|offense": 7, "encroachment|defense": 1, "false_start|defense": 1, "false_start|offense": 46, "illegal_formation|offense": 3, "illegal_shift|offense": 2, "neutral_zone_infraction|defense": 5, "offensive_too_many_men|offense": 1}, "snaps": {"n": 2461}},
+"16": {"fouls": {"defensive_offside|defense": 11, "delay_of_game|offense": 7, "encroachment|defense": 7, "false_start|offense": 25, "illegal_formation|offense": 3, "illegal_shift|offense": 4, "neutral_zone_infraction|defense": 6, "offensive_too_many_men|offense": 1}, "snaps": {"n": 2501}},
+"17": {"fouls": {"defensive_offside|defense": 8, "defensive_too_many_men|defense": 1, "delay_of_game|offense": 12, "encroachment|defense": 3, "false_start|offense": 37, "illegal_shift|offense": 2, "neutral_zone_infraction|defense": 5, "offensive_too_many_men|offense": 2}, "snaps": {"n": 2446}},
+"18": {"fouls": {"defensive_offside|defense": 1, "defensive_too_many_men|defense": 4, "delay_of_game|offense": 2, "false_start|offense": 8, "neutral_zone_infraction|defense": 2}, "snaps": {"n": 614}},
+"19": {"fouls": {"defensive_offside|defense": 5, "defensive_too_many_men|defense": 1, "delay_of_game|offense": 2, "encroachment|defense": 1, "false_start|offense": 8, "neutral_zone_infraction|defense": 3}, "snaps": {"n": 616}},
+"20": {"fouls": {"defensive_offside|defense": 2, "defensive_too_many_men|defense": 1, "false_start|offense": 7, "illegal_formation|offense": 1}, "snaps": {"n": 318}},
+"21": {"fouls": {"encroachment|defense": 1, "false_start|offense": 1, "neutral_zone_infraction|defense": 1}, "snaps": {"n": 148}}
 }

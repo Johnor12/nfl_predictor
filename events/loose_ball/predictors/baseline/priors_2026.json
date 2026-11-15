@@ -1,6 +1,12 @@
 {
- "fumble_recovery": {
-  "kept": 151,
-  "lost": 136
- }
+"1": {"fumble_recovery": {"kept": 19, "lost": 20}},
+"2": {"fumble_recovery": {"kept": 27, "lost": 10}},
+"3": {"fumble_recovery": {"kept": 11, "lost": 15}},
+"4": {"fumble_recovery": {"kept": 17, "lost": 11}},
+"5": {"fumble_recovery": {"kept": 24, "lost": 23}},
+"6": {"fumble_recovery": {"kept": 11, "lost": 11}},
+"7": {"fumble_recovery": {"kept": 10, "lost": 8}},
+"8": {"fumble_recovery": {"kept": 14, "lost": 18}},
+"9": {"fumble_recovery": {"kept": 17, "lost": 19}},
+"10": {"fumble_recovery": {"kept": 1, "lost": 1}}
 }

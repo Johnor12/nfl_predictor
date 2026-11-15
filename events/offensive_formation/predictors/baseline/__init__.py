@@ -8,7 +8,7 @@
 from events.offensive_formation import Formation
 from shared.priors import blend, dist_bucket, priors_of, rate
 
-load_priors = priors_of(__file__)  # season -> priors dict
+load_priors = priors_of(__file__)  # (season, week) -> priors dict
 
 
 def predict(ctx, lineups, rng):
@@ -16,7 +16,7 @@ def predict(ctx, lineups, rng):
     if lineups.offense.unit == "victory":
         shotgun = False
     elif s.kind == "scrimmage":
-        p, key = load_priors(ctx.game.season), f"{s.down}|{dist_bucket(s.distance)}"
+        p, key = load_priors(ctx.game.season, ctx.game.week), f"{s.down}|{dist_bucket(s.distance)}"
         by_personnel = p["personnel_shotgun"].get(f"{lineups.offense.personnel}|{key}", {})
         counts = blend(by_personnel, p["shotgun"].get(key, {}))
         shotgun = rng.random() < (rate(counts, "shotgun") if counts else 0.6)
@@ -49,8 +49,8 @@ def _formation(ctx, lineup, shotgun) -> Formation:
     backs = [pid for pid in of("RB", "FB") if pid != qb]
     ends = [pid for pid in of("TE") if pid != qb] + [pid for pid in of("WR") if pid != qb]
     others = [pid for pid in lineup.players if pid not in linemen + backs + ends + [qb]]
-    line, backfield = list(linemen), [qb] + backs
-    candidates = ends + others
+    line, backfield = list(linemen), [qb] + backs[:3]
+    candidates = ends + others + backs[3:]  # a fourth back lines up as an end
     while candidates and (len(line) < 7 or len(backfield) + len(candidates) > 4):
         line.append(candidates.pop(0))
     backfield += candidates

@@ -6,7 +6,7 @@
 from events.punt_result import PuntResult
 from shared.priors import choice, priors_of, returner
 
-load_priors = priors_of(__file__)  # season -> priors dict
+load_priors = priors_of(__file__)  # (season, week) -> priors dict
 
 
 def predict(ctx, lineups, landing_x, allowed, rng):
@@ -14,7 +14,7 @@ def predict(ctx, lineups, landing_x, allowed, rng):
         return PuntResult("touchback")
     r = 100 - landing_x
     bucket = "inside_10" if r <= 10 else "inside_20" if r <= 20 else "open"
-    results = load_priors(ctx.game.season)["punt_result"][bucket]
+    results = load_priors(ctx.game.season, ctx.game.week)["punt_result"][bucket]
     result = choice({k: v for k, v in results.items() if k in allowed}, rng)
     player = returner(ctx, lineups.defense.players, "PR", rng)
     return PuntResult(result, player if result in ("fair_catch", "return", "muff") else None)

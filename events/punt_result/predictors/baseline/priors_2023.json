@@ -1,25 +1,24 @@
 {
- "punt_result": {
-  "inside_10": {
-   "downed": 128,
-   "fair_catch": 148,
-   "muff": 13,
-   "out_of_bounds": 40,
-   "return": 158
-  },
-  "inside_20": {
-   "downed": 50,
-   "fair_catch": 263,
-   "muff": 21,
-   "out_of_bounds": 54,
-   "return": 336
-  },
-  "open": {
-   "downed": 90,
-   "fair_catch": 265,
-   "muff": 18,
-   "out_of_bounds": 133,
-   "return": 455
-  }
- }
+"1": {"punt_result": {"inside_10": {"downed": 5, "fair_catch": 6, "out_of_bounds": 2, "return": 15}, "inside_20": {"downed": 1, "fair_catch": 11, "out_of_bounds": 1, "return": 22}, "open": {"downed": 6, "fair_catch": 12, "muff": 1, "out_of_bounds": 21, "return": 27}}},
+"2": {"punt_result": {"inside_10": {"downed": 10, "fair_catch": 8, "out_of_bounds": 1, "return": 4}, "inside_20": {"downed": 2, "fair_catch": 15, "muff": 1, "out_of_bounds": 2, "return": 13}, "open": {"downed": 4, "fair_catch": 18, "out_of_bounds": 5, "return": 23}}},
+"3": {"punt_result": {"inside_10": {"downed": 5, "fair_catch": 6, "muff": 1, "out_of_bounds": 6, "return": 14}, "inside_20": {"downed": 3, "fair_catch": 9, "out_of_bounds": 6, "return": 19}, "open": {"downed": 3, "fair_catch": 25, "out_of_bounds": 4, "return": 27}}},
+"4": {"punt_result": {"inside_10": {"downed": 7, "fair_catch": 4, "out_of_bounds": 2, "return": 10}, "inside_20": {"downed": 2, "fair_catch": 21, "muff": 2, "out_of_bounds": 3, "return": 17}, "open": {"downed": 5, "fair_catch": 16, "muff": 2, "out_of_bounds": 7, "return": 24}}},
+"5": {"punt_result": {"inside_10": {"downed": 4, "fair_catch": 10, "muff": 1, "out_of_bounds": 3, "return": 8}, "inside_20": {"downed": 3, "fair_catch": 14, "muff": 2, "out_of_bounds": 1, "return": 15}, "open": {"downed": 4, "fair_catch": 14, "muff": 1, "out_of_bounds": 6, "return": 14}}},
+"6": {"punt_result": {"inside_10": {"downed": 9, "fair_catch": 7, "muff": 1, "out_of_bounds": 2, "return": 7}, "inside_20": {"downed": 5, "fair_catch": 6, "muff": 1, "out_of_bounds": 4, "return": 20}, "open": {"downed": 4, "fair_catch": 16, "muff": 2, "out_of_bounds": 5, "return": 25}}},
+"7": {"punt_result": {"inside_10": {"downed": 5, "fair_catch": 5, "out_of_bounds": 3, "return": 5}, "inside_20": {"downed": 4, "fair_catch": 10, "muff": 2, "out_of_bounds": 2, "return": 13}, "open": {"downed": 3, "fair_catch": 9, "muff": 3, "out_of_bounds": 6, "return": 18}}},
+"8": {"punt_result": {"inside_10": {"downed": 9, "fair_catch": 9, "muff": 2, "out_of_bounds": 3, "return": 6}, "inside_20": {"downed": 6, "fair_catch": 18, "out_of_bounds": 5, "return": 19}, "open": {"downed": 2, "fair_catch": 7, "out_of_bounds": 8, "return": 36}}},
+"9": {"punt_result": {"inside_10": {"downed": 4, "fair_catch": 9, "out_of_bounds": 3, "return": 11}, "inside_20": {"downed": 3, "fair_catch": 19, "out_of_bounds": 1, "return": 26}, "open": {"downed": 4, "fair_catch": 12, "muff": 2, "out_of_bounds": 4, "return": 24}}},
+"10": {"punt_result": {"inside_10": {"downed": 3, "fair_catch": 8, "muff": 2, "out_of_bounds": 2, "return": 5}, "inside_20": {"downed": 4, "fair_catch": 14, "muff": 1, "out_of_bounds": 4, "return": 13}, "open": {"downed": 4, "fair_catch": 12, "out_of_bounds": 4, "return": 28}}},
+"11": {"punt_result": {"inside_10": {"downed": 3, "fair_catch": 4, "out_of_bounds": 1, "return": 8}, "inside_20": {"downed": 2, "fair_catch": 11, "muff": 1, "out_of_bounds": 3, "return": 18}, "open": {"downed": 3, "fair_catch": 12, "out_of_bounds": 7, "return": 29}}},
+"12": {"punt_result": {"inside_10": {"downed": 7, "fair_catch": 12, "out_of_bounds": 2, "return": 9}, "inside_20": {"downed": 2, "fair_catch": 20, "out_of_bounds": 2, "return": 13}, "open": {"downed": 4, "fair_catch": 12, "muff": 2, "out_of_bounds": 5, "return": 21}}},
+"13": {"punt_result": {"inside_10": {"downed": 8, "fair_catch": 7, "muff": 1, "out_of_bounds": 3, "return": 5}, "inside_20": {"downed": 3, "fair_catch": 14, "muff": 1, "out_of_bounds": 2, "return": 14}, "open": {"downed": 3, "fair_catch": 11, "out_of_bounds": 6, "return": 33}}},
+"14": {"punt_result": {"inside_10": {"downed": 5, "fair_catch": 14, "muff": 3, "out_of_bounds": 1, "return": 14}, "inside_20": {"downed": 3, "fair_catch": 13, "muff": 4, "out_of_bounds": 3, "return": 28}, "open": {"downed": 5, "fair_catch": 21, "muff": 1, "out_of_bounds": 3, "return": 22}}},
+"15": {"punt_result": {"inside_10": {"downed": 10, "fair_catch": 3, "muff": 1, "out_of_bounds": 3, "return": 8}, "inside_20": {"downed": 1, "fair_catch": 18, "muff": 2, "out_of_bounds": 4, "return": 18}, "open": {"downed": 8, "fair_catch": 19, "out_of_bounds": 7, "return": 33}}},
+"16": {"punt_result": {"inside_10": {"downed": 10, "fair_catch": 11, "out_of_bounds": 1, "return": 5}, "inside_20": {"downed": 1, "fair_catch": 13, "out_of_bounds": 4, "return": 17}, "open": {"downed": 10, "fair_catch": 12, "muff": 3, "out_of_bounds": 7, "return": 23}}},
+"17": {"punt_result": {"inside_10": {"downed": 8, "fair_catch": 7, "out_of_bounds": 2, "return": 7}, "inside_20": {"downed": 1, "fair_catch": 15, "muff": 1, "out_of_bounds": 1, "return": 18}, "open": {"downed": 4, "fair_catch": 9, "out_of_bounds": 14, "return": 17}}},
+"18": {"punt_result": {"inside_10": {"downed": 12, "fair_catch": 4, "return": 12}, "inside_20": {"downed": 1, "fair_catch": 15, "muff": 1, "out_of_bounds": 4, "return": 23}, "open": {"downed": 5, "fair_catch": 17, "muff": 1, "out_of_bounds": 9, "return": 22}}},
+"19": {"punt_result": {"inside_10": {"fair_catch": 11, "muff": 1, "return": 1}, "inside_20": {"downed": 1, "fair_catch": 3, "out_of_bounds": 2, "return": 2}, "open": {"downed": 6, "fair_catch": 3, "out_of_bounds": 2, "return": 4}}},
+"20": {"punt_result": {"inside_10": {"downed": 1, "fair_catch": 3, "return": 2}, "inside_20": {"downed": 2, "fair_catch": 2, "return": 3}, "open": {"downed": 2, "fair_catch": 4, "out_of_bounds": 2, "return": 3}}},
+"21": {"punt_result": {"inside_10": {"downed": 2, "return": 1}, "inside_20": {"fair_catch": 2, "return": 2}, "open": {"downed": 1, "fair_catch": 1, "out_of_bounds": 1, "return": 2}}},
+"22": {"punt_result": {"inside_10": {"downed": 1, "return": 1}, "inside_20": {"muff": 2, "return": 3}, "open": {"fair_catch": 3}}}
 }

@@ -1,6 +1,24 @@
 {
- "injury": {
-  "injured": 909,
-  "plays": 43744
- }
+"1": {"injury": {"injured": 45, "plays": 2507}},
+"2": {"injury": {"injured": 53, "plays": 2391}},
+"3": {"injury": {"injured": 42, "plays": 2459}},
+"4": {"injury": {"injured": 56, "plays": 2483}},
+"5": {"injury": {"injured": 48, "plays": 2478}},
+"6": {"injury": {"injured": 46, "plays": 2191}},
+"7": {"injury": {"injured": 48, "plays": 1978}},
+"8": {"injury": {"injured": 47, "plays": 2309}},
+"9": {"injury": {"injured": 44, "plays": 2142}},
+"10": {"injury": {"injured": 57, "plays": 2133}},
+"11": {"injury": {"injured": 38, "plays": 2267}},
+"12": {"injury": {"injured": 53, "plays": 2290}},
+"13": {"injury": {"injured": 54, "plays": 2136}},
+"14": {"injury": {"injured": 43, "plays": 2242}},
+"15": {"injury": {"injured": 57, "plays": 2419}},
+"16": {"injury": {"injured": 42, "plays": 2413}},
+"17": {"injury": {"injured": 31, "plays": 2400}},
+"18": {"injury": {"injured": 70, "plays": 2503}},
+"19": {"injury": {"injured": 16, "plays": 923}},
+"20": {"injury": {"injured": 11, "plays": 614}},
+"21": {"injury": {"injured": 4, "plays": 309}},
+"22": {"injury": {"injured": 4, "plays": 157}}
 }

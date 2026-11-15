@@ -8,7 +8,7 @@ from events.kick_result import KickResult
 from shared.priors import choice, priors_of, returner
 from shared.rulebook import KICKOFF
 
-load_priors = priors_of(__file__, rules={"kickoff_result": KICKOFF})  # season -> priors dict
+load_priors = priors_of(__file__, rules={"kickoff_result": KICKOFF})  # (season, week) -> priors dict
 
 
 def predict(ctx, lineups, landing_x, allowed, rng):
@@ -18,7 +18,7 @@ def predict(ctx, lineups, landing_x, allowed, rng):
             return KickResult("kicking_recovery", rng.choice(lineups.offense.players))
         return KickResult("return", returner(ctx, receivers, "KR", rng))
     zone = "end_zone" if landing_x >= 100 else "landing_zone"
-    weights = {k: v for k, v in load_priors(ctx.game.season)["kickoff_result"][zone].items() if k in allowed}
+    weights = {k: v for k, v in load_priors(ctx.game.season, ctx.game.week)["kickoff_result"][zone].items() if k in allowed}
     total = sum(weights.values())
     if "muff" in allowed:
         weights["muff"] = weights.get("muff", 0) + 0.01 * total

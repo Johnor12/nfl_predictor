@@ -26,7 +26,7 @@ API (`from evaluators.game import ...`):
 ## reading the results
 
 - The score columns are explained in `evaluators/scoring/README.md`.
-- **Out of sample**: a game is predicted from the seasons before its own (the exceptions are listed in `evaluators/README.md`).
+- **Out of sample**: a game is predicted from what was played before it (the exceptions are listed in `evaluators/README.md`).
 - **Inputs at kickoff**: the active players include everyone who appeared in the real game, which is the inactive list announced before kickoff, not hindsight about who got hurt.
 - The market is the benchmark: the simulator's Brier, log loss, and MAE on a market are directly comparable with the market's own columns. Player props are scored at 50% for the market because prices aren't published, and only 2026's games have any (`shared/lines/README.md`).
 - A simulated probability is the smoothed share of samples over the line, so with few sims it is coarse; `sim CRPS` doesn't depend on the number of sims.

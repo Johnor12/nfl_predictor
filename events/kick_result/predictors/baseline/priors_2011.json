@@ -1,13 +1,23 @@
 {
- "kickoff_result": {
-  "end_zone": {
-   "muff": 1,
-   "return": 938,
-   "touchback": 1181
-  },
-  "landing_zone": {
-   "muff": 1,
-   "return": 426
-  }
- }
+"1": {"kickoff_result": {"end_zone": {"return": 57, "touchback": 79}, "landing_zone": {"return": 20}}},
+"2": {"kickoff_result": {"end_zone": {"return": 55, "touchback": 84}, "landing_zone": {"return": 22}}},
+"3": {"kickoff_result": {"end_zone": {"muff": 1, "return": 49, "touchback": 82}, "landing_zone": {"return": 21}}},
+"4": {"kickoff_result": {"end_zone": {"return": 63, "touchback": 76}, "landing_zone": {"return": 22}}},
+"5": {"kickoff_result": {"end_zone": {"return": 45, "touchback": 79}, "landing_zone": {"return": 15}}},
+"6": {"kickoff_result": {"end_zone": {"return": 45, "touchback": 52}, "landing_zone": {"muff": 1, "return": 24}}},
+"7": {"kickoff_result": {"end_zone": {"return": 51, "touchback": 59}, "landing_zone": {"return": 5}}},
+"8": {"kickoff_result": {"end_zone": {"return": 54, "touchback": 48}, "landing_zone": {"return": 14}}},
+"9": {"kickoff_result": {"end_zone": {"return": 46, "touchback": 49}, "landing_zone": {"return": 37}}},
+"10": {"kickoff_result": {"end_zone": {"return": 44, "touchback": 72}, "landing_zone": {"return": 28}}},
+"11": {"kickoff_result": {"end_zone": {"return": 56, "touchback": 48}, "landing_zone": {"return": 22}}},
+"12": {"kickoff_result": {"end_zone": {"return": 66, "touchback": 58}, "landing_zone": {"return": 26}}},
+"13": {"kickoff_result": {"end_zone": {"return": 56, "touchback": 62}, "landing_zone": {"return": 28}}},
+"14": {"kickoff_result": {"end_zone": {"return": 47, "touchback": 64}, "landing_zone": {"return": 34}}},
+"15": {"kickoff_result": {"end_zone": {"return": 62, "touchback": 63}, "landing_zone": {"return": 23}}},
+"16": {"kickoff_result": {"end_zone": {"return": 61, "touchback": 59}, "landing_zone": {"return": 39}}},
+"17": {"kickoff_result": {"end_zone": {"return": 55, "touchback": 82}, "landing_zone": {"return": 26}}},
+"18": {"kickoff_result": {"end_zone": {"return": 8, "touchback": 29}, "landing_zone": {"return": 2}}},
+"19": {"kickoff_result": {"end_zone": {"return": 12, "touchback": 22}, "landing_zone": {"return": 9}}},
+"20": {"kickoff_result": {"end_zone": {"return": 3, "touchback": 11}, "landing_zone": {"return": 6}}},
+"21": {"kickoff_result": {"end_zone": {"return": 3, "touchback": 3}, "landing_zone": {"return": 3}}}
 }

@@ -10,13 +10,13 @@ from events.snap import Snap
 from scenarios.play import Carry, Kick, Pass, facts
 from shared.priors import choice, fouler, priors_of, rate
 
-load_priors = priors_of(__file__)  # season -> priors dict
+load_priors = priors_of(__file__)  # (season, week) -> priors dict
 KICK_CATEGORIES = {"punt": "punt", "field_goal": "field_goal", "pat": "field_goal"}
 
 
 def predict(ctx, lineups, record, allowed, rng):
     s = ctx.situation
-    p = load_priors(ctx.game.season)
+    p = load_priors(ctx.game.season, ctx.game.week)
     category = _category(record)
     rates = {key: count / p["snaps"][category] for key, count in p["fouls"].get(category, {}).items()}
     if rng.random() >= sum(rates.values()):

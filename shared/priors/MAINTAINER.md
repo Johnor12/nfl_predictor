@@ -4,16 +4,19 @@
 - sampling.py: `choice`, `hist`, `rate`, `blend`.
 - buckets.py: `role`, `group`, and the situation buckets.
 - players.py: `on_field`, `pick`, `pick_many`, `returner`, `fouler`, and `FOULERS` (hand-set: which positions commit each foul).
-- files.py: `priors_of` (pooling the seasons before a game's, per key: `DECAY`, the rules a key is tied to, `NFL_PRIORS_THROUGH`, `NFL_PRIORS_DECAY`), `save_priors`.
+- files.py: `priors_of` (pooling what was played before a game, per key: the earlier seasons and its own season's earlier weeks, `DECAY`, the rules a key is tied to, `NFL_PRIORS_DECAY`), `save_priors`.
 - building.py: `Sample`, `Tally`, `present`, and the nflverse row readers more than one event needs (`flag` with the `FOULS` name map and `PRESNAP`, `flagrant`, `kickoff_result`, `nullified`, `timeout_case`, and the participation readers `personnel`, `package`, `played`).
-- test_priors.py: `blend` ordering, `Tally`, and `priors_of`: pooling with decay, the first season of a key, the environment variables, and keys tied to rules.
+- test_priors.py: `blend` ordering, `Tally`, and `priors_of`: pooling with decay, the season's earlier weeks, the first season of a key, the environment variable, and keys tied to rules.
 
 Notes:
 - Counts are stored raw (not normalized) so small samples stay visible; predictors normalize when sampling.
 - Pooled counts are fractions (a count times a decay), and the most recent pooled season always counts 1. Predictors only ever use counts as weights, so nothing else changes; a threshold on a count (`blend`'s `k`, the lineups' 20) now means that many recent-season plays.
 - The pooled dict's keys are sorted at every level, as the files' are, so sampling order doesn't depend on which seasons were pooled.
-- A season in the middle of being played is pooled like any other once a later season asks for it; a game never sees its own season unless `NFL_PRIORS_THROUGH` says so.
-- `priors_of` caches per season and reads the environment variables on the first load, so set it before anything is loaded (the environment reaches the evaluators' worker processes too).
+- A game's own season is pooled like any other season, cut off before the game's week: it counts 1 and the seasons before it `decay` each, as soon as it has a week with the key. A week's games never see each other (a Thursday game doesn't inform Sunday's), and a week is whatever nflverse numbers it, the playoffs running on from the regular season.
+- The first season of a rule or of a data source is the one place a game sees plays that came after it (and its own): a few weeks of a new kickoff don't fill every key a predictor reads, so the whole season stands in. The season after it is walked forward like any other.
+- A week is one line of a season's file, so a weekly rebuild during the season adds a line.
+- The season's earlier weeks were measured, on the play evaluator's rows for 96 games of 2021-2026 at 30 sims, compared case by case with the earlier seasons alone: 5 of 39 outputs better by more than 2 standard errors, none worse. The gains are where the league moves from one season to the next: kickoffs (the play's touchback -2.5% and return yards -1.5%, the kick result -1.5%), the fourth-down unit -1.5%, shotgun -0.5%. The rest are within noise, a season of plays having already pinned those rates down.
+- `priors_of` caches per season and week and reads the environment variable on the first load, so set it before anything is loaded (the environment reaches the evaluators' worker processes too).
 - `FOULS` maps an nflverse foul the play scenario doesn't have to the one enforced the same way (a pair picks by side). A foul it doesn't list is dropped from every priors count.
 - `blend` sorts its keys. Sampling from a dict built in set order made plays differ between processes with the same seed.
 - This package imports only `shared.rulebook` (for the rules a key is tied to) from the rest of the project. `building.py` reads nflverse column names but doesn't import `shared.nflverse` or pandas.

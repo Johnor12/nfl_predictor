@@ -2,9 +2,9 @@
 # Tests for the priors toolkit.
 # - test_blend_is_ordered: sampling a blend can't depend on set order (plays must be reproducible).
 # - test_tally: counts, nested sub-keys, and histograms.
-# - test_priors_pool_the_seasons_before: a game's priors are the earlier seasons' counts, older ones
-#   discounted; a key no earlier season has comes from the first that does; NFL_PRIORS_THROUGH and
-#   NFL_PRIORS_DECAY override.
+# - test_priors_pool_what_was_played_before: a game's priors are the earlier seasons' counts, older ones
+#   discounted, plus its own season's earlier weeks; a key no earlier season has comes from the first that
+#   does; NFL_PRIORS_DECAY overrides.
 # - test_priors_stay_within_a_rule: a key tied to rulebook fields only pools the seasons with the same rules.
 # END
 import random
@@ -30,31 +30,30 @@ def test_tally():
                               "yards_goal": {"1-2": {"1": 1}}}
 
 
-def test_priors_pool_the_seasons_before(tmp_path, monkeypatch):
-    monkeypatch.delenv("NFL_PRIORS_THROUGH", raising=False)
+def test_priors_pool_what_was_played_before(tmp_path, monkeypatch):
     monkeypatch.delenv("NFL_PRIORS_DECAY", raising=False)
     file = tmp_path / "predictor.py"
-    save_priors({"run": {"3": 10, "4": 2}}, file, 2022)
-    save_priors({"run": {"3": 20}, "personnel": {"11": 7}}, file, 2023)  # only 2023's data can say the personnel
-    save_priors({"run": {"3": 40}}, file, 2024)
+    save_priors({1: {"run": {"3": 6, "4": 2}}, 2: {"run": {"3": 4}}}, file, 2022)
+    save_priors({1: {"run": {"3": 20}, "personnel": {"11": 7}}}, file, 2023)  # only 2023's data can say the personnel
+    save_priors({1: {"run": {"3": 30}}, 2: {"run": {"3": 10}}}, file, 2024)
     load = priors_of(file, decay=0.5)
-    assert load(2024) == {"run": {"3": 25.0, "4": 1.0}, "personnel": {"11": 7.0}}  # 2023, and half of 2022
-    assert load(2025)["run"] == {"3": 52.5, "4": 0.5} and load(2030) == load(2025)
-    assert load(2023) == {"run": {"3": 10.0, "4": 2.0}, "personnel": {"11": 7.0}}  # personnel: the first season with it
-    assert load(2022)["run"] == {"3": 10.0, "4": 2.0}  # nothing earlier: the first season
-    assert priors_of(file, decay=1)(2025)["run"] == {"3": 70, "4": 2}
-    monkeypatch.setenv("NFL_PRIORS_THROUGH", "2024")
-    assert priors_of(file, decay=0.5)(2024)["run"]["3"] == 52.5  # this season's games too
+    assert load(2024, 1) == {"run": {"3": 25.0, "4": 1.0}, "personnel": {"11": 7.0}}  # 2023, and half of 2022
+    assert load(2024, 2)["run"] == {"3": 42.5, "4": 0.5}  # week 1 too, and the seasons before count half as much
+    assert load(2024, 2)["personnel"] == {"11": 7.0}  # nothing this season: the last season still counts 1
+    assert load(2025, 1)["run"] == {"3": 52.5, "4": 0.5} and load(2030, 9) == load(2025, 1)
+    assert load(2023, 1) == {"run": {"3": 10.0, "4": 2.0}, "personnel": {"11": 7.0}}  # personnel: the first season with it
+    assert load(2023, 2)["personnel"] == {"11": 7.0}  # and all of it, all season
+    assert load(2022, 2)["run"] == {"3": 10.0, "4": 2.0}  # nothing earlier: the first season, whole
+    assert priors_of(file, decay=1)(2025, 1)["run"] == {"3": 70, "4": 2}
     monkeypatch.setenv("NFL_PRIORS_DECAY", "0")
-    assert priors_of(file, decay=0.5)(2024)["run"] == {"3": 40.0, "4": 0.0}
+    assert priors_of(file, decay=0.5)(2025, 1)["run"] == {"3": 40.0, "4": 0.0}
 
 
-def test_priors_stay_within_a_rule(tmp_path, monkeypatch):
-    monkeypatch.delenv("NFL_PRIORS_THROUGH", raising=False)
+def test_priors_stay_within_a_rule(tmp_path):
     file = tmp_path / "predictor.py"
     for season in (2022, 2023, 2024, 2025):
-        save_priors({"kickoff": {str(season): 1}, "punt": {str(season): 1}}, file, season)
+        save_priors({1: {"kickoff": {str(season): 1}, "punt": {str(season): 1}}}, file, season)
     load = priors_of(file, rules={"kickoff": KICKOFF}, decay=1)
-    assert load(2026) == {"kickoff": {"2025": 1}, "punt": {"2022": 1, "2023": 1, "2024": 1, "2025": 1}}
-    assert load(2023)["kickoff"] == {"2022": 1}
-    assert load(2024)["kickoff"] == {"2024": 1} and load(2025)["kickoff"] == {"2025": 1}  # each the first season of a rule
+    assert load(2026, 1) == {"kickoff": {"2025": 1}, "punt": {"2022": 1, "2023": 1, "2024": 1, "2025": 1}}
+    assert load(2023, 1)["kickoff"] == {"2022": 1} and load(2023, 2)["kickoff"] == {"2022": 1, "2023": 1}
+    assert load(2024, 2)["kickoff"] == {"2024": 1} and load(2025, 1)["kickoff"] == {"2025": 1}  # each the first season of a rule

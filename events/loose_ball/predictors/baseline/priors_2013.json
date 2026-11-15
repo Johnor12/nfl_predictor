@@ -1,6 +1,23 @@
 {
- "fumble_recovery": {
-  "kept": 275,
-  "lost": 277
- }
+"1": {"fumble_recovery": {"kept": 21, "lost": 21}},
+"2": {"fumble_recovery": {"kept": 12, "lost": 18}},
+"3": {"fumble_recovery": {"kept": 16, "lost": 21}},
+"4": {"fumble_recovery": {"kept": 14, "lost": 24}},
+"5": {"fumble_recovery": {"kept": 19, "lost": 15}},
+"6": {"fumble_recovery": {"kept": 21, "lost": 13}},
+"7": {"fumble_recovery": {"kept": 18, "lost": 11}},
+"8": {"fumble_recovery": {"kept": 13, "lost": 12}},
+"9": {"fumble_recovery": {"kept": 8, "lost": 10}},
+"10": {"fumble_recovery": {"kept": 14, "lost": 15}},
+"11": {"fumble_recovery": {"kept": 14, "lost": 12}},
+"12": {"fumble_recovery": {"kept": 13, "lost": 17}},
+"13": {"fumble_recovery": {"kept": 16, "lost": 20}},
+"14": {"fumble_recovery": {"kept": 18, "lost": 13}},
+"15": {"fumble_recovery": {"kept": 16, "lost": 14}},
+"16": {"fumble_recovery": {"kept": 10, "lost": 17}},
+"17": {"fumble_recovery": {"kept": 18, "lost": 14}},
+"18": {"fumble_recovery": {"kept": 5, "lost": 4}},
+"19": {"fumble_recovery": {"kept": 4, "lost": 2}},
+"20": {"fumble_recovery": {"kept": 3, "lost": 2}},
+"21": {"fumble_recovery": {"kept": 2, "lost": 2}}
 }

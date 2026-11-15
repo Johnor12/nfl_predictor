@@ -16,28 +16,28 @@ pytestmark = pytest.mark.skipif(not (CACHE / "play_by_play_2026.parquet").exists
 def test_week_one_build():
     from events.baseline_priors import _builders, build
     from shared.priors import priors_of
-    built = build(2026, weeks=[1])
+    built = {event: by_week[1] for event, by_week in build(2026, weeks=[1]).items()}
     assert len(built) == 18
     for event, priors in built.items():
-        assert priors and set(priors) <= set(priors_of(_builders()[event].__file__)(2026)), event
+        assert priors and set(priors) <= set(priors_of(_builders()[event].__file__)(2026, 1)), event
 
 
 @pytest.mark.skipif(not (CACHE / "pbp_participation_2025.parquet").exists(), reason="2025 nflverse cache missing")
 def test_on_field_priors():
     from events.baseline_priors import _builders, build
     from shared.priors import priors_of
-    built, builders = build(2025, weeks=[1]), _builders()
+    built, builders = {event: by_week[1] for event, by_week in build(2025, weeks=[1]).items()}, _builders()
     assert {"personnel", "package"} <= set(built["lineups"]) and "personnel_shotgun" in built["offensive_formation"]
     assert max(built["lineups"]["personnel"]["normal|1|7-10"], key=built["lineups"]["personnel"]["normal|1|7-10"].get) == "11"
     for event, priors in built.items():
-        assert set(priors) <= set(priors_of(builders[event].__file__)(2025)), event
-    assert "personnel" in priors_of(builders["lineups"].__file__)(2026)  # 2026 has none of its own
+        assert set(priors) <= set(priors_of(builders[event].__file__)(2025, 1)), event
+    assert "personnel" in priors_of(builders["lineups"].__file__)(2026, 9)  # 2026 has none of its own
 
 
 @pytest.mark.skipif(not (CACHE / "pbp_participation_2016.parquet").exists(), reason="2016 nflverse cache missing")
 def test_old_season_build():
     from events.baseline_priors import build
-    built = build(2016, weeks=[1])
+    built = {event: by_week.get(1, {}) for event, by_week in build(2016, weeks=[1]).items()}
     assert len(built) == 18 and not built["defensive_formation"]  # no charting before 2022
     assert {"personnel", "package", "unit", "two_point"} <= set(built["lineups"])
     assert {"carry_rate", "pass_rate"} <= set(built["snap"]) and "target_rate" in built["target"]

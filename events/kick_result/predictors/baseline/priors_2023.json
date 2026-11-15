@@ -1,12 +1,24 @@
 {
- "kickoff_result": {
-  "end_zone": {
-   "return": 247,
-   "touchback": 2075
-  },
-  "landing_zone": {
-   "fair_catch": 89,
-   "return": 345
-  }
- }
+"1": {"kickoff_result": {"end_zone": {"return": 13, "touchback": 121}, "landing_zone": {"fair_catch": 1, "return": 19}}},
+"2": {"kickoff_result": {"end_zone": {"return": 5, "touchback": 144}, "landing_zone": {"fair_catch": 2, "return": 13}}},
+"3": {"kickoff_result": {"end_zone": {"return": 12, "touchback": 132}, "landing_zone": {"fair_catch": 4, "return": 14}}},
+"4": {"kickoff_result": {"end_zone": {"return": 21, "touchback": 115}, "landing_zone": {"fair_catch": 3, "return": 13}}},
+"5": {"kickoff_result": {"end_zone": {"return": 6, "touchback": 115}, "landing_zone": {"fair_catch": 4, "return": 15}}},
+"6": {"kickoff_result": {"end_zone": {"return": 11, "touchback": 110}, "landing_zone": {"fair_catch": 3, "return": 14}}},
+"7": {"kickoff_result": {"end_zone": {"return": 12, "touchback": 92}, "landing_zone": {"fair_catch": 2, "return": 19}}},
+"8": {"kickoff_result": {"end_zone": {"return": 18, "touchback": 109}, "landing_zone": {"fair_catch": 4, "return": 18}}},
+"9": {"kickoff_result": {"end_zone": {"return": 17, "touchback": 90}, "landing_zone": {"fair_catch": 6, "return": 19}}},
+"10": {"kickoff_result": {"end_zone": {"return": 13, "touchback": 102}, "landing_zone": {"fair_catch": 6, "return": 22}}},
+"11": {"kickoff_result": {"end_zone": {"return": 11, "touchback": 101}, "landing_zone": {"fair_catch": 4, "return": 16}}},
+"12": {"kickoff_result": {"end_zone": {"return": 17, "touchback": 109}, "landing_zone": {"fair_catch": 6, "return": 13}}},
+"13": {"kickoff_result": {"end_zone": {"return": 11, "touchback": 101}, "landing_zone": {"fair_catch": 5, "return": 16}}},
+"14": {"kickoff_result": {"end_zone": {"return": 13, "touchback": 103}, "landing_zone": {"fair_catch": 8, "return": 18}}},
+"15": {"kickoff_result": {"end_zone": {"return": 12, "touchback": 110}, "landing_zone": {"fair_catch": 4, "return": 24}}},
+"16": {"kickoff_result": {"end_zone": {"return": 17, "touchback": 105}, "landing_zone": {"fair_catch": 10, "return": 31}}},
+"17": {"kickoff_result": {"end_zone": {"return": 15, "touchback": 120}, "landing_zone": {"fair_catch": 7, "return": 20}}},
+"18": {"kickoff_result": {"end_zone": {"return": 17, "touchback": 90}, "landing_zone": {"fair_catch": 8, "return": 19}}},
+"19": {"kickoff_result": {"end_zone": {"return": 2, "touchback": 45}, "landing_zone": {"fair_catch": 1, "return": 14}}},
+"20": {"kickoff_result": {"end_zone": {"return": 3, "touchback": 30}, "landing_zone": {"fair_catch": 1, "return": 8}}},
+"21": {"kickoff_result": {"end_zone": {"return": 1, "touchback": 18}}},
+"22": {"kickoff_result": {"end_zone": {"touchback": 13}}}
 }

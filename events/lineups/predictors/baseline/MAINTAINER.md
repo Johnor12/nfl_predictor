@@ -4,7 +4,7 @@
 - depth_chart.py: 11 players for any unit: position quotas for the personnel group or package, filled by recent snaps in the unit and then by depth chart rank, with position fallbacks.
 - test_lineups.py: spot checks (depth chart, kneel rule, 4th-and-long punts, recent snaps).
 - priors.py: `observe(tally, sample)`, which counts one real play into this predictor's priors.
-- priors_<season>.json: the built priors (raw counts and histograms), one file per season (2011 on). `personnel` and `package` are only in seasons with participation data (2016 to 2025).
+- priors_<season>.json: the built priors (raw counts and histograms), one file per season (2011 on), counted week by week. `personnel` and `package` are only in seasons with participation data (2016 to 2025).
 
 Notes:
 - Unit priors are keyed `down|distance bucket|field bucket`; a cell with fewer than 20 samples is blended with the down and field bucket's total. Personnel priors are keyed `script|down|distance bucket` and blended with the normal script's.

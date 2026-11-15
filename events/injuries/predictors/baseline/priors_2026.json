@@ -1,6 +1,12 @@
 {
- "injury": {
-  "injured": 396,
-  "plays": 20786
- }
+"1": {"injury": {"injured": 44, "plays": 2383}},
+"2": {"injury": {"injured": 46, "plays": 2363}},
+"3": {"injury": {"injured": 55, "plays": 2438}},
+"4": {"injury": {"injured": 56, "plays": 2456}},
+"5": {"injury": {"injured": 45, "plays": 2320}},
+"6": {"injury": {"injured": 46, "plays": 2205}},
+"7": {"injury": {"injured": 33, "plays": 2056}},
+"8": {"injury": {"injured": 33, "plays": 2138}},
+"9": {"injury": {"injured": 37, "plays": 2270}},
+"10": {"injury": {"injured": 1, "plays": 157}}
 }

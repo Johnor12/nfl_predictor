@@ -15,7 +15,7 @@ from scenarios.play import FREE_KICKS, allowed_units
 from shared.priors import blend, choice, dist_bucket, field_bucket, priors_of, rate, script
 from shared.rulebook import TRY, rules_for
 
-load_priors = priors_of(__file__, rules={"two_point": TRY})  # season -> priors dict
+load_priors = priors_of(__file__, rules={"two_point": TRY})  # (season, week) -> priors dict
 DEFENSE_UNITS = {"punt": "punt_return", "field_goal": "field_goal_block", "victory": "defense"}
 
 
@@ -25,7 +25,7 @@ def predict(ctx, rng):
         unit = "onside_kickoff" if _onside(ctx, rng) else "kickoff"
         return Lineups(Lineup(unit, None, unit_lineup(ctx, s.offense, unit, rng)),
                        Lineup("kick_return", None, unit_lineup(ctx, s.defense, "kick_return", rng)))
-    p = load_priors(ctx.game.season)
+    p = load_priors(ctx.game.season, ctx.game.week)
     unit = _unit(ctx, p, rng)
     if unit == "offense":
         group = _personnel(s, p, rng)

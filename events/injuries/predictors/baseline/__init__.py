@@ -7,11 +7,11 @@ from events.injuries import Injury
 from scenarios.play import Carry, facts
 from shared.priors import priors_of
 
-load_priors = priors_of(__file__)  # season -> priors dict
+load_priors = priors_of(__file__)  # (season, week) -> priors dict
 
 
 def predict(ctx, lineups, record, rng):
-    injury = load_priors(ctx.game.season)["injury"]
+    injury = load_priors(ctx.game.season, ctx.game.week)["injury"]
     if rng.random() >= injury["injured"] / injury["plays"]:
         return ()
     carries = facts(record, Carry)

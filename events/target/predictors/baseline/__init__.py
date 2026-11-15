@@ -7,11 +7,11 @@
 from events.target import Target
 from shared.priors import choice, goal_bucket, hist, priors_of, rate, role
 
-load_priors = priors_of(__file__)  # season -> priors dict
+load_priors = priors_of(__file__)  # (season, week) -> priors dict
 
 
 def predict(ctx, lineups, formation, eligible, rng):
-    p = load_priors(ctx.game.season)
+    p = load_priors(ctx.game.season, ctx.game.week)
     weights = [rate(p["target_rate"].get(role(ctx.by_id[pid]), {}), "targeted") or 0.001 for pid in eligible]
     receiver = rng.choices(eligible, weights)[0]
     los = ctx.situation.x

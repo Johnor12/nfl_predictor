@@ -6,11 +6,11 @@
 from events.punt_kick import PuntKick
 from shared.priors import field_bucket, hist, pick, priors_of, rate
 
-load_priors = priors_of(__file__)  # season -> priors dict
+load_priors = priors_of(__file__)  # (season, week) -> priors dict
 
 
 def predict(ctx, lineups, punter, rng):
-    p = load_priors(ctx.game.season)
+    p = load_priors(ctx.game.season, ctx.game.week)
     if rng.random() < rate(p["punt_blocked"], "yes"):
         return PuntKick(0.0, pick(ctx, lineups.defense.players, {"DL": 5, "LB": 3, "DB": 2}, rng), 2.0)
     distances = p["punt_distance"].get(field_bucket(ctx.situation.x)) or p["punt_distance"]["3"]
