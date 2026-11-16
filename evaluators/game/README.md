@@ -36,3 +36,14 @@ The coin toss isn't in the data, so its two predictors aren't scored.
 - **Lines as inputs**: a game's inputs include the spread and total before it (`Game.spread`, `Game.total`), and a predictor may read them (none does yet). For such a predictor the market columns compare the simulator with a benchmark it has partly been told: beating the market on a line still means something, matching it means less. The scores against what really happened aren't affected.
 - A simulated probability is the smoothed share of samples over the line, so with few sims it is coarse; `sim CRPS` doesn't depend on the number of sims.
 - `game: plays` is where the clock gets scored (the play evaluator can't): too many plays means the simulated game uses too little clock per play.
+
+## how many games and sims
+
+The scores are fair, so the number of sims doesn't bias them. It sets how much two runs of one system differ from simulating alone (sim noise), and so the smallest change a comparison of two runs can show. `sims for 1%` says it per row: a row that needs 635 sims shows a change of √(635 / 100) = 2.5% at 100.
+
+- The default (160 games, 100 sims) is a first look, not a verdict on a small change. The smallest change that stands 2 standard errors clear of sim noise (2026-11-16): `game: home win` 4.7%, `game: margin` and `game: total` 2.5%, the `team:` rows about 2%, a player's yards and counts 1.3 to 2.4%, his touchdown 2.3 to 4.6%. One predictor swap usually moves the game rows by less (every who-is-playing input together moved the margin by 3.5%).
+- It is enough for bias (`mean` against `sim mean`): there the limit is the number of real games, not the sims.
+- To compare two versions, add games, not sims. Sim noise depends on games times sims, whichever is raised, so they cost the same; more games also shrink the part of the error that comes from the games themselves, which more sims don't touch. On the who-is-playing comparison at 160 games and 100 sims the margin's difference had a standard error of 1.58%: about 1.26% from simulating and 0.95% from the games. Three times the games would make that about 0.9%, three times the sims about 1.2%.
+- `--games 480` (about 9 minutes on 16 cores) shows 1.5% on the margin and 2.7% on the winner. `--games 0` (1,560 games on 2026-11-16, about 28 minutes on 16 cores) shows 0.8% and 1.5%; with `--sims 50` it takes half as long and shows 1.1% and 2.1%. The time is games times sims; the sample of a larger run contains a smaller one's.
+- Read `game: margin` before `game: home win`: the same question at about half the noise.
+- A small change is the play evaluator's to measure (it scores every play); the game evaluator says what the change adds up to over a game.

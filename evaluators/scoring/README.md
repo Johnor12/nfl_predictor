@@ -33,4 +33,4 @@ Reading a row:
 - **mean**, **sim mean**: the average real outcome and the average simulated one over the cases (for a yes/no output, how often it happened and how often it was simulated). A gap is a bias: the simulator makes too much or too little of something, which a score and a PIT histogram only hint at. Points per team at 21.0 against a real 23.7 says where to look.
 - **se**: the standard error of the mean score over the cases. Two evaluations of the same cases share most of this error, so a difference between them can be real well inside it.
 - **sim_se**: the part of the error that comes from simulating a finite number of times. Each case is also scored on the two halves of its ensemble (the same predictor with two seeds); the spread between the halves gives it.
-- **sims_needed**: the sims per case at which a 1% change in the score stands 2 standard errors clear of sim noise when two runs are compared (capped at 10,000).
+- **sims_needed**: the sims per case at which a 1% change in the score stands 2 standard errors clear of sim noise when two runs are compared (capped at 10,000). It is for the run's number of cases: twice the cases halve it.
