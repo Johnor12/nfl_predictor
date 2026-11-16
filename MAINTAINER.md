@@ -17,7 +17,7 @@ The folders follow the architecture in README.md:
 - scenarios/game/: the game scenario: the coin toss, then plays until the final whistle, with the clock, timeouts, coach's challenges, halftime, overtime, injuries (their stoppages and emergency replacements), and disqualifications between them (`run_game`, `validate_game`, `load_game_predictors`).
 - simulators/play/: runs the play scenario over many inputs and summarizes each outcome.
 - simulators/game/: plays a game many times and presents the distributions (`simulate_game`, `forecast`).
-- evaluators/sample.py: which games an evaluation covers: a fixed sample of games across seasons (`sample_games`, `EVALUATED`).
+- evaluators/sample.py: which games an evaluation covers: a fixed sample of games across seasons (`sample_games`, `EVALUATED`), counting a game once its stat lines are published.
 - evaluators/compare.py: two saved evaluations of the same games, compared case by case (`python -m evaluators.compare`).
 - evaluators/scoring/: the evaluators' shared toolkit: fair CRPS and Brier scores, the reference to beat, sim noise, PIT histograms, reliability (`Scorecard`).
 - evaluators/play/: scores the play scenario and each event predictor against real plays (`evaluate`).
