@@ -1,9 +1,13 @@
 # START
 # Downloading and caching nflverse files under .cache/nflverse/ (gitignored).
-# - load(name, season=None, refresh=False) -> DataFrame: read a cached file, downloading it first if missing.
-#   None for a file in OPTIONAL that nflverse hasn't published for the season (remembered in a .missing
-#   file next to the cache, so it is only asked for again with refresh=True). Team codes are the current
-#   ones in every file and season (TEAMS: the 2016 Raiders are LV, as in the play-by-play).
+# - load(name, season=None, refresh=False) -> DataFrame: read a cached file, downloading it first if missing
+#   or stale. None for a file in OPTIONAL that nflverse hasn't published for the season (remembered in a
+#   .missing file next to the cache). Team codes are the current ones in every file and season (TEAMS: the
+#   2016 Raiders are LV, as in the play-by-play).
+#   Stale: a file that can still change (the current season's, or one covering every season: "games",
+#   "players") downloaded more than MAX_AGE ago, and its .missing marker the same. A past season's file is
+#   only downloaded again with refresh=True. If a refresh fails (offline), the cached copy is used, and the
+#   next process tries again.
 # - SEASONS: the seasons the system covers.
 # - FILES: the nflverse release files we use, by name. "games" is the schedule (with referees, weather,
 #   coaches, and betting lines) from the nfldata repo and covers all seasons. "player_stats" is every
@@ -15,6 +19,9 @@
 #   contact. "players" is one row per player with his ids in every system (gsis, pfr, espn, pff) and covers
 #   all seasons.
 # END
+import os
+import sys
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -43,28 +50,45 @@ SEASONS = range(2011, 2027)  # the first season the rulebook covers through the 
 OPTIONAL = ("participation", "ftn", "snap_counts", "pfr_def", "pfr_pass", "pfr_rush", "pfr_rec")
 TEAMS = {"OAK": "LV", "SD": "LAC", "STL": "LA", "SL": "LA", "ARZ": "ARI", "BLT": "BAL", "CLV": "CLE", "HST": "HOU"}
 TEAM_COLUMNS = ("team", "club_code", "home_team", "away_team", "opponent")
+MAX_AGE = 6 * 3600  # seconds before a file that can still change is downloaded again
+_FAILED = set()  # files whose refresh failed in this process: their cached copy is used until the next one
 
 
 def load(name: str, season: int | None = None, refresh: bool = False) -> pd.DataFrame | None:
     url = FILES[name].format(season=season)
     path = CACHE / url.rsplit("/", 1)[1]
     missing = path.with_suffix(".missing")
-    if missing.exists() and not refresh:
+    cached = path if path.exists() else missing if missing.exists() else None
+    live = "{season}" not in FILES[name] or season == SEASONS[-1]
+    stale = cached is not None and live and time.time() - cached.stat().st_mtime > MAX_AGE
+    if refresh or cached is None or (stale and path not in _FAILED):
+        _download(name, url, path, missing, cached)
+    if missing.exists():
         return None
-    if refresh or not path.exists():
-        CACHE.mkdir(parents=True, exist_ok=True)
-        request = urllib.request.Request(url, headers={"User-Agent": "nfl-predictor"})
-        try:
-            with urllib.request.urlopen(request) as response:
-                path.write_bytes(response.read())
-        except urllib.error.HTTPError as error:
-            if name not in OPTIONAL or error.code != 404:
-                raise
-            missing.touch()
-            return None
-        missing.unlink(missing_ok=True)
     frame = pd.read_csv(path) if path.suffix == ".csv" else pd.read_parquet(path)
     if name == "games" and season is not None:
         frame = frame[frame.season == season]
     columns = [column for column in TEAM_COLUMNS if column in frame.columns]
     return frame.assign(**{column: frame[column].replace(TEAMS) for column in columns})
+
+
+def _download(name, url, path, missing, cached):
+    request = urllib.request.Request(url, headers={"User-Agent": "nfl-predictor"})
+    try:
+        with urllib.request.urlopen(request, timeout=120) as response:
+            data = response.read()
+    except OSError as error:  # HTTPError and URLError are OSErrors
+        if name in OPTIONAL and getattr(error, "code", None) == 404 and not path.exists():
+            CACHE.mkdir(parents=True, exist_ok=True)
+            missing.touch()
+            return
+        if cached is None:
+            raise
+        print(f"nflverse: couldn't refresh {path.name} ({error}); using the cached copy", file=sys.stderr)
+        _FAILED.add(path)
+        return
+    CACHE.mkdir(parents=True, exist_ok=True)
+    partial = path.with_name(f"{path.name}.{os.getpid()}.part")  # other processes may be reading the file
+    partial.write_bytes(data)
+    os.replace(partial, path)
+    missing.unlink(missing_ok=True)

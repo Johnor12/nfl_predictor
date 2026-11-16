@@ -1,7 +1,9 @@
 # START
 # Real stat lines: what every player did in every game, in the play scenario's stat names.
 # - stat_lines(season) -> DataFrame, one row per game and player who did anything: game_id, week, player_id
-#   (gsis), team, and a column per stat (0 where he had none). The box score's stats (STAT_COLUMNS) are there
+#   (gsis), team, and a column per stat (0 where he had none). A game is in once every file has it (its box
+#   score and, from 2018 on, its charting, which comes a few days later), so no charted stat reads 0 for
+#   a game that hasn't been charted yet. The box score's stats (STAT_COLUMNS) are there
 #   for every season; the charted ones (CHARTED) only for the seasons Pro Football Reference charted (2018
 #   on), and a season without them has no such columns.
 # - STAT_COLUMNS: stat -> the nflverse player stats columns it is the sum of. Every stat the play scenario
@@ -82,12 +84,14 @@ def _charted(name, season, gsis) -> pd.DataFrame | None:
 def stat_lines(season: int) -> pd.DataFrame:
     players = load("players").dropna(subset=["pfr_id", "gsis_id"])
     gsis = players[players.gsis_id.str.startswith("00-")].drop_duplicates("pfr_id").set_index("pfr_id").gsis_id
-    box = lines = _box(season)
+    lines = _box(season)
+    complete = set(lines.game_id)
     for name in CHARTED:
         charted = _charted(name, season, gsis)
         if charted is not None:
             lines = lines.merge(charted, how="outer", on=["game_id", "player_id", "team"])
-    lines = lines[lines.game_id.isin(box.game_id)]  # a newer charting file can be a week ahead of the box scores
+            complete &= set(charted.game_id)
+    lines = lines[lines.game_id.isin(complete)]  # the box score and the charting are published days apart
     weeks = load("games", season).set_index("game_id").week
     lines.insert(1, "week", lines.game_id.map(weeks))
     stats = [column for column in lines.columns if column not in ("game_id", "week", "player_id", "team")]
