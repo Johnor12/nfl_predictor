@@ -76,7 +76,8 @@ def test_challenges_and_fair_catches(plays):
 
 def test_week_one_games(plays):
     from scenarios.game import validate_game_context
-    from shared.nflverse import STAT_COLUMNS, real_games
+    from shared.nflverse import CHARTED, STAT_COLUMNS, real_games
+    recorded = set(STAT_COLUMNS) | {stat for stats in CHARTED.values() for stat in stats}
     games = real_games(2026, weeks=[1])
     assert len(games) == 16 and all(game.actual and validate_game_context(game.context) == [] for game in games)
     game = games[0]
@@ -85,7 +86,7 @@ def test_week_one_games(plays):
     actual, teams = game.actual, (game.context.game.home, game.context.game.away)
     assert actual["margin"] == actual["points"][teams[0]] - actual["points"][teams[1]]
     assert actual["plays"] == sum(p.context.game.game_id == game.context.game.game_id for p in plays)
-    assert set(actual["teams"]) == set(teams) and all(set(line) <= set(STAT_COLUMNS) for line in actual["players"].values())
+    assert set(actual["teams"]) == set(teams) and all(set(line) <= recorded for line in actual["players"].values())
     assert all(100 < actual["teams"][team]["pass_yds"] + actual["teams"][team]["rush_yds"] < 700 for team in teams)
     assert all(actual["teams"][team]["penalties"] < 20 for team in teams)
     by_id = {p.id: p for p in game.context.players}

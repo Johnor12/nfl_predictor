@@ -9,7 +9,7 @@ Every line is the same thing: a threshold on a number, with the market's probabi
 | moneyline | home points minus away points | 0 | the home team wins, from the two moneylines |
 | spread | home points minus away points | the spread | the home team covers, from the spread prices |
 | total | total points | the total | over, from the over/under prices |
-| a player stat (`pass_yds`, `rush_yds`, `receptions`, ...) | the player's stat in the game | the prop line | 50% (prices aren't published) |
+| a player stat (`pass_yds`, `receptions`, `tackles+assists`, `sacks`, `kick_pts`, ...: `shared.lines.STATS`) | the player's stat in the game, or the combined stat's weighted sum | the prop line | from the over and under prices; 50% where they aren't published |
 
 API (`from evaluators.lines import ...`):
 

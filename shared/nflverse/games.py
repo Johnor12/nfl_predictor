@@ -6,27 +6,19 @@
 #   plays), and the real outcome, or None if the game hasn't been played. actual has the keys of
 #   simulators.game.summarize: points by team, margin (home minus away), total, winner (None for a tie),
 #   overtime, plays, teams ({team: {stat: value}}), players ({player id: {stat: value}}).
-# - STAT_COLUMNS: the play scenario's stat names -> nflverse's player stats columns. Team stats are the sum
-#   of the team's players'.
+# A player's line holds every stat of his in shared.nflverse.stat_lines (the box score, and what was charted
+# from 2018 on), which is more than the play scenario credits yet; a team's is the sum of its players'.
 # END
 from dataclasses import dataclass
 
 import pandas as pd
 
 from scenarios.game import GameContext
-from shared.nflverse.contexts import _game, _is_play, _num, _players, _Rosters
+from shared.nflverse.contexts import _game, _is_play, _players, _Rosters
 from shared.nflverse.download import load
+from shared.nflverse.stat_lines import stat_lines
 
-STAT_COLUMNS = {
-    "pass_att": "attempts", "pass_cmp": "completions", "pass_yds": "passing_yards", "pass_td": "passing_tds",
-    "int_thrown": "passing_interceptions", "sacked": "sacks_suffered",
-    "rush_att": "carries", "rush_yds": "rushing_yards", "rush_td": "rushing_tds",
-    "targets": "targets", "receptions": "receptions", "rec_yds": "receiving_yards", "rec_td": "receiving_tds",
-    "fumbles_lost": "fumbles_lost_total", "penalties": "penalties",
-    "sacks": "def_sacks", "interceptions": "def_interceptions", "tackles": "def_tackles_solo",
-    "fg_att": "fg_att", "fg_made": "fg_made", "xp_att": "pat_att", "xp_made": "pat_made",
-    "punts": "pt_att", "punt_yds": "pt_yards",
-}
+KEYS = ("game_id", "week", "player_id", "team")  # the columns of a stat line that aren't stats
 
 
 @dataclass(frozen=True)
@@ -39,9 +31,7 @@ def _actual(game, schedule, plays, stats) -> dict:
     home, away = int(schedule["home_score"]), int(schedule["away_score"])
     players, teams = {}, {game.home: {}, game.away: {}}
     for row in stats:
-        if pd.isna(row["player_id"]):  # a team's leftover row, not a player
-            continue
-        line = {stat: float(row[column]) for stat, column in STAT_COLUMNS.items() if _num(row[column], 0)}
+        line = {stat: float(value) for stat, value in row.items() if stat not in KEYS and value}
         if line:
             players[row["player_id"]] = line
         for stat, value in line.items():
@@ -60,7 +50,7 @@ def real_games(season: int, weeks=None, games=None) -> list[RealGame]:
     pbp = load("pbp", season)
     rosters = _Rosters(season, pbp)
     rows = dict(tuple(pbp[pbp.game_id.isin(schedule.game_id)].groupby("game_id", sort=False)))
-    stats = load("player_stats", season)
+    stats = stat_lines(season)
     stats = dict(tuple(stats[stats.game_id.isin(schedule.game_id)].groupby("game_id")))  # only the games asked for
     games = []
     for sched in schedule.to_dict("records"):

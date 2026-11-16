@@ -89,8 +89,9 @@ class Player:
 
     @cached_property
     def stats(self) -> dict[str, float]:
-        """season_stats by name: the play scenario's stat names, plus what a player's usage is read from:
-        offense_snaps, carries (designed runs), dropbacks, scrambles, times_sacked."""
+        """season_stats by name: the play scenario's stat names, for every position, plus what a player's usage
+        is read from (his snaps, carries (designed runs), dropbacks, scrambles, times_sacked), what was charted
+        about him, and what happened while he was on the field (on_<stat>). shared/nflverse/README.md lists them."""
         return dict(self.season_stats)
 
     @cached_property

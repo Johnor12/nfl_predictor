@@ -38,7 +38,7 @@ def write_report(games, samples=None, path=None) -> Path:
             f"- games: {sum(map(len, games.values()))}",
             f"- lines: {len(every)} ({sum(l.actual is not None for l in every)} with a result)",
             "- moneyline: the home team to win. spread: the home team to beat the spread. total: over. A player "
-            "stat: over. Player props are scored at 50%, because their prices aren't published.",
+            "stat: over, at the probability its two prices give, or 50% where the book's prices aren't published.",
             "- Brier and log loss score the market's probability of going over (lower is better; a coin flip "
             "scores 0.250 and 0.693). MAE is the line's error as a forecast of the number itself.",
             "- sim columns: the simulator's scores on the same lines.", "", *lines_table(score_lines(every, samples))]

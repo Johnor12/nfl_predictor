@@ -10,6 +10,10 @@
 #   player's stat line per game. "participation" is who was on the field for each play, with the personnel
 #   groups and formation (2016 on, published after the season). "snap_counts" is each player's snaps per
 #   game (2013 on). "ftn" is charting (2022 on). "depth_charts" changed format in 2025 (see depth.py).
+#   "pfr_def", "pfr_pass", "pfr_rush", and "pfr_rec" are Pro Football Reference's charting of each player's
+#   game (2018 on): pressures, missed tackles, what a defender allowed in coverage, drops, yards after
+#   contact. "players" is one row per player with his ids in every system (gsis, pfr, espn, pff) and covers
+#   all seasons.
 # END
 import urllib.error
 import urllib.request
@@ -28,10 +32,15 @@ FILES = {
     "depth_charts": RELEASES + "depth_charts/depth_charts_{season}.parquet",
     "injuries": RELEASES + "injuries/injuries_{season}.parquet",
     "player_stats": RELEASES + "stats_player/stats_player_week_{season}.parquet",
+    "pfr_def": RELEASES + "pfr_advstats/advstats_week_def_{season}.parquet",
+    "pfr_pass": RELEASES + "pfr_advstats/advstats_week_pass_{season}.parquet",
+    "pfr_rush": RELEASES + "pfr_advstats/advstats_week_rush_{season}.parquet",
+    "pfr_rec": RELEASES + "pfr_advstats/advstats_week_rec_{season}.parquet",
+    "players": RELEASES + "players/players.parquet",
     "games": "https://github.com/nflverse/nfldata/raw/master/data/games.csv",
 }
 SEASONS = range(2011, 2027)  # the first season the rulebook covers through the current one
-OPTIONAL = ("participation", "ftn", "snap_counts")
+OPTIONAL = ("participation", "ftn", "snap_counts", "pfr_def", "pfr_pass", "pfr_rush", "pfr_rec")
 TEAMS = {"OAK": "LV", "SD": "LAC", "STL": "LA", "SL": "LA", "ARZ": "ARI", "BLT": "BAL", "CLV": "CLE", "HST": "HOU"}
 TEAM_COLUMNS = ("team", "club_code", "home_team", "away_team", "opponent")
 

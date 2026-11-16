@@ -5,24 +5,37 @@
 #   .game(game_id, home, away, home_coach, away_coach, referee) -> ((who, Form), ...): `Game.forms`. Each one's
 #     totals in this season's earlier games and in earlier seasons (a season counting DECAY times the one
 #     after it). A game that hasn't been played gets everything the season has so far.
-#   .career(player) -> ((stat, total), ...): `Player.career_stats`, a player's SEASON_STATS (and offense
-#     snaps) over earlier seasons, discounted the same way.
+#   .career(player) -> ((stat, total), ...): `Player.career_stats`, a player's weekly_stats over earlier
+#     seasons, discounted the same way.
 # - TEAM_STATS: the stats of a team's offense, counted play by play (_counted): its plays (runs and dropbacks
 #   on scrimmage downs) and what came of them, its snaps with the flags on it and on the defense, and its
 #   fourth downs. A team's form holds
 #   them under these names, and what its defense allowed under "allowed_<stat>" (the same stats of its
 #   opponents' offenses), plus `games`, `points`, and `allowed_points`. A coach's form is his teams'; a
 #   referee's is both offenses' stats in his games.
-# - SEASON_STATS / weekly_stats(pbp, weekly_snaps) -> DataFrame(player, week, stat, value): a player's stats
-#   by week (`Player.season_stats` sums the weeks before a game).
+# - weekly_stats(season, pbp, weekly_snaps) -> DataFrame, a row per (player, week) and a column per stat:
+#   everything recorded about a player, by week. Four sources, so a lineman or a defender has a history as a
+#   passer or a receiver does:
+#   - USAGE: counted from the play-by-play: how he was used (carries, dropbacks, scrambles, air yards) and the
+#     passing, rushing, receiving, and punting stats the predictors read.
+#   - every other stat of his stat lines (shared.nflverse.stat_lines): the rest of the box score (tackles,
+#     sacks, penalties, returns, kicks) and, from 2018 on, what was charted (pressures, coverage, drops).
+#   - his snaps: offense_snaps, defense_snaps, special_teams_snaps.
+#   - ON_FIELD, where the season has a participation file: what his team's offense did on the plays he was on
+#     the field for it (on_<stat>), and what the other offense did on the plays he was on the field against
+#     it (on_allowed_<stat>). The stats are a team's (TEAM_STATS), so what happened without him is his team's
+#     form less his own; `pressures` (the dropbacks the passer was pressured on) is only here.
+# - Totals(weekly_stats): .before(player, week) -> ((stat, total), ...): `Player.season_stats`.
 # - weekly_snaps(season, pbp, rosters) -> Series by (player, week, unit): snaps, from who was on the field
 #   where the season has a participation file, else from the per-game snap counts, else empty.
 # Earlier seasons are read once and kept in .cache/form/<season>.parquet (who, stat, value): delete it after
 # refreshing a past season's files.
-# Internals: _counted (each play as its offense's stats), _team_games (a row per team and game), _subjects (the
-#   season's rows per team, coach, and referee), _totals (a season's totals per team, coach, referee, and
+# Internals: _on_the_field (each counted play with who was on the field), _usage, _snap_totals, _on_field (the
+#   parts of weekly_stats), _counted (each play as its offense's stats), _team_games (a row per team and
+#   game), _subjects (the season's rows per team, coach, and referee), _totals (a season's totals per team, coach, referee, and
 #   player; cached on disk), _earlier (those of every earlier season, discounted and summed).
 # END
+import bisect
 import os
 from functools import lru_cache
 from pathlib import Path
@@ -31,6 +44,7 @@ import pandas as pd
 
 from scenarios.play import Form
 from shared.nflverse.download import SEASONS, load
+from shared.nflverse.stat_lines import stat_lines
 
 CACHE = Path(__file__).resolve().parents[2] / ".cache" / "form"
 DECAY = 0.5  # an earlier season counts this much of the one after it (as the priors do)
@@ -41,7 +55,7 @@ UNITS = {  # play type -> (the unit of the team nflverse lists in possession, th
     "kickoff": ("kick_return", "kickoff"),
 }
 SNAP_COUNTS = {"offense_snaps": "offense", "defense_snaps": "defense", "st_snaps": "special_teams"}
-SEASON_STATS = [  # (stat, player id column, value column), summed over earlier weeks
+USAGE = [  # (stat, player id column, value column), counted from the play-by-play
     ("pass_att", "passer_player_id", "attempt"),
     ("pass_cmp", "passer_player_id", "complete_pass"),
     ("pass_yds", "passer_player_id", "passing_yards"),
@@ -61,15 +75,15 @@ SEASON_STATS = [  # (stat, player id column, value column), summed over earlier 
     ("rec_td", "receiver_player_id", "pass_touchdown"),
     ("target_air_yds", "receiver_player_id", "air_yards"),      # how deep he is thrown to
     ("rec_yac", "receiver_player_id", "yards_after_catch"),
-    ("sacks", "sack_player_id", "sack"),
-    ("interceptions", "interception_player_id", "interception"),
-    ("fg_made", "kicker_player_id", "fg_made"),
     ("punts", "punter_player_id", "punt"),             # the ones that got away
     ("punt_yds", "punter_player_id", "punt_yards"),
 ]
+USAGE_STATS = {stat for stat, _, _ in USAGE}
 TEAM_STATS = ("plays", "dropbacks", "runs", "shotgun", "pass_att", "pass_cmp", "pass_yds", "air_yds", "int_thrown",
               "sacked", "scrambles", "rush_yds", "dropback_yds", "first_downs", "touchdowns", "fumbles_lost", "snaps",
               "flags", "defense_flags", "fourth_downs", "fourth_down_goes")
+ON_FIELD = ("plays", "dropbacks", "runs", "pass_att", "pass_cmp", "pass_yds", "int_thrown", "sacked", "scrambles",
+            "rush_yds", "dropback_yds", "first_downs", "touchdowns", "fumbles_lost", "pressures")
 
 
 def _plain(name) -> str:
@@ -97,18 +111,77 @@ def weekly_snaps(season, pbp, rosters) -> pd.Series:
     return snaps[snaps.snaps > 0].assign(unit=snaps.unit.map(SNAP_COUNTS)).groupby(["player", "week", "unit"]).snaps.sum()
 
 
-def weekly_stats(pbp, weekly_snaps) -> pd.DataFrame:
+def _usage(pbp) -> pd.DataFrame:
     plays = pbp[(pbp.play_type != "no_play") & (pbp.two_point_attempt != 1)].copy()
     plays["attempt"] = plays.complete_pass + plays.incomplete_pass + plays.interception
-    plays["fg_made"] = (plays.field_goal_result == "made").astype(int)
     plays["carry"] = ((plays.play_type == "run") & (plays.qb_scramble != 1)).astype(int)
     plays["punt"] = ((plays.play_type == "punt") & (plays.punt_blocked != 1)).astype(int)
     plays["punt_yards"] = plays.kick_distance.where(plays.punt == 1)
-    parts = [plays[[pid, "week", value]].dropna(subset=[pid]).set_axis(["player", "week", "value"], axis=1)
-             .assign(stat=stat) for stat, pid, value in SEASON_STATS]
-    snaps = weekly_snaps.rename("value").reset_index()
-    parts.append(snaps[snaps.unit == "offense"][["player", "week", "value"]].assign(stat="offense_snaps"))
-    return pd.concat(parts).groupby(["player", "week", "stat"]).value.sum().reset_index()
+    usage = {}
+    for stat, pid, value in USAGE:
+        counted = plays.groupby([pid, "week"])[value].sum().rename_axis(["player", "week"])
+        usage[stat] = usage[stat].add(counted, fill_value=0) if stat in usage else counted
+    return pd.DataFrame(usage)
+
+
+def _snap_totals(weekly_snaps) -> pd.DataFrame:
+    snaps = weekly_snaps.rename("snaps").reset_index()
+    stat = snaps.unit.where(snaps.unit.isin(["offense", "defense"]), "special_teams") + "_snaps"
+    return snaps.groupby(["player", "week", stat]).snaps.sum().unstack()
+
+
+def _on_the_field(season, pbp) -> pd.DataFrame | None:
+    """Each counted play of a season with a participation file: its week, its offense's ON_FIELD stats, and
+    both sides' players."""
+    participation = load("participation", season)
+    if participation is None:
+        return None
+    counted = _counted(pbp)
+    plays = counted[counted.plays > 0].join(pbp[["play_id", "week"]]).merge(
+        participation[["nflverse_game_id", "play_id", "offense_players", "defense_players", "was_pressure"]],
+        left_on=["game_id", "play_id"], right_on=["nflverse_game_id", "play_id"])
+    return plays.assign(pressures=plays.dropbacks * (plays.was_pressure == True))  # noqa: E712 (None: not charted)
+
+
+def _on_field(season, pbp) -> list:
+    plays = _on_the_field(season, pbp)
+    if plays is None:
+        return []
+    parts = []
+    for column, prefix in (("offense_players", "on_"), ("defense_players", "on_allowed_")):
+        players = plays[["week", *ON_FIELD]].assign(player=plays[column].str.split(";")).explode("player")
+        players = players[players.player.str.len() > 0]
+        parts.append(players.groupby(["player", "week"])[list(ON_FIELD)].sum().add_prefix(prefix))
+    return parts
+
+
+def weekly_stats(season, pbp, weekly_snaps) -> pd.DataFrame:
+    lines = stat_lines(season).rename(columns={"player_id": "player"})
+    recorded = [stat for stat in lines.columns if stat not in ("game_id", "week", "player", "team", *USAGE_STATS)]
+    parts = [_usage(pbp), lines.groupby(["player", "week"])[recorded].sum(), _snap_totals(weekly_snaps),
+             *_on_field(season, pbp)]
+    weekly = pd.concat(parts, axis=1).fillna(0.0).astype(float)
+    return weekly[sorted(weekly.columns)].sort_index()
+
+
+class Totals:
+    """A season's running totals. .before(player, week) -> ((stat, total), ...): what he had done before the
+    week, without the stats he has none of."""
+
+    def __init__(self, weekly):
+        self.stats = list(weekly.columns)
+        self.values = weekly.groupby(level="player").cumsum().to_numpy()
+        self.rows = {}  # player -> (his first row, the weeks of his rows)
+        for row, (player, week) in enumerate(weekly.index):
+            self.rows.setdefault(player, (row, []))[1].append(week)
+
+    def before(self, player, week) -> tuple:
+        first, weeks = self.rows.get(player, (0, ()))
+        played = bisect.bisect_left(weeks, week)
+        if not played:
+            return ()
+        totals = self.values[first + played - 1]
+        return tuple((self.stats[i], float(totals[i])) for i in totals.nonzero()[0])
 
 
 def _counted(pbp) -> pd.DataFrame:
@@ -172,8 +245,9 @@ def _totals(season) -> pd.DataFrame:
         pbp = load("pbp", season)
         parts = [rows.drop(columns="game_id").groupby(who).sum().rename_axis("who").reset_index().melt("who", var_name="stat")
                  for who, rows in _subjects(season, pbp)]
-        players = weekly_stats(pbp, weekly_snaps(season, pbp, load("rosters", season)))
-        parts.append(players.groupby(["player", "stat"]).value.sum().reset_index().rename(columns={"player": "who"}))
+        players = weekly_stats(season, pbp, weekly_snaps(season, pbp, load("rosters", season)))
+        players = players.groupby(level="player").sum().rename_axis("who").reset_index().melt("who", var_name="stat")
+        parts.append(players[players.value != 0])
         path.parent.mkdir(parents=True, exist_ok=True)
         unfinished = path.with_suffix(f".{os.getpid()}")  # several processes may be building it at once
         pd.concat(parts).astype({"value": float}).to_parquet(unfinished)

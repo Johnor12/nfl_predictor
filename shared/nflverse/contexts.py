@@ -38,7 +38,7 @@ import pandas as pd
 
 from shared.nflverse.depth import depth_charts
 from shared.nflverse.download import load
-from shared.nflverse.form import Forms, weekly_snaps, weekly_stats
+from shared.nflverse.form import Forms, Totals, weekly_snaps, weekly_stats
 from scenarios.play import Game, PlayContext, PlaySummary, Player, Situation
 from shared.priors import Sample
 from shared.rulebook import rules_for
@@ -85,7 +85,7 @@ class _Rosters:
         self.depth = {key: frame for key, frame in depth.groupby(["team", "dt"])}
         self.snapshots = {team: sorted(dt for t, dt in self.depth if t == team) for team in depth.team.unique()}
         snaps = weekly_snaps(season, pbp, self.rosters)
-        self.stats = self._season_stats(pbp, snaps)
+        self.stats = Totals(weekly_stats(season, pbp, snaps))
         self.snaps = self._recent_snaps(snaps, pbp)
         self.forms = Forms(season, pbp)
 
@@ -99,19 +99,6 @@ class _Rosters:
             for (player, unit), value in recent.groupby(["player", "unit"]).snaps.sum().items():
                 snaps.setdefault(player, []).append((unit, float(value)))
             by_week[week] = {player: tuple(sorted(s)) for player, s in snaps.items()}
-        return by_week
-
-    @staticmethod
-    def _season_stats(pbp, snaps):
-        weekly = weekly_stats(pbp, snaps)
-        by_week = {}
-        for week in [*sorted(pbp.week.unique()), pbp.week.max() + 1]:  # the last is for games not yet played
-            before = weekly[weekly.week < week].groupby(["player", "stat"]).value.sum()
-            stats = {}
-            for (player, stat), value in before.items():
-                if value:
-                    stats.setdefault(player, []).append((stat, float(value)))
-            by_week[week] = {player: tuple(sorted(s)) for player, s in stats.items()}
         return by_week
 
     def _depth_slots(self, team, gameday):
@@ -130,7 +117,6 @@ class _Rosters:
         team_rows = self.rosters[(self.rosters.team == team) & (self.rosters.week <= week)]
         rows = team_rows[team_rows.week == team_rows.week.max()].drop_duplicates("gsis_id")
         slots = self._depth_slots(team, gameday)
-        stats = self.stats.get(min(week, max(self.stats)), {})
         snaps = self.snaps.get(min(week, max(self.snaps)), {})
         players = []
         for r in rows.itertuples(index=False):
@@ -142,7 +128,7 @@ class _Rosters:
             players.append(Player(r.gsis_id, r.full_name, team, position, jersey,
                                   tuple(slots.get(r.gsis_id, ())), int(r.years_exp) if pd.notna(r.years_exp) else None,
                                   int(r.draft_number) if pd.notna(r.draft_number) else None,
-                                  stats.get(r.gsis_id, ()), self.forms.career(r.gsis_id),
+                                  self.stats.before(r.gsis_id, week), self.forms.career(r.gsis_id),
                                   snaps.get(r.gsis_id, ())))
         punters = [p for p in players if p.position == "P"]
         if len(punters) > 1 and not any(p.position == "K" for p in players):

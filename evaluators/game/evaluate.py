@@ -30,6 +30,7 @@ from evaluators import executor
 from evaluators.sample import EVALUATED, sample_games
 from evaluators.scoring import Scorecard
 from scenarios.game import clock, load_game_predictors
+from shared.lines import value
 from shared.nflverse import real_games, real_plays
 from shared.priors import role, timeout_case
 from shared.rulebook import rules_for
@@ -82,15 +83,15 @@ def _line_values(sim, key) -> list:
     if key[0] in ("margin", "total"):
         return [float(value) for value in sim.values(key[0])]
     stat, _, player_id = key
-    return sim.player(player_id, stat)
+    return [value(stat, outcome["players"].get(player_id, {})) for outcome in sim.outcomes]
 
 
 def _evaluate_game(game, sims, seed, predictors, keys):
     sim = simulate_game(game.context, predictors or load_game_predictors(), sims, seed)
     card = Scorecard()
     simulated = [game_outputs(game.context, outcome) for outcome in sim.outcomes]
-    for (name, subject), value in game_outputs(game.context, game.actual).items():
-        card.add(name, [outputs[name, subject] for outputs in simulated], value)
+    for (name, subject), actual in game_outputs(game.context, game.actual).items():
+        card.add(name, [outputs[name, subject] for outputs in simulated], actual)
     return card, {key: _line_values(sim, key) for key in keys}, len(sim.failures)
 
 

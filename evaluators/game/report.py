@@ -41,7 +41,7 @@ def write_report(evaluation, path=None) -> Path:
         lines += ["", "## Betting lines", "",
                   "The market's lines scored against what happened, and the simulator on the same lines. Brier and "
                   "log loss score the probability of going over (moneyline: the home team wins; a player prop's "
-                  "market probability is 50%, because prices aren't published); MAE is the line's (or the "
+                  "market probability comes from its two prices, and is 50% where they aren't published); MAE is the line's (or the "
                   "simulated median's) error. Lower is better.", "",
                   *lines_table(score_lines(evaluation.lines, evaluation.samples))]
     lines += ["", "## PIT histograms", "",

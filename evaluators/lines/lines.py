@@ -1,11 +1,11 @@
 # START
 # Betting lines as forecasts: how good the market was, and how a simulator's distributions compare with it.
 # - Line(market, key, line, p_over, actual): a threshold on a number. market is moneyline, spread, total, or
-#   a player stat (pass_yds, ...); key names the number: ("margin", game_id) for home minus away points,
-#   ("total", game_id), or (stat, game_id, player_id); p_over is the market's probability that the number
-#   ends above the line, with the bookmaker's margin removed (0.5 for player props, whose prices aren't
-#   published); actual is what the number turned out to be (None if the game hasn't been played, or the
-#   player has no stat line for it).
+#   a player stat (pass_yds, tackles+assists, ...: shared.lines.STATS); key names the number: ("margin",
+#   game_id) for home minus away points, ("total", game_id), or (stat, game_id, player_id); p_over is the
+#   market's probability that the number ends above the line, with the bookmaker's margin removed (0.5 for a
+#   player prop whose prices aren't published); actual is what the number turned out to be (None if the game
+#   hasn't been played, or the player has no stat line for it).
 # - lines(games) -> list[Line]: every game line (the moneyline is a line of 0 on the margin) and every
 #   player prop of the games, given as {season: [game id]} (evaluators.sample_games).
 # - no_vig(odds, other) -> float: the probability of one side of a two-way bet from both American odds.
@@ -22,12 +22,10 @@ from dataclasses import dataclass
 from statistics import fmean, median
 
 from evaluators.scoring import brier, fair_crps, log_loss, probability
-from shared.lines import game_lines, player_lines
-from shared.nflverse import STAT_COLUMNS, load
+from shared.lines import STATS, game_lines, player_lines, value
+from shared.nflverse import load, stat_lines
 
-PROPS = ("pass_yds", "pass_cmp", "pass_att", "pass_td", "int_thrown", "rush_yds", "rush_att", "rec_yds",
-         "receptions", "fg_made", "xp_made")
-ACTUAL = {stat: STAT_COLUMNS[stat] for stat in PROPS}  # our stat name -> nflverse player stats column
+PROPS = tuple(dict.fromkeys(STATS.values()))  # the prop markets, by our stat names
 
 
 @dataclass(frozen=True)
@@ -52,7 +50,7 @@ def lines(games) -> list[Line]:
 
 def _season_lines(season, ids) -> list[Line]:
     results = load("games", season).set_index("game_id")
-    stats = load("player_stats", season).set_index(["game_id", "player_id"])
+    stats = stat_lines(season).set_index(["game_id", "player_id"])
     out = []
     for g in game_lines(season).itertuples():
         if g.game_id in ids:
@@ -62,14 +60,14 @@ def _season_lines(season, ids) -> list[Line]:
                     Line("total", ("total", g.game_id), g.total, no_vig(g.over_odds, g.under_odds), total)]
     for p in player_lines(season, games=ids).itertuples():
         played = (p.game_id, p.player_id) in stats.index
-        actual = float(stats.at[(p.game_id, p.player_id), ACTUAL[p.stat]]) if played else None
-        out.append(Line(p.stat, (p.stat, p.game_id, p.player_id), p.line, 0.5, actual))
+        actual = value(p.stat, stats.loc[(p.game_id, p.player_id)]) if played else None
+        out.append(Line(p.stat, (p.stat, p.game_id, p.player_id), p.line, no_vig(p.over_odds, p.under_odds), actual))
     return out
 
 
 def score_lines(lines, samples=None) -> list[dict]:
     rows = []
-    for market in ("moneyline", "spread", "total", *ACTUAL):
+    for market in ("moneyline", "spread", "total", *PROPS):
         scored = [l for l in lines if l.market == market and l.actual is not None and l.actual != l.line
                   and (samples is None or l.key in samples)]
         if not scored:
