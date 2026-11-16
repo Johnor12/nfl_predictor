@@ -1,0 +1,11 @@
+{
+  "name": "pyright-uv",
+  "description": "Pyright for this repo, run from its uv environment wherever uv keeps it",
+  "lspServers": {
+    "pyright": {
+      "command": "uv",
+      "args": ["run", "--project", "${CLAUDE_PROJECT_DIR}", "--no-sync", "pyright-langserver", "--stdio"],
+      "extensionToLanguage": { ".py": "python", ".pyi": "python" }
+    }
+  }
+}

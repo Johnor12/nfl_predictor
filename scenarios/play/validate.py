@@ -59,7 +59,7 @@ def validate_play(result) -> list[str]:
         errors.append("rushing attempts != designed runs + scrambles + kneels")
     if s.kind == "try" and any(total(k) for k in ("pass_yds", "rush_yds", "rec_yds", "pass_att", "rush_att")):
         errors.append("a try credited yardage or attempts")
-    if result.no_play and any(k != "penalties" for line in st.values() for k in line):
+    if result.no_play and any(k not in ("penalties", "penalty_yards") for line in st.values() for k in line):
         errors.append("a no-play credited stats besides penalties")
     lost = sum(1 for b in facts(record, LooseBall) if b.cause in ("fumble", "bad_snap") and b.team not in (None, b.last_team))
     if not result.no_play and total("fumbles_lost") != lost:

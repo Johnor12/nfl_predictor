@@ -10,8 +10,8 @@ Inputs (besides the [common ones](../README.md)):
 
 Output (`from events.pass_rush import ...`):
 
-- `PassRush(rushers, result, seconds, hitters, sackers, sack_yards)`: `result` is one of `RESULTS` (`throw`, `sack`, `scramble`, `throwaway`, `strip_sack`); `sack_yards` is yards lost (>= 0).
+- `PassRush(rushers, result, seconds, hitters, sackers, sack_yards, hurriers, blitzers)`: `result` is one of `RESULTS` (`throw`, `sack`, `scramble`, `throwaway`, `strip_sack`); `sack_yards` is yards lost (>= 0). The last two are what a charter adds, and a predictor may leave them out: the defenders who hurried the throw without hitting him, and those who came on a blitz.
 
-The play scenario raises `IllegalChoice` unless the result is one of `RESULTS`; `seconds` isn't negative; hitters and sackers are defenders on the field; a sack has a sacker and non-negative yardage.
+The play scenario raises `IllegalChoice` unless the result is one of `RESULTS`; `seconds` isn't negative; hitters, sackers, hurriers, and blitzers are defenders on the field; a sack has a sacker and non-negative yardage.
 
 Implementations are in [predictors/](predictors/README.md).

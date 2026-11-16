@@ -72,6 +72,7 @@ class Enforcement:
     accepted: tuple
     declined: tuple
     penalty_yards: dict[str, float]   # yards assessed against each team
+    foul_yards: tuple = ()            # the yards each accepted foul cost its team, in the order of `accepted`
 
 
 def _teams(ctx, by, ball_team):
@@ -216,10 +217,10 @@ def enforce(ctx, rules, los, live, fouls) -> Enforcement:
         foul = fouls[0]
         x, moved = _move(ctx, los, foul.team, CATALOG[foul.type].yards)
         yards[foul.team] += moved
-        return Enforcement(Dead(s.offense, x, "penalty", series="replay", no_play=True), (foul,), (), yards)
+        return Enforcement(Dead(s.offense, x, "penalty", series="replay", no_play=True), (foul,), (), yards, (moved,))
     during = [f for f in fouls if f.timing != "after"]
     after = [f for f in fouls if f.timing == "after"]
-    final, accepted, declined = live, [], []
+    final, accepted, declined, cost = live, [], [], {}  # cost: an accepted foul's yards (none when it offsets)
     if len({f.team for f in during}) == 2:  # offsetting: replay the down
         final = Dead(s.offense, los, "offsetting", series="replay", no_play=True)
         accepted += during
@@ -232,6 +233,7 @@ def enforce(ctx, rules, los, live, fouls) -> Enforcement:
         if chosen:
             accepted.append(chosen)
             yards[chosen.team] += moved
+            cost[id(chosen)] = moved
         declined += [f for f in during if f is not chosen]
     if len({f.team for f in after}) == 2:  # offsetting dead-ball fouls: no yardage
         accepted += after
@@ -243,6 +245,7 @@ def enforce(ctx, rules, los, live, fouls) -> Enforcement:
                 final = enforced
                 accepted.append(f)
                 yards[f.team] += moved
+                cost[id(f)] = moved
             else:
                 declined.append(f)
-    return Enforcement(final, tuple(accepted), tuple(declined), yards)
+    return Enforcement(final, tuple(accepted), tuple(declined), yards, tuple(cost.get(id(f), 0.0) for f in accepted))

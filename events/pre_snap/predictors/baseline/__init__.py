@@ -1,6 +1,7 @@
 # START
 # Baseline pre-snap predictor: play clock used (by game script: from the real time between snaps on a full
-# play clock, hand-set after an administrative stoppage) and pre-snap fouls at the real rate.
+# play clock, hand-set after an administrative stoppage) and pre-snap fouls at the real rate, on the
+# position groups they are called on and each player's own flags (shared.priors.fouler).
 # - predict(ctx, lineups, formation, allowed, rng) -> PreSnap.
 # Internals: _play_clock_used (hurry, bleed, or normal pace).
 # END
@@ -22,7 +23,8 @@ def predict(ctx, lineups, formation, allowed, rng):
         team = s.offense if side == "offense" else s.defense
         timing = next((t for t in ("presnap", "snap") if (name, team, t) in allowed), None)
         if timing:
-            player = formation.qb if name == "delay_of_game" else fouler(ctx, lineups, name, team, rng)
+            groups = p.get("fouler", {}).get(name)
+            player = formation.qb if name == "delay_of_game" else fouler(ctx, lineups, name, team, rng, groups)
             foul = Foul(name, team, player, s.x, timing)
     return PreSnap(_play_clock_used(ctx, p, rng), foul)
 

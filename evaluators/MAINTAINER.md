@@ -1,6 +1,8 @@
 # MAINTAINER
 
 - __init__.py: `parse_weeks`, shared by the CLIs, and `executor` (a process pool, or `Inline` for `workers=1`), shared by the play and game evaluators.
+- compare.py: `save`, `load`, `compare`, `table`, and the CLI: two evaluations of the same games, case by case.
+- test_compare.py: a run compares as itself with no change, and with another run case by case.
 - sample.py: which games an evaluation covers: `EVALUATED`, `sample_games`, `label`. Used by the play, game, and lines evaluators.
 - scoring/: the scoring toolkit (see its MAINTAINER.md). Imports nothing from the rest of the project.
 - play/: the play and event evaluator (see its MAINTAINER.md).
@@ -13,6 +15,7 @@ Notes:
 - The game evaluator is the only one that can score the clock (plays per game) and anything that builds up over a game (stat lines, the score).
 - The audit and the play evaluator answer different questions. The audit compares overall rates (is the simulator reasonable on average?) and checks every play is valid. The play evaluator scores each play's forecast distribution (is it right about this play?).
 - The sample is a shuffle of the seasons' played games with a fixed seed, cut to `n`: it changes when the seasons or weeks do, or when new games are played (a season in progress), so compare two runs made on the same day's data.
+- `compare` matches cases by their order in the scorecard, which is the games' order and, within a game, the outputs' (`game_outputs`' for the game evaluator): two runs of the same games line up, and an output that got a case more or fewer is skipped rather than misaligned. A saved evaluation is a pickle of this project's own objects, so it is only as durable as their fields: keep one for a comparison, not as a record.
 - The audit still takes one season (`--season`); it is a diagnostic, not a score.
 
 ## run time

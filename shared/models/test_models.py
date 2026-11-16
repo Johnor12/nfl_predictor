@@ -1,6 +1,8 @@
 # START
 # Tests of the models toolkit (no network needed).
 # - test_a_fitted_model_predicts: fit learns a simple rule, and predicts it for one row.
+# - test_several_rows_at_once: a model asked about several candidates answers each as it would alone, and
+#   choose draws one in proportion.
 # - test_models_of_picks_the_season: a season gets the latest model trained for it or for an earlier season,
 #   None before the first, and a file is only read once.
 # - test_a_model_of_classes_predicts_each: fit with classes gives each class's probability.
@@ -14,7 +16,7 @@ import random
 
 import pandas as pd
 
-from shared.models import draw, fit, fit_number, models_of, save_model
+from shared.models import choose, draw, fit, fit_number, models_of, save_model
 
 
 def _model():
@@ -27,6 +29,16 @@ def test_a_fitted_model_predicts(tmp_path):
     save_model(_model(), tmp_path / "predictor.py", 2024)
     probability = models_of(tmp_path / "predictor.py")(2024)
     assert probability([0.9, 0.5]) > 0.9 > 0.1 > probability([0.1, math.nan])
+
+
+def test_several_rows_at_once(tmp_path):
+    save_model(_model(), tmp_path / "predictor.py", 2024)
+    one, several = models_of(tmp_path / "predictor.py")(2024), models_of(tmp_path / "predictor.py", several=True)(2024)
+    rows = [[0.9, 0.5], [0.1, math.nan], [0.6, 0.2]]
+    assert several(rows) == tuple(one(row) for row in rows)
+    rng = random.Random(0)
+    chosen = [choose(several(rows), rng) for _ in range(500)]
+    assert chosen.count(0) > 5 * chosen.count(1) and set(chosen) <= {0, 1, 2}
 
 
 def test_models_of_picks_the_season(tmp_path):

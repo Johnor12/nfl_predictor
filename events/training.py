@@ -1,7 +1,8 @@
 # START
 # Training tables for model predictors: every real play of a season as one row of an event's inputs and output.
 # - table(name, seasons, example, columns) -> DataFrame: `example(sample) -> row | None` (a module-level
-#   function) reads one real play (a shared.priors.Sample); None skips it. A season's rows are cached in
+#   function) reads one real play (a shared.priors.Sample); None skips it, and a list of rows adds them all
+#   (a choice among players: a row per candidate). A season's rows are cached in
 #   .cache/training/<name>_<season>.parquet and built where they aren't.
 # - build(tables, seasons): builds the missing ones of several tables ({name: (example, columns)}) in one
 #   pass over each season's real plays, the seasons in parallel processes. Reading the plays is what costs,
@@ -41,8 +42,8 @@ def _season(season, tables):
     for sample in real_samples(season):
         for name, (example, _) in missing.items():
             row = example(sample)
-            if row is not None:
-                rows[name].append(row)
+            if row:
+                rows[name] += row if isinstance(row[0], list) else [row]
     CACHE.mkdir(parents=True, exist_ok=True)
     for name, (_, columns) in missing.items():
         pd.DataFrame(rows[name], columns=list(columns)).astype(float).to_parquet(_path(name, season))

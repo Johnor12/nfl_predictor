@@ -8,15 +8,18 @@
 #   discounted, plus its own season's earlier weeks; a key no earlier season has comes from the first that
 #   does; NFL_PRIORS_DECAY overrides.
 # - test_priors_stay_within_a_rule: a key tied to rulebook fields only pools the seasons with the same rules.
-# - test_usage_moves_a_role_toward_the_player: a player's own season scales his role's rate, by how much he has played.
+# - test_usage_moves_a_role_toward_the_player: a player's own past scales his role's rate, by how much he has
+#   played; earlier seasons count half.
+# - test_a_pick_weighs_a_player_by_his_own_past: within a position group a pick follows each player's own rate,
+#   shrunk toward the group's; a group's weight stays what it was.
 # END
 import random
 from types import SimpleNamespace
 
 import pytest
 
-from shared.priors import Tally, blend, choice, hist, priors_of, save_priors, usage
-from shared.priors.players import USAGE_SNAPS
+from shared.priors import TACKLES, Tally, blend, choice, hist, pick, priors_of, save_priors, usage
+from shared.priors.players import OWN_EVENTS, USAGE_SNAPS, own_shares
 from shared.rulebook import KICKOFF
 
 
@@ -78,10 +81,28 @@ def test_priors_stay_within_a_rule(tmp_path):
 def test_usage_moves_a_role_toward_the_player():
     on_play = {"RB2": {"carried": 80, "other": 20}}   # an RB2 carries 80% of the runs he is out there for,
     per_snap = {"RB2": {"carried": 40, "other": 60}}  # which is 40% of his snaps
-    back = lambda **stats: SimpleNamespace(position="RB", rank=lambda slot: 2, stats=stats)
+    back = lambda career={}, **stats: SimpleNamespace(position="RB", rank=lambda slot: 2, stats=stats, career=career)
     rate = lambda player: usage(player, "carries", "carried", on_play, per_snap)
     assert rate(back()) == 0.8  # he hasn't played: his role
     assert rate(back(offense_snaps=USAGE_SNAPS, carries=0.4 * USAGE_SNAPS)) == pytest.approx(0.8)  # he is his role
     assert rate(back(offense_snaps=USAGE_SNAPS)) == pytest.approx(0.4)  # no carries yet: halfway to none
     assert rate(back(offense_snaps=9 * USAGE_SNAPS, carries=0.2 * 9 * USAGE_SNAPS)) == pytest.approx(0.44)
     assert usage(back(offense_snaps=50, carries=9), "carries", "carried", {}, {}) == 0.0  # a role nobody counted
+    last_season = back({"offense_snaps": 2 * USAGE_SNAPS})  # no carries in 200 snaps last season: 100 of this one's
+    assert rate(last_season) == pytest.approx(0.4)
+
+
+def test_a_pick_weighs_a_player_by_his_own_past():
+    defender = lambda position, **stats: SimpleNamespace(position=position, stats=stats, career={})
+    busy, quiet = defender("LB", tackles=30, assists=10, defense_snaps=400), defender("LB", tackles=8, defense_snaps=400)
+    new, lineman = defender("LB"), defender("DL", tackles=50, defense_snaps=100)
+    shares = own_shares([busy, quiet, new], TACKLES)
+    assert sum(shares) == pytest.approx(1) and shares[0] > shares[2] > shares[1]  # a player without snaps is the group
+    assert shares[0] / shares[1] < 40 / 8  # shrunk toward the group's rate...
+    assert shares[0] / shares[1] == pytest.approx((40 + OWN_EVENTS) / (8 + OWN_EVENTS)) and shares[2] == pytest.approx(1 / 3)
+    assert own_shares([new, defender("LB")], TACKLES) == [0.5, 0.5]  # nobody has played: evenly
+    ctx = SimpleNamespace(by_id={"busy": busy, "quiet": quiet, "new": new, "lineman": lineman})
+    rng, weights = random.Random(0), {"LB": 3, "DL": 1}
+    picked = [pick(ctx, list(ctx.by_id), weights, rng, own=TACKLES) for _ in range(4000)]
+    assert 0.22 < picked.count("lineman") / 4000 < 0.28  # the group's weight, whatever its one player has done
+    assert picked.count("busy") > 2.5 * picked.count("quiet") > 0

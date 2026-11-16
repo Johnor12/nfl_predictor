@@ -2,7 +2,9 @@
 # Baseline fouls predictor: at most one foul per play, at the real rate for the kind of play.
 # - predict(ctx, lineups, record, allowed, rng) -> tuple[Foul, ...].
 # A personal foul is flagrant (the player is disqualified) at the real rate.
-# Hand-set: the foul's timing when several are possible, its spot, and who committed it (shared.priors.fouler).
+# Who committed it: by the position groups the foul is called on, and each player's own flags
+# (shared.priors.fouler).
+# Hand-set: the foul's timing when several are possible, and its spot.
 # Internals: _category (run, pass, punt, field_goal, or kickoff, from the record), _foul_spot.
 # END
 from events.fouls import Foul
@@ -34,7 +36,7 @@ def predict(ctx, lineups, record, allowed, rng):
         timing = timings[0]
     passes = facts(record, Pass)
     grounding = name == "intentional_grounding" and passes
-    player = passes[0].passer if grounding else fouler(ctx, lineups, name, team, rng)
+    player = passes[0].passer if grounding else fouler(ctx, lineups, name, team, rng, p.get("fouler", {}).get(name))
     flagrant = name in p.get("personal", ()) and rng.random() < rate(p["flagrant"], "yes")
     return (Foul(name, team, player, _foul_spot(ctx, record, name, timing, rng), timing, flagrant),)
 

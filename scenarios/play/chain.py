@@ -146,7 +146,7 @@ class _Play:
         ctx, f, los, off, de = self.ctx, self.formation, self.los, self.off, self.de
         rush = self.add(self.p.pass_rush(ctx, self.lineups, f, self.defense, self.rng))
         _require(rush.result in RUSH_RESULTS and rush.seconds >= 0, f"pass rush {rush}")
-        for pid in rush.hitters + rush.sackers:
+        for pid in rush.hitters + rush.sackers + rush.hurriers + rush.blitzers:
             self.check_player(pid, de, "pass rusher")
         if rush.result in ("sack", "strip_sack"):
             _require(rush.sackers and rush.sack_yards >= 0, f"sack {rush}")
@@ -168,9 +168,11 @@ class _Play:
         result = self.p.pass_result(ctx, self.lineups, target, self.rng)
         _require(result.result in PASS_RESULTS and result.seconds >= 0, f"pass result {result}")
         _require(result.result != "intercepted" or result.defender, "interception without a defender")
-        if result.defender:
-            self.check_player(result.defender, de, "pass defender")
-        self.add(Pass(f.qb, target.receiver, spot, target.direction, result.result, result.defender, result.seconds))
+        _require(result.result == "incomplete" or not (result.drop or result.bad_throw), f"a caught {result}")
+        for pid in filter(None, (result.defender, result.coverage)):
+            self.check_player(pid, de, "pass defender")
+        self.add(Pass(f.qb, target.receiver, spot, target.direction, result.result, result.defender, result.seconds,
+                      result.coverage, result.drop, result.bad_throw))
         if result.result == "incomplete":
             return Dead(off, los, "incomplete")
         if result.result == "complete":
@@ -305,7 +307,8 @@ class _Play:
         out = self.p.carry(ctx, self.lineups, kind, player, r0, self.rng)
         _require(out.how in CARRY_ENDS and out.seconds >= 0, f"carry {out}")
         _require(out.forced_by is None or out.how == "fumble", "forced fumble without a fumble")
-        for pid in out.tacklers + ((out.forced_by,) if out.forced_by else ()):
+        _require(out.broken >= 0, f"carry {out}")
+        for pid in out.tacklers + out.missed + ((out.forced_by,) if out.forced_by else ()):
             self.check_player(pid, other(ctx, team), "tackler")
         if out.how == "lateral":
             _require(out.lateral_to != player and not out.tacklers, f"lateral {out}")
@@ -313,11 +316,13 @@ class _Play:
         r1 = min(110.0, max(-10.0, r0 + out.yards))
         if r1 <= 0 < r0 <= 5 and impetus not in (None, team):
             r1 = r0  # momentum: possession gained inside the 5 and carried into the end zone stays at the spot
+        charted = (out.missed, out.broken, None if out.contact is None else min(out.contact, min(r1, 100.0) - r0))
         if r1 >= 100:
-            self.add(Carry(player, team, kind, start, goal, "touchdown", seconds=out.seconds, lateral=lateral))
+            self.add(Carry(player, team, kind, start, goal, "touchdown", (), None, out.seconds, lateral, *charted))
             return Dead(team, goal, "touchdown")
         end = to_x(ctx, team, r1)
-        self.add(Carry(player, team, kind, start, end, out.how, out.tacklers, out.forced_by, out.seconds, lateral))
+        self.add(Carry(player, team, kind, start, end, out.how, out.tacklers, out.forced_by, out.seconds, lateral,
+                       *charted))
         if out.how == "fumble":
             return self.loose_ball("fumble", end, team, impetus=team, fumbler=player, forced_by=out.forced_by)
         if out.how == "lateral":  # the same kind of carry goes on from here; in the field of play it's the team's own impetus

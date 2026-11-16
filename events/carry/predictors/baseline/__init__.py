@@ -1,6 +1,10 @@
 # START
 # Baseline carry predictor: yards from a histogram for the kind of carry (runs by the carrier's position
-# group, catches by pass depth and the receiver's), how it ended, and tacklers by group.
+# group, catches by pass depth and the receiver's), how it ended, and who made the tackle: whether anybody
+# is credited and whether it is shared, by the kind of carry and how it ended; then by position group, and
+# on a run, a scramble, or a catch by each defender's own tackles per snap (shared.priors.TACKLES).
+# What a charter adds on those carries, at the charted rates: whether the carrier broke a tackle, who missed
+# one (by position group and his own missed tackles), and how many of a run's yards came before contact.
 # - predict(ctx, lineups, kind, carrier, yard_line, rng, yards=yards) -> CarryEnd. Another implementation can
 #   hand in its own `yards` and keep the rest (events/carry/predictors/gbm).
 # - yards(ctx, kind, carrier, yard_line, rng) -> float: the carry's yards, drawn from histogram(...).
@@ -8,17 +12,21 @@
 # Goal to go (inside the 10) uses separate, compressed histograms where the priors have them.
 # A run or a catch ends in a lateral at the real rate, to a back, receiver, or tight end on the field.
 # Hand-set: kneels, fumble recovery returns (RECOVERY_YARDS), how returns without data end (RETURN_ENDS),
-# slides on scrambles, forced fumble credit, who takes a lateral, and the carry's duration (SECONDS, set so a
-# run and a completion take the 6 seconds real ones do, and a scramble 8).
+# slides on scrambles, forced fumble credit, who takes a lateral, the tackle credit on a return the priors
+# don't count (CREDITED), and the carry's duration (SECONDS, set so a run and a completion take the 6
+# seconds real ones do, and a scramble 8).
 # END
 from events.carry import CarryEnd
-from shared.priors import air_bucket, choice, goal_bucket, group, hist, on_field, pick, pick_many, priors_of, rate
+from shared.priors import (MISSES, TACKLES, air_bucket, choice, goal_bucket, group, hist, on_field, pick, pick_many,
+                           priors_of, rate, some)
 from shared.rulebook import KICKOFF
 
 load_priors = priors_of(__file__, rules={"kick_return": KICKOFF})  # (season, week) -> priors dict
 RECOVERY_YARDS = {"0": 70, "2": 10, "5": 8, "10": 5, "20": 4, "40": 2, "70": 1}
 RETURN_ENDS = {"tackled": 93, "out_of_bounds": 6, "fumble": 1}
 LATERAL_TO = {"RB": 3, "WR": 2, "TE": 1}
+CREDITED = {"tackled": 1.0, "fumble": 1.0, "out_of_bounds": 0.5}  # where the priors don't count the kind of carry
+SCRIMMAGE = ("run", "scramble", "catch")  # the carries a defense tackles: its players' own tackles count
 SECONDS = {"run": 4.5, "catch": 0.0, "scramble": 3.0}  # before the yards start counting: a handoff takes a
 #                                                         while, a catch none (the throw and the flight have)
 
@@ -48,12 +56,26 @@ def predict(ctx, lineups, kind, carrier, yard_line, rng, yards=yards):
         return CarryEnd(yards, "lateral", seconds=seconds, lateral_to=pick(ctx, takers, LATERAL_TO, rng))
     opponents = lineups.defense.players if team == ctx.situation.offense else lineups.offense.players
     tacklers = ()
-    if how in ("tackled", "fumble") or (how == "out_of_bounds" and rng.random() < 0.5):
-        weights = p["tackler"]["kick" if kind in ("punt_return", "kick_return") else "scrimmage"]
-        n = 2 if rng.random() < rate(p["assisted"], "yes") else 1
-        tacklers = pick_many(ctx, opponents, weights, n, rng)
+    counted = p.get("credited", {}).get(f"{kind}|{how}")
+    if how in CREDITED and rng.random() < (rate(counted, "yes") if counted else CREDITED[how]):
+        n = 2 if rng.random() < rate(p.get("shared", {}).get(kind) or p["assisted"], "yes") else 1
+        weights = (p["tackler"].get(f"{kind}|{'assisted' if n == 2 else 'solo'}")
+                   or p["tackler"]["kick" if kind in ("punt_return", "kick_return") else "scrimmage"])
+        tacklers = pick_many(ctx, opponents, weights, n, rng, TACKLES if kind in SCRIMMAGE else None)
     forced = tacklers[0] if how == "fumble" and tacklers and rng.random() < 0.7 else None
-    return CarryEnd(yards, how, tacklers, forced, seconds)
+    return CarryEnd(yards, how, tacklers, forced, seconds, *_charted(ctx, p, kind, yards, opponents, tacklers, rng))
+
+
+def _charted(ctx, p, kind, yards, opponents, tacklers, rng) -> tuple:
+    """(lateral_to, missed, broken, contact): what a charter adds to a run, a scramble, or a catch. A broken
+    tackle is somebody's missed one; a run's yards after contact are a share of what it gained."""
+    if kind not in SCRIMMAGE or "missed" not in p:
+        return (None,)
+    broken = rng.random() < rate(p["broken"]["catch" if kind == "catch" else "run"], "yes")
+    others = [pid for pid in opponents if pid not in tacklers]
+    missed = some(ctx, others, rng, {"yes": 1} if broken else p["missed"], None, p["misser"], MISSES)
+    after = rng.uniform(0, 2 * rate(p["after_contact"], "yes")) * max(yards, 0.0)
+    return None, missed, int(broken), None if kind == "catch" else yards - min(after, max(yards, 0.0))
 
 
 def _yards(ctx, p, kind, carrier, yard_line) -> dict:

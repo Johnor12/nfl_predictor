@@ -3,11 +3,15 @@
 # - predict(ctx, lineups, target, rng, results=results) -> PassResult. Another implementation can hand in its
 #   own `results` and keep the rest (events/pass_result/predictors/gbm).
 # - results(ctx, lineups, target) -> {"complete": weight, "incomplete": weight, "intercepted": weight}.
-# Hand-set: which position groups intercept and defend passes, and how long the ball is in the air (with the
-# time to throw it, an incompletion takes the 5 seconds a real one does).
+# Who defends or intercepts it: by position group, and each defender's own passes defended per snap
+# (shared.priors.COVERAGE). What a charter adds, at the charted rates: the defender in coverage (the one who
+# defended it, else by position group and how often he has been thrown at), and whether an incompletion
+# was a drop (if nobody defended it) or a bad throw.
+# Hand-set: how long the ball is in the air (with the time to throw it, an incompletion takes the 5 seconds
+# a real one does).
 # END
 from events.pass_result import PassResult
-from shared.priors import air_bucket, choice, goal_bucket, pick, priors_of, rate
+from shared.priors import COVERAGE, TARGETED, air_bucket, choice, goal_bucket, pick, priors_of, rate, some
 
 load_priors = priors_of(__file__)  # (season, week) -> priors dict
 
@@ -23,8 +27,12 @@ def predict(ctx, lineups, target, rng, results=results):
     result = choice(results(ctx, lineups, target), rng)
     defenders = lineups.defense.players
     seconds = 1.2 + abs(target.air_yards) / 20 + rng.uniform(0, 1)
-    if result == "intercepted":
-        return PassResult(result, pick(ctx, defenders, {"DB": 80, "LB": 18, "DL": 2}, rng), seconds)
-    if result == "incomplete" and rng.random() < rate(p["defended"], "yes"):
-        return PassResult(result, pick(ctx, defenders, {"DB": 85, "LB": 13, "DL": 2}, rng), seconds)
-    return PassResult(result, seconds=seconds)
+    defender = None
+    if result == "intercepted" or (result == "incomplete" and rng.random() < rate(p["defended"], "yes")):
+        defender = pick(ctx, defenders, p["defender"][result], rng, own=COVERAGE)
+    coverage = (defender,) if defender else some(ctx, defenders, rng, p.get("covered"), None, p.get("coverage"), TARGETED)
+    drop = bad = False
+    if result == "incomplete" and "drop" in p:  # the priors count both per incompletion; a defended pass isn't a drop
+        drop = not defender and rng.random() < rate(p["drop"], "yes") / (1 - rate(p["defended"], "yes"))
+        bad = not drop and rng.random() < rate(p["bad_throw"], "yes")
+    return PassResult(result, defender, seconds, coverage[0] if coverage else None, drop, bad)

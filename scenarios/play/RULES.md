@@ -86,19 +86,26 @@ The play scenario encodes the rulebook. This is a sketch of what it must cover, 
 Checked by one validation function after every simulated play in tests:
 
 - For each completion, the passer's passing yards equal the receiver's receiving yards (line of scrimmage to where the receiver's carry ended). Completions equal receptions; interceptions thrown equal interceptions made.
-- Sack yards come off team passing yards, not the passer's; sacks are not rushes; scrambles and kneels are rushes; spikes are incomplete passes.
+- Sack yards are the passer's own stat (`sack_yards`), not passing or rushing yards; sacks are not rushes; scrambles and kneels are rushes; spikes are incomplete passes.
 - Rushing and receiving yards are credited to the spot of a fumble; yards after a recovery are fumble return yards.
 - A player who takes a lateral is credited with the yards from there on, in the same category as the carry before it, but not with a rushing attempt, a reception, or a return. The passer's yards run to the end of the last lateral, and the touchdown is the last carrier's.
 - A lateral goes to a teammate, and the next carry starts where the last one ended.
 - Two-point tries add no passing, rushing, or receiving yards.
-- Team stats equal the sum of player stats, plus team-only items (sack yards, penalty yards).
+- Team stats equal the sum of player stats, plus the penalty yards of a foul charged to no player.
 - The change in field position reconciles with the play's offensive, return, and penalty yardage, across any changes of possession.
 - The score changes only through a scoring event, by exactly that event's value.
 - Every player with a stat on the play was on the field for it, and so was every disqualified player; ball carriers belong to the team in possession at that moment, tacklers to the other team.
 - Every change of possession is explained by an event (interception, lost fumble, punt, kick, turnover on downs, score, safety).
-- A "no play" produces no player stats besides the foul itself.
+- A "no play" produces no player stats besides the foul itself (`penalties`, and `penalty_yards`: the yards it cost).
 - Lost fumbles equal opponent recoveries; forced fumbles never exceed fumbles.
 - 11 players per side (unless too many men was called), down between 1 and 4, distance positive and never past the goal line, ball inside the field, elapsed time never negative.
+
+Credited the way a box score does it (`stats.py`; each has a scripted test):
+
+- A sack is also a tackle for the sacker, and an assist for each of two who share it. A tackle for loss goes to the first tackler of a run or a catch that ended behind the line, and to a sacker who had it alone and lost the passer yards.
+- A safety is the first tackler's or sacker's. A touchdown on an interception return is a defensive touchdown, on a punt or kick return or a loose ball of a kick play a special teams touchdown, on any other recovery a fumble return touchdown.
+- A first down goes to the carry that reached the line to gain or scored (and to the passer of a completion that did). Air yards run from the line to the target, yards after the catch from there.
+- The charted stats are only what the predictors recorded on the play (who hurried, who blitzed, who was in coverage, who missed a tackle, a drop, a bad throw, the yards before contact); a passer was pressured if he was hurried, hit, or sacked, and a pressure is a defender's hurry, hit, or sack.
 
 Simulating millions of plays with cheap random predictors and checking every invariant is the core of the automated testing. Rule-specific behavior (a 4th-down fumble recovered by a teammate, a dynamic kickoff landing short of the landing zone) gets hand-built tests that script the predictors' outputs.
 

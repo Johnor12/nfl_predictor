@@ -12,8 +12,8 @@ Inputs (besides the [common ones](../README.md)):
 
 Output (`from events.carry import ...`):
 
-- `CarryEnd(yards, how, tacklers, forced_by, seconds, lateral_to)`: `yards` is signed, in the carrier's direction of travel; `how` is one of `ENDS` (`tackled`, `out_of_bounds`, `fumble`, `down` for a slide, kneel, or no contact, `lateral` for a lateral caught by `lateral_to`). A lateral nobody catches is a `fumble`.
+- `CarryEnd(yards, how, tacklers, forced_by, seconds, lateral_to, missed, broken, contact)`: `yards` is signed, in the carrier's direction of travel; `how` is one of `ENDS` (`tackled`, `out_of_bounds`, `fumble`, `down` for a slide, kneel, or no contact, `lateral` for a lateral caught by `lateral_to`). A lateral nobody catches is a `fumble`. The last three are what a charter adds, and a predictor may leave them out: the defenders who `missed` a tackle, the tackles the carrier is credited with having `broken`, and the yards before first `contact`.
 
-The play scenario raises `IllegalChoice` unless `how` is one of `ENDS`; `seconds` isn't negative; tacklers and `forced_by` are on the field for the other team; `forced_by` needs a fumble; a lateral goes to a teammate on the field, with no tacklers. After a lateral the scenario asks for the teammate's carry: the same `kind`, from where this one ended. The scenario clamps the end of the carry to the field and applies the goal lines (touchdown, safety, touchback, momentum).
+The play scenario raises `IllegalChoice` unless `how` is one of `ENDS`; `seconds` isn't negative; tacklers, `missed`, and `forced_by` are on the field for the other team; `forced_by` needs a fumble; a lateral goes to a teammate on the field, with no tacklers. After a lateral the scenario asks for the teammate's carry: the same `kind`, from where this one ended. The scenario clamps the end of the carry to the field and applies the goal lines (touchdown, safety, touchback, momentum).
 
 Implementations are in [predictors/](predictors/README.md).

@@ -1,7 +1,7 @@
 # START
 # Tests for the play scenario.
 # - test_fuzz_invariants: thousands of plays from random legal predictors and situations; every invariant holds.
-# - Hand-built rule tests: scripted predictor outputs for specific rules (scoring, end zones, kicks, fouls,
+# - Hand-built rule tests: scripted predictor outputs for specific rules (scoring, stat crediting, end zones, kicks, fouls,
 #   laterals, re-kicks, illegal touching, disqualifications, the clock after penalties, kickoffs under the
 #   rules of earlier seasons, the fair-catch kick, a lineman who reported as ineligible).
 # Helpers: situation(...) builds a HOME-offense context; base() is a quiet scripted predictor set
@@ -84,7 +84,7 @@ def test_fuzz_invariants():
 
 def test_run_gain_and_first_down():
     r = play(situation(x=40, down=3, distance=4), **run(6))
-    assert r.stats["HOME-RB1"] == {"rush_att": 1, "rush_yds": 6}
+    assert r.stats["HOME-RB1"] == {"rush_att": 1, "rush_yds": 6, "rush_first_downs": 1}
     assert r.stats["AWAY-LB1"] == {"tackles": 1}
     assert (r.next.offense, r.next.x, r.next.down, r.next.distance) == (H, 46, 1, 10)
     assert r.clock_after == "running" and r.elapsed == 14.0
@@ -107,7 +107,8 @@ def test_turnover_on_downs_after_incomplete_pass():
     r = play(situation(x=60, down=4, distance=3), snap=Snap("pass"), pass_rush=PassRush(4, "throw", 3.0),
              target=Target("HOME-WR1", 12, "left"), pass_result=PassResult("incomplete", "AWAY-DB1"))
     assert (r.next.offense, r.next.x, r.next.down) == (A, 40, 1)
-    assert r.stats["HOME-QB1"] == {"pass_att": 1} and r.stats["AWAY-DB1"] == {"passes_defended": 1}
+    assert r.stats["HOME-QB1"] == {"pass_att": 1, "pass_air_yds": 12} and r.stats["AWAY-DB1"] == {"passes_defended": 1}
+    assert r.stats["HOME-WR1"] == {"targets": 1, "target_air_yds": 12}
 
 
 def test_a_pass_takes_the_time_to_throw_it_and_its_flight():
@@ -126,11 +127,57 @@ def test_completion_with_fumble_credits_yards_to_the_fumble_spot():
     assert (r.next.offense, r.next.x) == (A, 56)
 
 
-def test_sack_yards_are_team_yards():
+def test_sack_yards_are_the_passers_and_a_sack_is_a_tackle():
     r = play(situation(x=50), snap=Snap("pass"),
              pass_rush=PassRush(5, "sack", 3.0, sackers=("AWAY-DL1", "AWAY-DL2"), sack_yards=8))
-    assert r.stats["HOME-QB1"] == {"sacked": 1} and r.stats["AWAY-DL1"] == {"sacks": 0.5}
+    assert r.stats["HOME-QB1"] == {"sacked": 1, "sack_yards": 8, "pressured": 1}
+    assert r.stats["AWAY-DL1"] == {"sacks": 0.5, "assists": 1, "pressures": 1}
     assert r.team_stats[H]["sack_yards"] == 8 and (r.next.x, r.next.down) == (42, 2)
+    r = play(situation(x=50), snap=Snap("pass"), pass_rush=PassRush(5, "sack", 3.0, sackers=("AWAY-DL1",), sack_yards=8))
+    assert r.stats["AWAY-DL1"] == {"sacks": 1, "tackles": 1, "tfl": 1, "pressures": 1}
+
+
+def test_charted_stats():
+    rush = PassRush(5, "throw", 2.5, hitters=("AWAY-DL1",), hurriers=("AWAY-DL2",), blitzers=("AWAY-LB1", "AWAY-DB1"))
+    throw = dict(snap=Snap("pass"), pass_rush=rush, target=Target("HOME-WR1", 10, "left"))
+    r = play(situation(x=30), **throw, pass_result=PassResult("complete", coverage="AWAY-DB2"),
+             carry=CarryEnd(5, "tackled", ("AWAY-DB2",), missed=("AWAY-DB3",), broken=1))
+    assert r.stats["AWAY-DL1"] == {"qb_hits": 1, "pressures": 1} and r.stats["AWAY-DL2"] == {"hurries": 1, "pressures": 1}
+    assert r.stats["AWAY-LB1"] == {"blitzes": 1} and r.stats["AWAY-DB3"] == {"missed_tackles": 1}
+    assert r.stats["AWAY-DB2"] == {"tackles": 1, "coverage_targets": 1, "coverage_cmp": 1, "coverage_yds": 15}
+    assert r.stats["HOME-WR1"]["rec_broken_tackles"] == 1
+    assert {k: r.stats["HOME-QB1"][k] for k in ("pressured", "hurried", "hit", "blitzed")} == dict.fromkeys(
+        ("pressured", "hurried", "hit", "blitzed"), 1)
+    r = play(situation(x=30), **throw, pass_result=PassResult("incomplete", coverage="AWAY-DB2", drop=True))
+    assert r.stats["HOME-WR1"]["drops"] == r.stats["HOME-QB1"]["pass_drops"] == 1 and "bad_throws" not in r.stats["HOME-QB1"]
+    assert r.stats["AWAY-DB2"] == {"coverage_targets": 1}
+    with pytest.raises(IllegalChoice):
+        play(situation(x=30), **throw, pass_result=PassResult("complete", drop=True), carry=CarryEnd(5, "tackled"))
+    r = play(situation(x=30), snap=Snap("run", "HOME-RB1"), carry=CarryEnd(7, "tackled", ("AWAY-LB1",), contact=3.0, broken=2))
+    assert r.stats["HOME-RB1"] == {"rush_att": 1, "rush_yds": 7, "rush_yds_before_contact": 3,
+                                   "rush_yds_after_contact": 4, "rush_broken_tackles": 2}
+    r = play(situation(x=97), snap=Snap("run", "HOME-RB1"), carry=CarryEnd(9, "tackled", contact=6.0))
+    assert r.stats["HOME-RB1"]["rush_yds_before_contact"] == 3 and "rush_yds_after_contact" not in r.stats["HOME-RB1"]
+
+
+def test_tackles_for_loss_safeties_and_return_touchdowns():
+    r = play(situation(x=50), **run(-2))
+    assert r.stats["AWAY-LB1"] == {"tackles": 1, "tfl": 1} and "rush_first_downs" not in r.stats["HOME-RB1"]
+    r = play(situation(x=2), **run(-4))
+    assert r.scores == ((A, 2, "safety"),) and r.stats["AWAY-LB1"] == {"tackles": 1, "tfl": 1, "safeties": 1}
+    r = play(situation(x=3), snap=Snap("pass"), pass_rush=PassRush(5, "sack", 3.0, sackers=("AWAY-DL1",), sack_yards=8))
+    assert r.scores == ((A, 2, "safety"),) and r.stats["AWAY-DL1"]["safeties"] == 1
+    r = play(situation(x=30), snap=Snap("pass"), pass_rush=PassRush(5, "sack", 3.0, sackers=("AWAY-DL1",), sack_yards=0))
+    assert r.stats["AWAY-DL1"] == {"sacks": 1, "tackles": 1, "pressures": 1}  # a sack for no loss isn't one for loss
+    r = play(situation(x=30), snap=Snap("pass"), pass_rush=PassRush(4, "throw", 2.5), target=Target("HOME-WR1", 10, "left"),
+             pass_result=PassResult("intercepted", "AWAY-DB1"), carry=CarryEnd(60, "tackled"))
+    assert r.stats["AWAY-DB1"] == {"interceptions": 1, "passes_defended": 1, "int_ret_yds": 40, "int_ret_td": 1, "def_td": 1}
+    punt = dict(lineups=Lineups(PUNT, DEFENSE), offensive_formation=PUNT_FORMATION, snap=Snap("punt"), punt_kick=PuntKick(40))
+    r = play(situation(x=30, down=4), **punt, punt_result=PuntResult("return", "AWAY-DB4"), carry=CarryEnd(80, "tackled"))
+    assert r.stats["AWAY-DB4"] == {"punt_returns": 1, "punt_ret_yds": 70, "punt_ret_td": 1, "special_teams_td": 1}
+    r = play(situation(x=30), snap=Snap("run", "HOME-RB1"), loose_ball=Recovery(A, "AWAY-DB2", 34),
+             carry=[CarryEnd(4, "fumble", ("AWAY-LB1",)), CarryEnd(80, "tackled")])
+    assert r.stats["AWAY-DB2"]["fumble_ret_td"] == 1 and "def_td" not in r.stats["AWAY-DB2"]
 
 
 def test_interception_in_end_zone_downed_is_a_touchback():
@@ -182,7 +229,7 @@ def test_fair_catch_kick():
     assert not returned.next.fair_catch_kick and not play(situation(), **run(3)).next.fair_catch_kick
     kick = dict(lineups=Lineups(dataclasses.replace(FIELD_GOAL, unit="fair_catch_kick"), DEFENSE))
     r = play(situation(x=45, fair_catch_kick=True, clock_running=False), **kick, kick_attempt=KickAttempt("good", seconds=3.0))
-    assert r.scores == ((H, 3, "field_goal"),) and r.stats["HOME-K1"] == {"fg_att": 1, "fg_made": 1}
+    assert r.scores == ((H, 3, "field_goal"),) and r.stats["HOME-K1"] == {"fg_att": 1, "fg_made": 1, "fg_made_yds": 65}
     assert summarize(r)["kick_distance"] == 65 and summarize(r)["action"] == "field_goal"  # from the spot: no snap, no hold
     assert (r.next.kind, r.next.offense, r.elapsed) == ("kickoff", H, 0)
     r = play(situation(x=45, fair_catch_kick=True), **kick, kick_attempt=KickAttempt("blocked", "AWAY-DL1"))
@@ -210,7 +257,7 @@ def test_missed_field_goal_spot_of_kick_or_the_20():
     r = play(situation(x=90, down=4), **fg, kick_attempt=KickAttempt("no_good"))
     assert (r.next.offense, r.next.x) == (A, 20)  # spot of the kick is inside the 20
     r = play(situation(x=85, down=4), **fg, kick_attempt=KickAttempt("good"))
-    assert r.scores == ((H, 3, "field_goal"),) and r.stats["HOME-K1"] == {"fg_att": 1, "fg_made": 1}
+    assert r.scores == ((H, 3, "field_goal"),) and r.stats["HOME-K1"] == {"fg_att": 1, "fg_made": 1, "fg_made_yds": 32}
     assert (r.next.kind, r.next.offense, r.next.x) == ("kickoff", H, 35)
 
 
@@ -268,7 +315,8 @@ def test_kickoffs_before_the_dynamic_kickoff():
 def test_half_the_distance_and_presnap_fouls():
     r = play(situation(x=6), pre_snap=PreSnap(20.0, Foul("false_start", H, "HOME-OL2", 6, "presnap")))
     assert r.no_play and (r.next.x, r.next.down, r.next.distance) == (3, 1, 13)
-    assert r.stats == {"HOME-OL2": {"penalties": 1}} and r.clock_after == "ready"
+    assert r.stats == {"HOME-OL2": {"penalties": 1, "penalty_yards": 3}} and r.clock_after == "ready"
+    assert r.team_stats[H] == {"penalties": 1, "penalty_yards": 3}
 
 
 def test_offensive_holding_in_own_end_zone_is_a_safety():
@@ -317,14 +365,16 @@ def test_out_of_bounds_clock():
 def test_lateral_yards_go_to_whoever_carried_them():
     r = play(situation(x=30), snap=Snap("run", "HOME-RB1"),
              carry=[CarryEnd(4, "lateral", lateral_to="HOME-WR2"), CarryEnd(9, "tackled", ("AWAY-DB1",))])
-    assert r.stats["HOME-RB1"] == {"rush_att": 1, "rush_yds": 4} and r.stats["HOME-WR2"] == {"rush_yds": 9}
+    assert r.stats["HOME-RB1"] == {"rush_att": 1, "rush_yds": 4}
+    assert r.stats["HOME-WR2"] == {"rush_yds": 9, "rush_first_downs": 1}
     assert (r.next.x, r.next.down) == (43, 1)
     r = play(situation(x=30), snap=Snap("pass"), pass_rush=PassRush(4, "throw", 2.5),
              target=Target("HOME-TE1", 6, "middle"), pass_result=PassResult("complete"),
              carry=[CarryEnd(2, "lateral", lateral_to="HOME-RB1"), CarryEnd(80, "tackled")])
-    assert r.stats["HOME-QB1"] == {"pass_att": 1, "pass_cmp": 1, "pass_yds": 70, "pass_td": 1}
-    assert r.stats["HOME-TE1"] == {"targets": 1, "receptions": 1, "rec_yds": 8}
-    assert r.stats["HOME-RB1"] == {"rec_yds": 62, "rec_td": 1}
+    assert r.stats["HOME-QB1"] == {"pass_att": 1, "pass_cmp": 1, "pass_yds": 70, "pass_td": 1, "pass_air_yds": 6,
+                                   "pass_yac": 64, "pass_first_downs": 1}
+    assert r.stats["HOME-TE1"] == {"targets": 1, "receptions": 1, "rec_yds": 8, "target_air_yds": 6, "rec_yac": 2}
+    assert r.stats["HOME-RB1"] == {"rec_yds": 62, "rec_td": 1, "rec_first_downs": 1}
 
 
 def test_lateral_must_go_to_a_teammate_on_the_field():

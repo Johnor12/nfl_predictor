@@ -5,11 +5,16 @@
 # - Tally: raw counts (tally.c[name][key] += 1) and values (tally.hist[name].append(x)); a name like
 #   "unit|3|4-6|7" nests everything after the first "|" as a sub-key. priors() -> the JSON-ready dict, with
 #   values turned into {"rounded value": count} histograms (clamped to -20..110).
+# - Totals(by_group): a week's stat lines added up, for what is only counted per game (the charting):
+#   .total(stat) is everyone's, .groups(stat) -> {position group: total}. An event's priors.py reads them in
+#   observe_totals(tally, totals).
 # - present(value) -> bool: not None and not NaN.
 # Readers of nflverse rows that more than one event needs:
 # - flag(sample) -> (foul name, "offense" | "defense") | None: the flag on the play, in the play scenario's
 #   foul names (FOULS maps nflverse's, to the foul enforced the same way where the scenario has no foul of
 #   that name; a pair is the name by side). PRESNAP: the fouls that belong to the pre-snap event.
+# - flagged(sample) -> str | None: the position group of the player the flag was on (None where the data
+#   doesn't name one of the game's players).
 # - flagrant(sample) -> bool: the flagged player was disqualified.
 # Readers of the participation row (None when the season has no such data, or the row is unusable):
 # - personnel(sample) -> str: the offense's personnel group: backs and tight ends ("11", "12"), with a "+" for
@@ -31,6 +36,8 @@ import dataclasses
 import re
 from collections import Counter, defaultdict
 from dataclasses import dataclass
+
+from shared.priors.buckets import group
 
 KICK_UNITS = {"Punt": "punt", "Field Goal": "field_goal"}
 KICK_FORMATION = re.compile(r"\((Punt|Field Goal) formation\)")  # how a play's description names the unit
@@ -109,6 +116,22 @@ def flag(sample):
         return None
     side = "offense" if row.penalty_team == sample.context.situation.offense else "defense"
     return (name if isinstance(name, str) else name[side == "defense"]), side
+
+
+@dataclass(frozen=True)
+class Totals:
+    by_group: dict  # {position group: {stat: total}}
+
+    def total(self, stat) -> float:
+        return sum(line.get(stat, 0.0) for line in self.by_group.values())
+
+    def groups(self, stat) -> dict:
+        return {name: line[stat] for name, line in sorted(self.by_group.items()) if line.get(stat)}
+
+
+def flagged(sample):
+    player = sample.context.by_id.get(sample.row.penalty_player_id)
+    return group(player) if player else None
 
 
 def flagrant(sample) -> bool:

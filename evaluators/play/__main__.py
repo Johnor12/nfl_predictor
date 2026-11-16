@@ -1,13 +1,15 @@
 # START
 # CLI: python -m evaluators.play [--seasons 2021-2026 | --seasons 2026] [--games 160] [--weeks 1-3 | --weeks 1,4]
-#   [--sims 100] [--seed 0] [--swap carry=tuned ...] [--workers N] [--out path]
+#   [--sims 100] [--seed 0] [--swap carry=tuned ...] [--workers N] [--out path] [--save file]
 # Scores the play scenario and its event predictors against the real plays of a fixed sample of the seasons'
 # games (--games 0 for every game), writes the report, and prints the score tables. --swap evaluates another
-# implementation of an event (events/<event>/predictors/<name>/).
+# implementation of an event (events/<event>/predictors/<name>/). --save keeps the evaluation as a file, for
+# `python -m evaluators.compare` to set against another run's.
 # END
 import argparse
 
 from evaluators import parse_weeks
+from evaluators.compare import save
 from evaluators.play import evaluate, write_report
 from evaluators.sample import EVALUATED
 from scenarios.play import load_predictors
@@ -23,11 +25,14 @@ def main():
     parser.add_argument("--swap", nargs="*", default=[], metavar="EVENT=NAME")
     parser.add_argument("--workers", type=int, default=None)
     parser.add_argument("--out", default=None)
+    parser.add_argument("--save", default=None, metavar="FILE")
     args = parser.parse_args()
     predictors = load_predictors(**dict(swap.split("=") for swap in args.swap))
     evaluation = evaluate(parse_weeks(args.seasons) or EVALUATED, parse_weeks(args.weeks), args.games or None,
                           args.sims, args.seed, predictors, args.workers)
     path = write_report(evaluation, args.out)
+    if args.save:
+        save(evaluation, args.save)
     report = path.read_text(encoding="utf-8")
     print(path)
     print(report[:report.index("## PIT histograms")])

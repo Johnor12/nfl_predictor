@@ -9,7 +9,16 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["pytest>=8"]
+dev = [
+    "pandas-stubs>=3.1.0.261029",
+    "pyright>=1.1.414",
+    "pytest>=8",
+]
+
+[[tool.uv.index]]
+# Listed first so that a private index in a machine's uv.toml never ends up in uv.lock.
+name = "pypi"
+url = "https://pypi.org/simple"
 
 [tool.pytest.ini_options]
 testpaths = ["."]

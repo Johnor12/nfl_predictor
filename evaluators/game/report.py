@@ -1,18 +1,44 @@
 # START
 # The game evaluation report.
 # - write_report(evaluation, path=None) -> Path: markdown at evaluation_output/game_<seasons>.md: the game
-#   scenario's scores (game, team, and player outputs), the timeout predictor's, the betting lines scored for
-#   the market and for the simulator (when the evaluation was given lines), PIT histograms for the numeric
-#   outputs, and reliability for the yes/no and categorical ones.
+#   scenario's scores for the game and each team, every player stat with its roles pooled, the timeout and
+#   challenge predictors', the betting lines scored for the market and for the simulator (when the
+#   evaluation was given lines), then every player stat by role, PIT histograms for the numeric outputs, and
+#   reliability for the yes/no and categorical ones.
+# - pooled(rows) -> list[dict]: one row per player stat ("player: tackles"): its roles' rows together, each
+#   weighted by its cases. The reference stays each role's own, so skill is what the forecast adds to
+#   knowing a player's role.
 # END
+import math
 from pathlib import Path
 
-from evaluators.sample import label
-from evaluators.game.evaluate import PLAYER_STATS
+from evaluators.game.outputs import ROLES, STATS, parse
 from evaluators.lines import lines_table, score_lines
+from evaluators.sample import label
 from evaluators.scoring import GUIDE, OUT, pit_table, reliability_table, score_table
 
 LEVELS = ("game", "team", "player")
+BY_ROLE = "## Players by role"  # the CLI prints the report up to here
+
+
+def pooled(rows) -> list[dict]:
+    stats = {}
+    for row in rows:
+        level, stat, _ = parse(row["name"])
+        if level == "player" and row["n"]:
+            stats.setdefault(stat, []).append(row)
+    out = []
+    for stat, parts in stats.items():
+        n = sum(row["n"] for row in parts)
+        mean = lambda key: sum(row["n"] * row[key] for row in parts) / n
+        error = lambda key: math.sqrt(sum((row["n"] * (row[key] or 0)) ** 2 for row in parts)) / n
+        score, reference = mean("score"), mean("reference")
+        out.append(dict(name=f"player: {stat}", kind=parts[0]["kind"], n=n, unscored=sum(row["unscored"] for row in parts),
+                        sims=mean("sims"), score=score, reference=reference,
+                        skill=1 - score / reference if reference else None, mean=mean("mean"),
+                        sim_mean=mean("sim_mean"), se=error("se"), sim_se=error("sim_se"), sims_needed=None))
+    order = {stat: i for i, stat in enumerate(STATS)}
+    return sorted(out, key=lambda row: order.get(parse(row["name"])[1], len(order)))
 
 
 def write_report(evaluation, path=None) -> Path:
@@ -20,19 +46,24 @@ def write_report(evaluation, path=None) -> Path:
     path = Path(path) if path else OUT / f"game_{seasons}.md"
     path.parent.mkdir(parents=True, exist_ok=True)
     rows = evaluation.card.rows()
-    level = lambda row: row["name"].split(": ")[0]
-    role = lambda row: next((i for i, name in enumerate(PLAYER_STATS) if row["name"].endswith(f"({name})")), 0)
-    scenario = sorted((r for r in rows if level(r) in LEVELS), key=lambda r: (LEVELS.index(level(r)), role(r)))
+    level = lambda row: parse(row["name"])[0]
+    order = {role: i for i, role in enumerate(ROLES)}
+    scenario = [r for r in rows if level(r) in LEVELS[:2]]
+    players = sorted((r for r in rows if level(r) == "player"), key=lambda r: order.get(parse(r["name"])[2], len(order)))
     events = [r for r in rows if level(r) not in LEVELS]
-    numeric = [r["name"] for r in scenario + events if r["kind"] == "numeric"]
-    other = [r["name"] for r in scenario + events if r["kind"] != "numeric"]
+    numeric = [r["name"] for r in scenario + players + events if r["kind"] == "numeric"]
+    other = [r["name"] for r in scenario + players + events if r["kind"] != "numeric"]
     lines = [f"# Game evaluation, {seasons}", "",
              f"- real games: {evaluation.games}, each simulated {evaluation.sims} times from its inputs at kickoff",
              f"- simulated games that raised or broke an invariant: {evaluation.failures}", "", *GUIDE,
              "", "## Game scenario", "",
-             "game: one case per game (margin is home minus away). team: one per team and game. player: one per "
-             "active player with that depth chart role and game (a 3 means third or lower), whether or not he "
-             "played.", "", *score_table(scenario),
+             "game: one case per game (margin is home minus away). team: one per team and game, for every stat.",
+             "", *score_table(scenario),
+             "", "## Players", "",
+             "Every stat of every active player, whether or not he played: one case per player and game, for the "
+             "stats his position has a part in. Here each stat's roles are pooled (the full table by role is "
+             "below); the reference is each role's own, so skill is what the forecast adds to knowing a "
+             "player's role.", "", *score_table(pooled(players)),
              "", "## Event predictors", "",
              "The timeout predictor alone, sampled on every real play's situation as it stood before any timeout, "
              "and the challenge predictor alone, on every real play a coach could challenge (who challenged it, "
@@ -44,7 +75,11 @@ def write_report(evaluation, path=None) -> Path:
                   "market probability comes from its two prices, and is 50% where they aren't published); MAE is the line's (or the "
                   "simulated median's) error. Lower is better.", "",
                   *lines_table(score_lines(evaluation.lines, evaluation.samples))]
-    lines += ["", "## PIT histograms", "",
+    lines += ["", BY_ROLE, "",
+              "One case per active player with that role and game. A quarterback's, back's, receiver's, or tight "
+              "end's role is his depth chart rank (a 3 means third or lower); a lineman or defender is a starter "
+              "(first at a depth chart slot) or a backup.", "", *score_table(players),
+              "", "## PIT histograms", "",
               "Where the real outcome fell in the forecast distribution. Calibrated is 10% everywhere; weight at "
               "both ends means the forecast is too narrow, in the middle too wide, at one end biased.", "",
               *pit_table(evaluation.card, numeric),

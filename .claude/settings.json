@@ -1,4 +1,11 @@
 {
+  "extraKnownMarketplaces": {
+    "nfl-predictor": { "source": { "source": "directory", "path": "./.claude/lsp" } }
+  },
+  "enabledPlugins": {
+    "pyright-uv@nfl-predictor": true,
+    "pyright-lsp@claude-plugins-official": false
+  },
   "hooks": {
     "UserPromptSubmit": [
       {

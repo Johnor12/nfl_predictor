@@ -7,10 +7,13 @@
 # - test_baseline_timeouts_need_a_timeout: only a team with a timeout left calls one, and the other team may
 #   answer with its own.
 # - test_baseline_challenges: only a team that may challenge does, at about the real rate.
+# - test_a_players_past_moves_who_is_credited: a defender who has made tackles makes more of them, and the
+#   charted stats (pressures, coverage, missed tackles, drops) come out of simulated plays.
 # - test_fake_kicks: the baseline fakes a punt now and then, and a fake plays out with the default predictors.
 # - test_fair_catch_kick_with_the_default_predictors: tried as a half runs out, and it plays out.
 # END
 import random
+from collections import Counter
 
 import pytest
 
@@ -19,7 +22,7 @@ import dataclasses
 from events.offensive_formation import Formation
 from events.snap import Snap
 from scenarios.play import Kick, Pass, facts, load_predictors, run_play, summarize, validate_play
-from scenarios.play.testing import synthetic_context
+from scenarios.play.testing import synthetic_context, with_history
 
 
 def test_baseline_plays_are_valid():
@@ -78,6 +81,26 @@ def test_baseline_challenges():
     assert {call.won for call in made} == {True, False}
     only_home = [challenge(ctx, outcome, ("HOME",), rng) for _ in range(20000)]
     assert {call.team for call in only_home if call} == {"HOME"}
+
+
+def test_a_players_past_moves_who_is_credited():
+    rng = random.Random(0)
+    ctx = synthetic_context(rng, kind="scrimmage", offense="HOME", defense="AWAY", down=1, distance=10.0, x=30.0)
+    ctx = with_history(ctx, "AWAY-LB1", {"tackles": 90, "assists": 30, "defense_snaps": 600})
+    ctx = with_history(ctx, "AWAY-LB2", {"tackles": 15, "assists": 5, "defense_snaps": 600})
+    predictors, totals = load_predictors(), Counter()
+    for _ in range(3000):
+        for pid, line in run_play(ctx, predictors, rng).stats.items():
+            for stat, value in line.items():
+                totals[pid, stat] += value
+                totals[stat] += value
+    made = lambda pid: totals[pid, "tackles"] + totals[pid, "assists"]  # noqa: E731
+    assert made("AWAY-LB1") > 2 * made("AWAY-LB2") > 0
+    charted = ("pressures", "hurries", "blitzes", "missed_tackles", "coverage_targets", "coverage_yds", "pressured",
+               "blitzed", "drops", "bad_throws", "rush_broken_tackles", "rec_broken_tackles", "rush_yds_before_contact")
+    assert all(totals[stat] > 0 for stat in charted), [stat for stat in charted if not totals[stat]]
+    assert totals["pressures"] >= totals["hurries"] + totals["sacks"] and totals["drops"] == totals["pass_drops"]
+    assert totals["coverage_cmp"] <= totals["pass_cmp"] and totals["coverage_targets"] <= totals["targets"]
 
 
 def test_fake_kicks():

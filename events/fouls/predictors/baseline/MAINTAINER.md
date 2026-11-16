@@ -6,6 +6,7 @@
 
 Notes:
 - Pre-snap fouls are counted by the pre-snap event's priors, not here.
+- Who the flag is on comes from `fouler[type]`, the position groups of the real flagged players (it replaced a hand-set table). Kicking plays need no key of their own: the pick is among the players on the field, so a hold on a punt return lands on the linebackers and backs who are out there, by the same counts.
 - nflverse names more fouls than the play scenario has. `shared.priors.flag` counts one under the scenario's foul that is enforced the same way (illegal use of hands as holding, a disqualification as unnecessary roughness), and drops the rest.
 - nflverse labels a play wiped out by a penalty `no_play`; `priors.py` reads the kind of play from its description (`shared.priors.nullified`).
 - Simulated games have about 2.5 fewer accepted penalties than real ones (10 a game against 12.5; `team: penalties` in `evaluators/game`). It was hidden while simulated games ran long. Two causes, measured on 24 games:

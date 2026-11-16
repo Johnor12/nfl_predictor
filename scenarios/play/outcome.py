@@ -188,8 +188,8 @@ def finish(ctx, rules, los, record, live, enforcement, injuries, fouls=()) -> Pl
     nxt = dataclasses.replace(nxt, clock=remaining, clock_running=clock_after == "running",
                               play_clock=rules.admin_play_clock if administrative else rules.play_clock,
                               fair_catch_kick=_fair_catch(ctx, live, final, nxt, enforcement.accepted))
-    player_stats = stats.credit(ctx, los, record, final, enforcement.accepted)
-    team_stats = stats.team_totals(ctx, los, record, final, player_stats, enforcement.penalty_yards)
+    player_stats = stats.credit(ctx, rules, los, record, live, enforcement)
+    team_stats = stats.team_totals(ctx, player_stats, enforcement.penalty_yards)
     during = [f for f in enforcement.accepted if f.timing != "after"]
     untimed = s.clock - elapsed <= 0 and (any(f.team == s.defense for f in during) or final.how == "offsetting")
     disqualified, warned = _conduct(ctx, rules, fouls)

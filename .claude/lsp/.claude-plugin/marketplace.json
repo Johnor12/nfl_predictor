@@ -1,0 +1,5 @@
+{
+  "name": "nfl-predictor",
+  "owner": { "name": "nfl_predictor" },
+  "plugins": [{ "name": "pyright-uv", "source": "./" }]
+}

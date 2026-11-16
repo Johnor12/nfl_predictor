@@ -9,7 +9,7 @@
 # - real_games(season, weeks=None) -> list[RealGame]: every game as a GameContext plus what happened (None
 #   if it hasn't been played).
 # - stat_lines(season) -> DataFrame: what every player did in every game (game_id, week, player_id, team, and a
-#   column per stat): the box score (STAT_COLUMNS) and, from 2018 on, what PFR charted (CHARTED).
+#   column per stat): the box score (STAT_COLUMNS) and, from 2018 on (CHARTED_SINCE), what PFR charted (CHARTED).
 # - STAT_COLUMNS: the play scenario's stat names -> the nflverse player stats columns they are the sum of.
 # - ON_FIELD: the stats of a team's plays that are also counted for each player on the field (Player.stats'
 #   on_<stat> and on_allowed_<stat>).
@@ -20,7 +20,7 @@ from shared.nflverse.contexts import RealPlay, real_plays, real_samples
 from shared.nflverse.download import SEASONS, load
 from shared.nflverse.form import ON_FIELD, TEAM_STATS
 from shared.nflverse.games import RealGame, real_games
-from shared.nflverse.stat_lines import CHARTED, STAT_COLUMNS, stat_lines
+from shared.nflverse.stat_lines import CHARTED, CHARTED_SINCE, STAT_COLUMNS, stat_lines
 
 __all__ = ["SEASONS", "load", "real_plays", "real_samples", "RealPlay", "real_games", "RealGame", "stat_lines",
-           "STAT_COLUMNS", "CHARTED", "ON_FIELD", "TEAM_STATS"]
+           "STAT_COLUMNS", "CHARTED", "CHARTED_SINCE", "ON_FIELD", "TEAM_STATS"]

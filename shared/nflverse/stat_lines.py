@@ -5,11 +5,10 @@
 #   for every season; the charted ones (CHARTED) only for the seasons Pro Football Reference charted (2018
 #   on), and a season without them has no such columns.
 # - STAT_COLUMNS: stat -> the nflverse player stats columns it is the sum of. Every stat the play scenario
-#   credits that a box score has, and a few it doesn't credit yet (TRUTH_ONLY).
+#   credits that a box score has.
 # - CHARTED: PFR file -> {stat: its column}: a defender's pressures, hurries, blitzes, missed tackles, and
 #   what he allowed in coverage; a passer's pressures and bad throws; a runner's yards before and after
-#   contact; a receiver's drops.
-# - TRUTH_ONLY: the box score stats the play scenario doesn't credit under that name yet.
+#   contact; a receiver's drops. CHARTED_SINCE: the first season that has them.
 # Internals: _box (the box score in our names), _charted (one PFR file in our names, by gsis id).
 # END
 from functools import lru_cache
@@ -21,9 +20,13 @@ from shared.nflverse.download import load
 STAT_COLUMNS = {
     "pass_att": ("attempts",), "pass_cmp": ("completions",), "pass_yds": ("passing_yards",),
     "pass_td": ("passing_tds",), "int_thrown": ("passing_interceptions",), "sacked": ("sacks_suffered",),
+    "sack_yards": ("sack_yards_lost",), "pass_air_yds": ("passing_air_yards",),
+    "pass_yac": ("passing_yards_after_catch",), "pass_first_downs": ("passing_first_downs",),
     "rush_att": ("carries",), "rush_yds": ("rushing_yards",), "rush_td": ("rushing_tds",),
+    "rush_first_downs": ("rushing_first_downs",),
     "targets": ("targets",), "receptions": ("receptions",), "rec_yds": ("receiving_yards",),
-    "rec_td": ("receiving_tds",),
+    "rec_td": ("receiving_tds",), "target_air_yds": ("receiving_air_yards",),
+    "rec_yac": ("receiving_yards_after_catch",), "rec_first_downs": ("receiving_first_downs",),
     "two_pt": ("passing_2pt_conversions", "rushing_2pt_conversions", "receiving_2pt_conversions"),
     "fumbles": ("fumbles_total",), "fumbles_lost": ("fumbles_lost_total",),
     "penalties": ("penalties",), "penalty_yards": ("penalty_yards",),
@@ -34,14 +37,16 @@ STAT_COLUMNS = {
     "passes_defended": ("def_pass_defended",), "forced_fumbles": ("def_fumbles_forced",),
     "fumble_recoveries": ("fumble_recovery_own", "fumble_recovery_opp"),
     "fumble_ret_yds": ("fumble_recovery_yards_own", "fumble_recovery_yards_opp"),
+    "fumble_ret_td": ("fumble_recovery_tds",),
     "kicks_blocked": ("def_punt_blocks", "def_pat_blocks", "def_fg_blocks"),
     "safeties": ("def_safeties",), "def_td": ("def_tds",), "special_teams_td": ("special_teams_tds",),
     "punt_returns": ("punt_returns",), "punt_ret_yds": ("punt_return_yards",),
     "kick_returns": ("kickoff_returns",), "kick_ret_yds": ("kickoff_return_yards",),
-    "fg_att": ("fg_att",), "fg_made": ("fg_made",), "xp_att": ("pat_att",), "xp_made": ("pat_made",),
+    "fg_att": ("fg_att",), "fg_made": ("fg_made",), "fg_made_yds": ("fg_made_distance",),
+    "xp_att": ("pat_att",), "xp_made": ("pat_made",),
     "punts": ("pt_att",), "punt_yds": ("pt_yards",),
 }
-TRUTH_ONLY = ("penalty_yards", "tfl", "safeties", "def_td", "special_teams_td")
+CHARTED_SINCE = 2018
 CHARTED = {
     "pfr_def": {"pressures": "def_pressures", "hurries": "def_times_hurried", "blitzes": "def_times_blitzed",
                 "missed_tackles": "def_missed_tackles", "coverage_targets": "def_targets",
@@ -60,6 +65,7 @@ def _box(season) -> pd.DataFrame:
     box = load("player_stats", season)
     box = box[box.player_id.notna()]  # a team's leftover row (penalties nobody was charged with) isn't a player
     stats = {stat: box[list(columns)].fillna(0).sum(axis=1) for stat, columns in STAT_COLUMNS.items()}
+    stats["sack_yards"] = -stats["sack_yards"]  # the box score has them as a loss; ours are the yards lost
     return pd.DataFrame({"game_id": box.game_id, "player_id": box.player_id, "team": box.team, **stats})
 
 

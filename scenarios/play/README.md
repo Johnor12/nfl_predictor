@@ -34,7 +34,7 @@ Each event's predictor is handed only the slice of these inputs (plus earlier ev
 
 - **the play record**: the ordered list of events and their outcomes (the play's timeline). The single source of truth for everything below.
 - the type of play, how long it took, and the players involved.
-- player outcomes, offensive and defensive: rushing yards, receiving yards, passes, receptions, first downs, touchdowns, kick yards, return yards, field goal makes and misses, fumbles, interceptions, sacks, tackles, and pressures. Team totals are the sum of player outcomes.
+- player outcomes, for every player on the field: a box score's stat line (passing, rushing, receiving, first downs, air yards and yards after the catch, tackles and tackles for loss, sacks, hits, interceptions, passes defended, fumbles, returns, kicks, punts, penalties and their yards, touchdowns of every kind, safeties) and what a charter adds to it (pressures, hurries, blitzes, missed and broken tackles, who was thrown at in coverage, drops, bad throws, yards before and after contact). `shared/nflverse/README.md` lists every stat, with the real one it is compared with. Team totals are the sum of player outcomes.
 - penalties: type, players involved, yardage outcome, accepted or declined, and initiating referee if available.
 - injuries (with how much of the game they cost the player, up to the rest of it) and disqualifications (the rest of it).
 - the new situation: possession, field location, down and distance, score, and the kind of the next play (a try after a touchdown, a kickoff after a try or field goal, a safety kick after a safety, otherwise a scrimmage down).

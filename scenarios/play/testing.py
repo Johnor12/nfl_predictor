@@ -134,8 +134,9 @@ def chaos_predictors() -> Predictors:
     def pass_rush(ctx, lineups, formation, defense, rng):
         rushers = list(lineups.defense.players)
         sackers = tuple(rng.sample(rushers, rng.choice([1, 1, 2])))
-        return PassRush(rng.randint(3, 7), rng.choice(RUSH_RESULTS), rng.uniform(1, 6),
-                        tuple(rng.sample(rushers, rng.randint(0, 2))), sackers, rng.uniform(0, 15))
+        some = lambda: tuple(rng.sample(rushers, rng.randint(0, 2)))  # noqa: E731
+        return PassRush(rng.randint(3, 7), rng.choice(RUSH_RESULTS), rng.uniform(1, 6), some(), sackers,
+                        rng.uniform(0, 15), some(), some())
 
     def target(ctx, lineups, formation, eligible, rng):
         return Target(rng.choice(eligible), rng.uniform(-5, 60), rng.choice(["left", "middle", "right"]))
@@ -143,7 +144,9 @@ def chaos_predictors() -> Predictors:
     def pass_result(ctx, lineups, target, rng):
         result = rng.choice(["complete", "incomplete", "intercepted"])
         defenders = lineups.defense.players + (() if result == "intercepted" else (None,))
-        return PassResult(result, rng.choice(defenders))
+        missed = rng.choice(["drop", "bad_throw", None]) if result == "incomplete" else None
+        return PassResult(result, rng.choice(defenders), 0.0, rng.choice(lineups.defense.players + (None,)),
+                          missed == "drop", missed == "bad_throw")
 
     def carry(ctx, lineups, kind, carrier, yard_line, rng):
         team = ctx.by_id[carrier].team
@@ -155,7 +158,9 @@ def chaos_predictors() -> Predictors:
             teammates = [pid for pid in _team_players(ctx, lineups, team) if pid != carrier]
             return CarryEnd(yards, how, seconds=rng.uniform(0, 10), lateral_to=rng.choice(teammates))
         forced = rng.choice(opponents + (None,)) if how == "fumble" else None
-        return CarryEnd(yards, how, tuple(rng.sample(opponents, rng.randint(0, 2))), forced, rng.uniform(0, 10))
+        return CarryEnd(yards, how, tuple(rng.sample(opponents, rng.randint(0, 2))), forced, rng.uniform(0, 10),
+                        None, tuple(rng.sample(opponents, rng.randint(0, 1))), rng.randint(0, 1),
+                        rng.choice([None, rng.uniform(-3, 5)]))
 
     def loose_ball(ctx, lineups, cause, x, last_team, rng):
         s = ctx.situation

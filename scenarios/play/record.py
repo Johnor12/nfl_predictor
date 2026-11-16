@@ -30,6 +30,9 @@ class Pass:
     result: str                    # complete, incomplete, intercepted, throwaway, spike
     defender: str | None = None
     seconds: float = 0.0           # in the air
+    coverage: str | None = None    # charted: the defender in coverage, a drop, a bad throw
+    drop: bool = False
+    bad_throw: bool = False
 
 
 @dataclass(frozen=True)
@@ -44,6 +47,9 @@ class Carry:
     forced_by: str | None = None
     seconds: float = 0.0
     lateral: bool = False          # the ball came by a lateral: same kind as the carry before it, from where it ended
+    missed: tuple[str, ...] = ()   # charted: who missed a tackle, the tackles broken, the yards before contact
+    broken: int = 0
+    contact: float | None = None
 
 
 @dataclass(frozen=True)

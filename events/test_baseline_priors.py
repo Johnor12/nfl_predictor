@@ -1,6 +1,7 @@
 # START
 # Tests for the baseline priors build. Skipped unless the 2026 files are already in .cache/nflverse.
-# - test_week_one_build: every event with a priors.py gets priors, with the same keys as its committed file.
+# - test_week_one_build: every event with a priors.py gets priors, with the same keys as its committed file;
+#   who is credited (tacklers, pass defenders, flagged players) and the charted rates are counted.
 # - test_on_field_priors: a season that records who was on the field (2025) adds the personnel keys, and a
 #   2026 game gets them from it. Skipped unless the 2025 files are cached too.
 # - test_old_season_build: a season in the older data formats (2016) builds the same keys, the personnel
@@ -20,6 +21,11 @@ def test_week_one_build():
     assert len(built) == 19
     for event, priors in built.items():
         assert priors and set(priors) <= set(priors_of(_builders()[event].__file__)(2026, 1)), event
+    assert {"credited", "shared", "broken", "missed", "misser", "after_contact"} <= set(built["carry"])
+    assert built["carry"]["tackler"]["catch|solo"]["DB"] > built["carry"]["tackler"]["catch|solo"]["DL"]
+    assert {"defender", "covered", "coverage", "drop", "bad_throw"} <= set(built["pass_result"])
+    assert {"hurried", "blitzed", "hurrier", "blitzer"} <= set(built["pass_rush"])
+    assert built["fouls"]["fouler"]["offensive_holding"]["OL"] > 5 and "false_start" in built["pre_snap"]["fouler"]
 
 
 @pytest.mark.skipif(not (CACHE / "pbp_participation_2025.parquet").exists(), reason="2025 nflverse cache missing")

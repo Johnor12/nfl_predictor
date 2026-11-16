@@ -4,10 +4,13 @@
 #   hand in its own `dropback` and keep the rest (events/pass_rush/predictors/gbm).
 # - dropback(ctx, formation, league) -> {"throw": weight, "sack": weight, "scramble": weight}: the league's
 #   sack and scramble rates (the priors' `dropback` counts), moved toward the quarterback's own this season.
-# Hand-set: time to throw, scramble, or throw away, how long a sack takes, the split-sack rate, and DROPBACKS.
+# Who sacks or hits him: by position group, and each defender's own sacks and hits per snap
+# (shared.priors.PASS_RUSH). What a charter adds, at the charted rates: who blitzed on the dropback, and who
+# hurried a throw the quarterback wasn't hit on (each by position group and the defender's own past).
+# Hand-set: time to throw, scramble, or throw away, how long a sack takes, and DROPBACKS.
 # END
 from events.pass_rush import PassRush
-from shared.priors import choice, hist, pick, pick_many, priors_of, rate
+from shared.priors import BLITZES, HURRIES, PASS_RUSH, choice, hist, pick, pick_many, priors_of, rate, some
 
 load_priors = priors_of(__file__)  # (season, week) -> priors dict
 SECONDS = {"throw": (2.7, 0.6), "scramble": (3.3, 0.7), "throwaway": (3.6, 0.8)}  # mean, sd
@@ -35,12 +38,16 @@ def predict(ctx, lineups, formation, defense, rng, dropback=dropback):
         outcome = "throwaway"
     rushers = int(min(8, max(3, hist(p["rushers"], rng))))
     defenders = lineups.defense.players
+    blitzers = some(ctx, defenders, rng, p.get("blitzed"), p.get("second_blitzer"), p.get("blitzer"), BLITZES)
     if outcome == "sack":
-        sackers = pick_many(ctx, defenders, p["sacker"], 2 if rng.random() < 0.1 else 1, rng)
+        shared = rng.random() < rate(p["shared_sack"], "yes")
+        sackers = pick_many(ctx, defenders, p["sacker"], 2 if shared else 1, rng, PASS_RUSH)
         result = "strip_sack" if rng.random() < rate(p["strip_sack"], "fumble") else "sack"
         return PassRush(rushers, result, max(2.5, rng.gauss(5.5, 1.0)), sackers, sackers,
-                        max(0.0, hist(p["sack_yards"], rng)))
+                        max(0.0, hist(p["sack_yards"], rng)), blitzers=blitzers)
     hit = outcome == "throw" and rng.random() < rate(p["qb_hit"], "hit")
-    hitters = (pick(ctx, defenders, p["sacker"], rng),) if hit else ()
+    hitters = (pick(ctx, defenders, p["sacker"], rng, own=PASS_RUSH),) if hit else ()
+    thrown = outcome in ("throw", "throwaway") and not hit
+    hurriers = some(ctx, defenders, rng, thrown and p.get("hurried"), p.get("second_hurrier"), p.get("hurrier"), HURRIES)
     mean, sd = SECONDS[outcome]
-    return PassRush(rushers, outcome, max(1.0, rng.gauss(mean, sd)), hitters)
+    return PassRush(rushers, outcome, max(1.0, rng.gauss(mean, sd)), hitters, hurriers=hurriers, blitzers=blitzers)
