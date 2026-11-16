@@ -57,7 +57,8 @@ def synthetic_context(rng, kind=None, **situation):
     s = Situation(kind, off, de, x, down, distance, {off: rng.randint(0, 40), de: rng.randint(0, 40)},
                   rng.randint(1, 5), float(rng.randint(0, 900)), rng.random() < 0.5, 40,
                   {off: rng.randint(0, 3), de: rng.randint(0, 3)})
-    s = dataclasses.replace(s, **situation)
+    after_fair_catch = kind == "scrimmage" and x % 5 == 0  # some downs may be a fair-catch kick
+    s = dataclasses.replace(s, **{"fair_catch_kick": after_fair_catch, **situation})
     game = Game("test", 2026, 1, "HOME", "AWAY")
     return PlayContext(game, s, synthetic_roster("HOME") + synthetic_roster("AWAY"))
 

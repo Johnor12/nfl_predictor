@@ -124,7 +124,7 @@ def unit_lineup(ctx, team, unit, rng) -> tuple[str, ...]:
         return offense_lineup(ctx, team, "22", rng)
     if unit == "defense":
         return defense_lineup(ctx, team, "base", rng)
-    unit = "kickoff" if unit == "onside_kickoff" else unit
+    unit = {"onside_kickoff": "kickoff", "fair_catch_kick": "field_goal"}.get(unit, unit)
     chosen = []
     for slot, position in SPECIALISTS.get(unit, ()):  # one at a time, so nobody fills two jobs
         ranked = _ranked(ctx, team, unit, (slot,), (position,), chosen)

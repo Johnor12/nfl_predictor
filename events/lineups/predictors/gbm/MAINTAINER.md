@@ -18,4 +18,5 @@ Notes:
 - 100 rounds: on 2019 and 2020 the score was best there (0.1220 against 0.1232 at 150). A fourth down is rare (4,000 a season), so this is the smallest table of the trained predictors.
 - The baseline's hand-set rules run first and aren't the model's: the kneel, and the field goal at the end of a half.
 - Teams go for it more every season. The season is an input, but a model can't know the season after its last: 2026's model was trained through 2025.
+- A fake punt or field goal is the kicking unit's (`shared.priors.sent_out`): the coach sent that unit out, and the snap event decides to fake. Before 2026-11-16 the about 20 fakes a season were labeled as going for it; relabeled and retrained, `lineups: unit (4th down)` went 0.1490 -> 0.1382 on the evaluators' default games (the real unit of a fake changed with it, so this is the label, not a better model). The team's go rate (`fourth_down_goes`, `shared/nflverse/form.py`) still counts a fake as going for it.
 - After changing `inputs.py` or `example`, delete `.cache/training/lineups_gbm_*.parquet` and retrain every model.

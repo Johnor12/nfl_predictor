@@ -32,5 +32,6 @@ Building priors (used by each baseline's `priors.py` and by `events/baseline_pri
 - `flag(sample)`: the flag on the play as `(foul name, "offense" | "defense")` in the play scenario's foul names, or None. `PRESNAP`: the fouls that belong to the pre-snap event. `flagrant(sample)`: the flagged player was disqualified.
 - `personnel(sample)` (`"11"`, `"12+"`), `package(sample)` (`goal_line`, `base`, `nickel`, `dime`), `played(sample)` (`(offense ids, defense ids)`): the participation row read in the lineups event's terms, or None.
 - `kickoff_result(sample)`: `(zone, result)` for a kickoff that came down in the landing zone or end zone, else None.
-- `timeout_case(play) -> (context, caller)`: the play's context as it stood before any timeout was called, and who called one (`offense`, `defense`, or `none`). `play` is a `Sample` or a `RealPlay`: only its context and `actual` are read.
+- `sent_out(sample)`: the unit behind a real scrimmage down (`offense`, `punt`, `field_goal`, `victory` for a kneel, None if a penalty wiped it out). A run or a pass out of a kicking formation (the description says which) was the kicking unit's: a fake.
+- `timeout_case(play) -> (context, caller)`: the play's context as it stood before any timeout was called (both teams', if each called one), and who called the first (`offense`, `defense`, or `none`). `play` is a `Sample` or a `RealPlay`: only its context and `actual` are read.
 - `nullified(sample)`: what a play wiped out by a penalty was (`run`, `pass`, `punt`, `field_goal`, `kickoff`), from its description.

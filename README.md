@@ -67,13 +67,16 @@ not built: coach's challenges, multiple timeouts per dead ball, injury stoppage 
 
 current goals:
 
-1. follow up on our game scenario implementation, building out any remaining edge cases.
+1. expand player props (and our system for predicting and measuring them) to prior years. let me know if you need more data sources. we should be predicting all relevant offensive statistics for all offensive skill players (QB, WR, TE, RB, Kicker).
+2. it feels like team strength is a proxy/approximation for the sum of all players' strengths + coaching staff strength. investigate a version of our system which tracks no single team strength and uses player + coach identities as the "skill" input. similarly, including "team 4-th down go rate" for example seems like a mistake to me; the "team" as an entity probably has only mild preferences ("team culture"). the coaching staff and available players seem much more relevant. that would also allow us to handle coaching staff changes cleanly without erroneous carry-over from their respective teams.
+3. I suspect a team's wider coaching staff has a decent impact on outcomes; at the least offensive and defensive coordinator seem relevant. for playcalling in particular, knowing who is calling plays seems like extremely relevant input to what play is called (not always the OC/DC). investigate adding more coaching staff depth to the model, and more intelligent play calling information.
+4. we currently run 100 sims at the game level when evaluating changes - is that sufficient?
+5. I think some more sophisticated inputs might be beneficial to some predictors; the obvious candidates are coach sentiment via media conferences and overall media coverage (insiders) for predicting player usage or injury durations (not super relevant now, because we only predict at the game level, not the season). those metrics might be hard to find or process, especially in retrospect, but I think it's worth investigating.
+6. test scaling predictor model sizes/training times for accuracy improvements.
 
-2. expand player props (and our system for predicting and measuring them) to prior years. let me know if you need more data sources. we should be predicting all relevant offensive statistics for all offensive skill players (QB, WR, TE, RB, Kicker).
-
-3. it feels like team strength is a proxy/approximation for the sum of all players' strengths + coaching staff strength. investigate a version of our system which tracks no single team strength and uses player + coach identities as the "skill" input. similarly, including "team 4-th down go rate" for example seems like a mistake to me; the "team" as an entity probably has only mild preferences ("team culture"). the coaching staff and available players seem much more relevant. that would also allow us to handle coaching staff changes cleanly without erroneous carry-over from their respective teams.
-
-4. I suspect a team's wider coaching staff has a decent impact on outcomes; at the least offensive and defensive coordinator seem relevant. for playcalling in particular, knowing who is calling plays seems like extremely relevant input to what play is called (not always the OC/DC). investigate adding more coaching staff depth to the model, and more intelligent play calling information.
+open questions:
+1. do we take into account the strength of non-skill players (basically everyone off the ball)?
+2. do we take into account coaching staff outside of head coach? are referees treated as fungible or unique?
 
 notes:
 Do you want a priced source for player props? Without prices a prop can only be treated as a coin flip at the line, and priced history most likely means a paid odds API.

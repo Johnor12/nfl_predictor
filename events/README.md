@@ -1,6 +1,6 @@
 # events
 
-One package per event: a discrete thing that happens, with inputs and an output, predicted by a predictor. 17 are the play scenario's events, 2 the coin toss scenario's, and 1 the game scenario's.
+One package per event: a discrete thing that happens, with inputs and an output, predicted by a predictor. 17 are the play scenario's events, 2 the coin toss scenario's, and 2 the game scenario's.
 
 Each event package `events/<event>/` has:
 
@@ -10,7 +10,7 @@ Each event package `events/<event>/` has:
 
 Events, in the order the play scenario chains them: `lineups`, `offensive_formation`, `defensive_formation`, `pre_snap`, `snap`, `pass_rush`, `target`, `pass_result`, `punt_kick`, `punt_result`, `kick_attempt`, `free_kick`, `kick_result`, `carry`, `loose_ball`, `fouls`, `injuries` (the chain itself is in `play/README.md`).
 
-The coin toss scenario's events: `coin_toss`, `toss_choice`. The game scenario's: `timeout` (who calls one, and how far into the play clock), asked before every play. Their inputs are in their own READMEs; `game.load_game_predictors(timeout="other")` chooses implementations for all 20.
+The coin toss scenario's events: `coin_toss`, `toss_choice`. The game scenario's: `timeout` (who calls one, and how far into the play clock), asked before every play, and `challenge` (which coach challenges the play just run, and whether he wins), asked after every play a coach may challenge. Their inputs are in their own READMEs; `game.load_game_predictors(timeout="other")` chooses implementations for all 21.
 
 Inputs common to every play event's predictor:
 
@@ -21,7 +21,7 @@ Inputs common to every play event's predictor:
 
 Choosing implementations: `play.load_predictors()` loads every event's default, `play.load_predictors(carry="other")` swaps in `events/carry/predictors/other/`, and `play.load_predictors("baseline")` loads every event's `baseline`. All of them go through `events.predictor(event, name=None)`, which returns an implementation's `predict` (the event's default without a name).
 
-Scoring implementations: `python -m evaluators.play --swap carry=other` scores each play event's predictor against what really happened in a sample of games across seasons (see `evaluators/play/README.md`), and `python -m evaluators.game --swap carry=other` scores whole games, and the timeout predictor, with it (see `evaluators/game/README.md`).
+Scoring implementations: `python -m evaluators.play --swap carry=other` scores each play event's predictor against what really happened in a sample of games across seasons (see `evaluators/play/README.md`), and `python -m evaluators.game --swap carry=other` scores whole games, and the timeout and challenge predictors, with it (see `evaluators/game/README.md`).
 
 Trained predictors: a model per season, fitted to the real plays of the seasons before it, next to the predictor's code (`model_<season>.txt`). `python -m events.training` retrains every one of them (`2026` for one season's models, `2021-2026` for a range), and `python -m events.snap.predictors.gbm.train` one of them (see their READMEs). Each replaces one part of its event and leaves the rest to the baseline. What they share:
 

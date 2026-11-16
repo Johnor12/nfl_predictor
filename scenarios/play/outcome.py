@@ -5,8 +5,9 @@
 # - expected_points(situation) / value(ctx, rules, los, dead, team): a rough worth of a result for a team,
 #   used only by the hardcoded accept/decline rule in penalties.py.
 # - finish(ctx, rules, los, record, live, enforcement, injuries, fouls) -> PlayResult: adds stats, elapsed
-#   time, what the clock does next (_clock_after), the untimed-down / 10-second-runoff flags, and who was
-#   disqualified (_conduct: a flagrant foul, or a second unsportsmanlike conduct foul in the game).
+#   time, what the clock does next (_clock_after), the untimed-down / 10-second-runoff flags, whether a
+#   fair-catch kick may follow (_fair_catch), and who was disqualified (_conduct: a flagrant foul, or a
+#   second unsportsmanlike conduct foul in the game).
 # END
 import dataclasses
 
@@ -150,6 +151,18 @@ def _runoff(ctx, enforcement, remaining) -> bool:
     return stops and s.quarter in (2, 4) and remaining <= 60
 
 
+def _fair_catch(ctx, live, final, nxt, accepted) -> bool:
+    """The next down may be a fair-catch kick: the receiving team made a fair catch, or was awarded one for
+    interference with the catch. A down replayed after a penalty keeps the option it had."""
+    s = ctx.situation
+    if nxt.kind != "scrimmage":
+        return False
+    if live is None or final.no_play:
+        return s.fair_catch_kick and nxt.offense == s.offense
+    caught = live.how == "fair_catch" or any(f.type == "fair_catch_interference" for f in accepted)
+    return caught and nxt.offense == s.defense
+
+
 def _conduct(ctx, rules, fouls):
     """(players disqualified on this play, players now one unsportsmanlike conduct foul from it). A foul counts
     whether or not its penalty was accepted."""
@@ -173,7 +186,8 @@ def finish(ctx, rules, los, record, live, enforcement, injuries, fouls=()) -> Pl
     flagged = bool(enforcement.accepted or enforcement.declined)
     administrative = flagged or nxt.offense != s.offense or nxt.kind != "scrimmage"
     nxt = dataclasses.replace(nxt, clock=remaining, clock_running=clock_after == "running",
-                              play_clock=rules.admin_play_clock if administrative else rules.play_clock)
+                              play_clock=rules.admin_play_clock if administrative else rules.play_clock,
+                              fair_catch_kick=_fair_catch(ctx, live, final, nxt, enforcement.accepted))
     player_stats = stats.credit(ctx, los, record, final, enforcement.accepted)
     team_stats = stats.team_totals(ctx, los, record, final, player_stats, enforcement.penalty_yards)
     during = [f for f in enforcement.accepted if f.timing != "after"]

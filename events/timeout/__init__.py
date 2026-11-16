@@ -1,7 +1,7 @@
 # START
 # The timeout event: whether a team calls a timeout before the next play (see README.md).
-# - Predictor: predict(ctx, rng) -> Timeout | None. ctx is the next play's PlayContext as it stands before
-#   the snap.
+# - Predictor: predict(ctx, called, rng) -> Timeout | None. ctx is the next play's PlayContext as it stands
+#   before the snap, called the team that has already called one in this dead ball (None if nobody has).
 # - Timeout: the team calling it, and how long the play clock had been going when it did.
 # END
 from dataclasses import dataclass

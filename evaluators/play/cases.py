@@ -27,7 +27,7 @@ from dataclasses import dataclass, replace
 from events.lineups import Lineup, Lineups
 from events.target import Target
 from scenarios.play import FREE_KICKS, eligible_receivers
-from shared.priors import PRESNAP, flag, kickoff_result, nullified, package, personnel, played, present, role
+from shared.priors import PRESNAP, flag, kickoff_result, nullified, package, personnel, played, present, role, sent_out
 
 OFFENSE = ("run", "scramble", "pass", "sack")
 DROPBACK = ("pass", "sack", "scramble")
@@ -78,7 +78,7 @@ def _unit(sample) -> str | None:
         return None
     if s.kind == "try":
         return "field_goal" if action == "extra_point" else "offense"
-    return {"punt": "punt", "field_goal": "field_goal", "kneel": "victory"}.get(action, "offense")
+    return sent_out(sample)  # a fake is the kicking unit's
 
 
 def _kind(sample) -> str | None:

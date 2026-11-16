@@ -4,12 +4,14 @@ The real rate at which the offense or the defense calls a timeout before a play,
 
 API (`from events.timeout.predictors.baseline import predict`, or `game.load_game_predictors("baseline")`):
 
-- `predict(ctx, rng) -> Timeout | None`
+- `predict(ctx, called, rng) -> Timeout | None`
 - `situation_key(situation) -> str`: the bucket the rates are counted by; `late(situation) -> str`: how late in the half it is.
 
 From data: who called a timeout before each real play (offense, defense, or nobody), by half, time left in the half (more than 5:00, 5:00, 2:00, 1:00), whether the clock is running, and, late in the second half, whether the offense is ahead, behind, or tied (`timeout`). Plays that aren't scrimmage downs share one bucket.
 
 Also from data, for a timeout on a running clock: how long the clock ran first, by how late in the half it is and who called it (`snap_gap`, the real time between the two snaps around such a timeout, less what the first play took: `shared.priors.wait`). Early in a half the offense calls its timeouts with the play clock nearly out, so about 35 seconds run off; a defense in the last two minutes calls it at once.
+
+After a timeout (`called`), the other team calls one in the same dead ball at the real rate for how late in the half it is (`second`), which is seldom outside the last two minutes.
 
 A team with no timeouts left can't call one; its share goes to nobody.
 

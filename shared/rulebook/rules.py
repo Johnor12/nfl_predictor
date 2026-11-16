@@ -41,6 +41,8 @@ class Rules:
     admin_play_clock: int = 25
     # discipline
     unsportsmanlike_ejection: bool = True  # two unsportsmanlike fouls disqualify (2016+)
+    # replay: a team has two coach's challenges a game, and a third once it has won this many (both before 2024)
+    third_challenge_wins: int = 1
     # overtime: sudden_death (any score wins), modified (a field goal on the first possession doesn't end it),
     # or both_possess (each team gets a possession before the next score wins)
     overtime_format: str = "both_possess"          # regular season: modified 2012-2024, sudden_death before
@@ -58,6 +60,7 @@ def rules_for(season: int) -> Rules:
     if season < 2016:
         r.update(unsportsmanlike_ejection=False)
     if season < 2024:
+        r.update(third_challenge_wins=2)
         r.update(dynamic_kickoff=False, onside_declared="any", kickoff_fair_catch=True,
                  kickoff_touchback_line=25 if season >= 2016 else 20)
     if season == 2023:

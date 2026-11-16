@@ -4,10 +4,15 @@
 # - test_baseline_games: baseline games are valid, repeat by seed, and look like football.
 # - test_kneel_downs_end_in_a_tie / test_a_playoff_game_has_a_winner: how a game ends.
 # - test_timeouts / test_a_timeout_takes_what_ran_before_it / test_the_snap_that_never_came: stoppages called
-#   by a predictor, the running clock before the call, and the clock running out (or reaching the
-#   two-minute warning) before the snap.
+#   by a predictor (one by each team in a dead ball at most), the running clock before the call, and the
+#   clock running out (or reaching the two-minute warning) before the snap.
 # - test_overtime_formats: who has had a possession and when the score ends the game, on hand-built plays.
-# - test_injured_players_sit_out: availability, and the last players at a required position playing through.
+# - test_a_third_overtime_period_starts_with_a_kickoff: a postseason game that goes on and on.
+# - test_injured_players_sit_out / test_emergency_replacements: availability, and the stand-ins at a position
+#   a team can't play without.
+# - test_an_injury_after_the_two_minute_warning_costs_a_timeout: the charge, and the excess timeout's runoff.
+# - test_challenges: what a challenge costs, how many a team has, and when it may not.
+# - test_a_fair_catch_kick_extends_the_half: the kick with no time left, and the half ending without it.
 # - test_disqualified_players_are_out_for_the_game: a second unsportsmanlike conduct foul, over two plays.
 # - test_ten_second_runoff: the runoff, and the timeout that avoids it.
 # Helpers: play(...) is a fake overtime play result with only the fields Overtime reads.
@@ -17,17 +22,23 @@ from types import SimpleNamespace
 
 import pytest
 
+from events.challenge import Challenge
 from events.fouls import Foul
 from events.injuries import Injury
+from events.kick_attempt import KickAttempt
 from events.lineups import Lineup, Lineups
+from events.lineups.predictors.baseline.depth_chart import unit_lineup
 from events.pre_snap import PreSnap
+from events.punt_kick import PuntKick
+from events.punt_result import PuntResult
 from events.timeout import Timeout
 from scenarios.game import Stoppage, clock, describe_game, load_game_predictors, run_game, validate_game, validate_game_context
 from scenarios.game.overtime import Overtime
 from scenarios.game.roster import Availability
 from scenarios.game.testing import chaos_game_predictors, synthetic_game, with_events
-from scenarios.play import Carry, IllegalChoice
+from scenarios.play import Carry, IllegalChoice, Kick, facts
 from scenarios.play.testing import synthetic_roster
+from shared.rulebook import rules_for
 
 H, A = "HOME", "AWAY"
 
@@ -65,13 +76,16 @@ def kneel(ctx, rng):
     s = ctx.situation
     if s.kind != "scrimmage":
         return BASELINE.play.lineups(ctx, rng)
-    offense = [f"{s.offense}-{name}" for name in ("QB1", "OL1", "OL2", "OL3", "OL4", "OL5", "RB1", "RB2", "TE1", "TE2", "WR1")]
-    defense = [f"{s.defense}-{name}" for name in ("DL1", "DL2", "DL3", "DL4", "LB1", "LB2", "LB3", "DB1", "DB2", "DB3", "DB4")]
-    return Lineups(Lineup("victory", "22", tuple(offense)), Lineup("defense", "base", tuple(defense)))
+    def first(team, **counts):  # the first available players at each position
+        return tuple(p.id for position, count in counts.items()
+                     for p in [p for p in ctx.roster(team) if p.position == position][:count])
+
+    return Lineups(Lineup("victory", "22", first(s.offense, QB=1, OL=5, RB=2, TE=2, WR=1)),
+                   Lineup("defense", "base", first(s.defense, DL=4, LB=3, DB=4)))
 
 
 BASELINE = load_game_predictors("baseline")
-QUIET = with_events(BASELINE, lineups=kneel, timeout=lambda ctx, rng: None,
+QUIET = with_events(BASELINE, lineups=kneel, timeout=lambda *args: None, challenge=lambda *args: None,
                     pre_snap=lambda *args: PreSnap(30.0), fouls=lambda *args: (), injuries=lambda *args: ())
 
 
@@ -100,7 +114,7 @@ def test_a_playoff_game_has_a_winner():
 
 
 def test_timeouts():
-    def home_at_the_start_of_the_second(ctx, rng):
+    def home_at_the_start_of_the_second(ctx, called, rng):
         s = ctx.situation
         return Timeout(H) if s.quarter == 2 and s.timeouts[H] == 3 else None
 
@@ -112,11 +126,24 @@ def test_timeouts():
     third = next(p.context.situation for p in result.plays if p.context.situation.quarter == 3)
     assert third.timeouts == {H: 3, A: 3}
     with pytest.raises(IllegalChoice):  # a fourth timeout in a half
-        run_game(synthetic_game(), with_events(QUIET, timeout=lambda ctx, rng: Timeout(H)), random.Random(0))
+        run_game(synthetic_game(), with_events(QUIET, timeout=lambda ctx, called, rng: None if called else Timeout(H)),
+                 random.Random(0))
+
+    def one_each(ctx, called, rng):  # the away team answers the home team's timeout with its own
+        s = ctx.situation
+        if s.quarter != 2 or s.timeouts[A] < 3:
+            return None
+        return Timeout(A) if called == H else None if called else Timeout(H)
+
+    result = run_game(synthetic_game(), with_events(QUIET, timeout=one_each), random.Random(0))
+    assert validate_game(result) == []
+    assert [(e.team, e.quarter, e.clock) for e in stoppages(result, "timeout")] == [(H, 2, 900.0), (A, 2, 900.0)]
+    with pytest.raises(IllegalChoice):  # the same team twice in one dead ball
+        run_game(synthetic_game(), with_events(QUIET, timeout=lambda ctx, called, rng: Timeout(H)), random.Random(0))
 
 
 def test_a_timeout_takes_what_ran_before_it():
-    def late_in_the_play_clock(ctx, rng):
+    def late_in_the_play_clock(ctx, called, rng):
         s = ctx.situation
         return Timeout(H, 35.0) if s.quarter == 1 and s.clock_running and s.timeouts[H] == 3 else None
 
@@ -194,13 +221,34 @@ def test_overtime_formats():
     assert Overtime("sudden_death", (H, A)).over(field_goal)
 
 
+def test_a_third_overtime_period_starts_with_a_kickoff():
+    class Enough(Exception):
+        pass
+
+    first = {}  # the situation each period starts from
+
+    def watch(ctx, called, rng):
+        s = ctx.situation
+        first.setdefault(s.quarter, s)
+        if s.quarter == 10:
+            raise Enough
+
+    away_receives = dict(coin_toss=lambda ctx, rng: A, toss_choice=lambda ctx, winner, allowed, rng: "receive")
+    with pytest.raises(Enough):  # nobody can score
+        run_game(synthetic_game(playoff=True), with_events(QUIET, timeout=watch, **away_receives), random.Random(0))
+    assert [(first[q].kind, first[q].offense) for q in (5, 7, 9)] == [("kickoff", H), ("kickoff", A), ("kickoff", H)]
+    assert [first[q].kind for q in (6, 8, 10)] == ["scrimmage"] * 3  # play goes on from where it was
+    assert first[6].timeouts == first[5].timeouts and (first[7].timeouts, first[7].clock) == ({H: 3, A: 3}, 900.0)
+
+
 def test_injured_players_sit_out():
     players = synthetic_roster(H) + synthetic_roster(A)
     roster = Availability(players)
-    roster.played((Injury("HOME-RB1", 2), Injury("HOME-K1", 999), Injury("AWAY-WR1", 999)), (), 0)
-    assert roster.absences == [("HOME-RB1", 1, 2), ("AWAY-WR1", 1, 999)]  # the only kicker plays through it
+    assert roster.active() is players
+    roster.played((Injury("HOME-RB1", 2), Injury("AWAY-WR1", 999)), (), 0)
+    assert roster.absences == [("HOME-RB1", 1, 2), ("AWAY-WR1", 1, 999)]
     active = {p.id for p in roster.active()}
-    assert "HOME-RB1" not in active and "AWAY-WR1" not in active and "HOME-K1" in active
+    assert "HOME-RB1" not in active and "AWAY-WR1" not in active
     roster.played((), (), 1)
     assert "HOME-RB1" not in {p.id for p in roster.active()}
     same = roster.active()
@@ -208,18 +256,125 @@ def test_injured_players_sit_out():
     assert "HOME-RB1" in {p.id for p in roster.active()} and "AWAY-WR1" not in {p.id for p in roster.active()}
     roster.played((), (), 3)
     assert roster.active() is not same and len(roster.active()) == len(players) - 1
-    for i in range(4):
-        roster.played((Injury(f"HOME-OL{i + 1}", 999),), (), 4 + i)
-    assert sum(p.team == H and p.position == "OL" for p in roster.active()) == 5  # 8 linemen, 3 can be lost
 
     def often(ctx, lineups, record, rng):
         if rng.random() > 0.3:
             return ()
         return (Injury(rng.choice(lineups.offense.players + lineups.defense.players), rng.choice([1, 3, 10, 10, 999])),)
 
-    hurt = with_events(chaos_game_predictors(), injuries=often)
-    result = run_game(synthetic_game(), hurt, random.Random(0))
-    assert validate_game(result) == [] and len(result.absences) > 40
+    for predictors in (chaos_game_predictors(), BASELINE):
+        result = run_game(synthetic_game(), with_events(predictors, injuries=often), random.Random(0))
+        assert validate_game(result) == [] and len(result.absences) > 30
+
+
+def test_emergency_replacements():
+    roster = Availability(synthetic_roster(H) + synthetic_roster(A))
+    positions = lambda: {p.id: p.position for p in roster.active()}
+    roster.played((Injury("HOME-K1", 999), Injury("HOME-QB1", 2)), (), 0)
+    now = positions()
+    assert "HOME-K1" not in now and now["HOME-DB1"] == "K" and now["HOME-P1"] == "P"  # the punter is needed where he is
+    assert "HOME-QB1" not in now and now["HOME-QB2"] == "QB" and now["HOME-RB1"] == "RB"  # the backup plays
+    roster.played((Injury("HOME-QB2", 999),), (), 1)
+    assert positions()["HOME-RB1"] == "QB"  # nobody left: a back takes the snaps
+    roster.played((), (), 2)
+    assert positions()["HOME-RB1"] == "RB" and positions()["HOME-QB1"] == "QB"  # until the starter is back
+    for i in range(4):
+        roster.played((Injury(f"HOME-OL{i + 1}", 999),), (), 3 + i)
+    now = positions()
+    assert sum(position == "OL" for pid, position in now.items() if pid.startswith(H)) == 5 and now["HOME-DL1"] == "OL"
+    assert all(p.position == q.position for p, q in zip(roster.active(), synthetic_roster(A)[::-1]) if p.id == q.id)
+    roster.played((), ("HOME-P1",), 7)  # a disqualified punter: the backup quarterback would punt, but he is hurt
+    assert positions()["HOME-DB2"] == "P" and len(roster.absences) == 8
+    no_punter = tuple(p for p in synthetic_roster(H) if p.position != "P")
+    roster = Availability(no_punter)  # a team that came without a punter isn't given one
+    roster.played((Injury("HOME-RB1", 1),), (), 0)
+    assert all(p.position != "P" for p in roster.active())
+
+
+def test_an_injury_after_the_two_minute_warning_costs_a_timeout():
+    def hurt(ctx, lineups, record, rng):  # an offensive player, on every scrimmage down late in the first half
+        s = ctx.situation
+        return (Injury(lineups.offense.players[-1], 1),) if s.kind == "scrimmage" and s.quarter == 2 and s.clock <= 120 else ()
+
+    result = run_game(synthetic_game(), with_events(QUIET, injuries=hurt), random.Random(0))
+    assert validate_game(result) == []
+    charged, excess = stoppages(result, "injury_timeout"), stoppages(result, "excess_timeout")
+    assert charged and excess and all(e.quarter == 2 and e.clock <= 120 for e in charged + excess)
+    for team in (H, A):
+        mine = [e for e in result.record if isinstance(e, Stoppage) and e.team == team and e.quarter == 2]
+        kinds = [e.kind for e in mine]
+        assert kinds[:3] == ["injury_timeout"] * min(3, len(kinds)) and set(kinds[3:]) <= {"excess_timeout"}
+    for i, entry in enumerate(result.record):
+        if entry in excess:  # the offense had no timeout left: ten seconds come off a running clock
+            runoff = result.record[i + 1]
+            assert (runoff.kind, runoff.clock) == ("runoff", max(0.0, entry.clock - 10))
+        if entry in charged + excess:  # never for a down that turned the ball over
+            before = result.record[i - 1]
+            assert before.next.offense == before.context.situation.offense == entry.team
+    game, fine = synthetic_game().game, SimpleNamespace(kind="scrimmage", quarter=2, clock=500.0, offense=H, defense=A)
+    assert clock.injury_timeouts(game, fine, SimpleNamespace(injuries=(Injury("HOME-QB1", 1),))) == ()  # before the warning
+
+
+def test_challenges():
+    def home(won):
+        return lambda ctx, outcome, allowed, rng: Challenge(H, won) if H in allowed else None
+
+    result = run_game(synthetic_game(), with_events(QUIET, challenge=home(False)), random.Random(0))
+    assert validate_game(result) == []
+    lost = stoppages(result, "challenge_lost")  # two a game, and each one lost costs a timeout
+    assert [(e.team, e.quarter) for e in lost] == [(H, 1), (H, 1)] and not stoppages(result, "timeout")
+    second = next(p.context.situation for p in result.plays if p.context.situation.quarter == 2)
+    assert second.timeouts == {H: 1, A: 3}
+    result = run_game(synthetic_game(), with_events(QUIET, challenge=home(True)), random.Random(0))
+    assert validate_game(result) == []
+    assert len(stoppages(result, "challenge_won")) == 3  # a third for winning, and no timeout lost
+    assert all(p.context.situation.timeouts[H] == 3 for p in result.plays if p.context.situation.quarter <= 4)
+    with pytest.raises(IllegalChoice):
+        run_game(synthetic_game(), with_events(QUIET, challenge=lambda *args: Challenge("NOBODY", True)), random.Random(0))
+
+    game, s = synthetic_game().game, SimpleNamespace(quarter=1, clock=500.0, offense=H, defense=A)
+    may = lambda season, used, s=s, timeouts={H: 3, A: 0}: clock.challengers(game, rules_for(season), s, timeouts, {H: used, A: []})
+    assert may(2026, []) == (H,)  # the away team has no timeout to lose
+    assert may(2026, [True, False]) == (H,) and may(2026, [False, False]) == () and may(2026, [True, True, True]) == ()
+    assert may(2023, [True, False]) == () and may(2023, [True, True]) == (H,)  # both had to be won before 2024
+    assert may(2026, [], SimpleNamespace(quarter=4, clock=100.0, offense=H, defense=A)) == ()  # after the warning
+    assert may(2026, [], SimpleNamespace(quarter=5, clock=500.0, offense=H, defense=A)) == ()  # overtime
+
+
+def test_a_fair_catch_kick_extends_the_half():
+    def punt_then_kick(kicks):
+        def lineups(ctx, rng):
+            s = ctx.situation
+            if s.kind != "scrimmage" or s.quarter != 2:
+                return kneel(ctx, rng)
+            if s.fair_catch_kick and s.clock == 0:
+                unit, other = ("fair_catch_kick", "field_goal_block") if kicks else ("victory", "defense")
+            elif s.clock <= 40 and s.clock_running:
+                unit, other = "punt", "punt_return"
+            else:
+                return kneel(ctx, rng)
+            return Lineups(Lineup(unit, None, unit_lineup(ctx, s.offense, unit, rng)),
+                           Lineup(other, None, unit_lineup(ctx, s.defense, other, rng)))
+        return lineups
+
+    def last_second(ctx, lineups, formation, allowed, rng):  # the punt is snapped with a second left
+        return PreSnap(ctx.situation.clock - 1.0 if lineups.offense.unit == "punt" else 30.0)
+
+    def play_out(kicks):
+        fair_catch = lambda ctx, lineups, land, allowed, rng: PuntResult("fair_catch", lineups.defense.players[0])
+        events = dict(lineups=punt_then_kick(kicks), pre_snap=last_second, punt_kick=lambda *args: PuntKick(5.0, None, 4.0),
+                      punt_result=fair_catch, kick_attempt=lambda *args: KickAttempt("good", None, 3.0))
+        result = run_game(synthetic_game(), with_events(QUIET, **events), random.Random(0))
+        assert validate_game(result) == []
+        half = [p for p in result.plays if p.context.situation.quarter == 2]
+        return result, half[-2:], [p for p in half if facts(p.record, Kick)]
+
+    result, (punt, kick), kicks = play_out(True)
+    assert len(kicks) == 2 and punt.next.fair_catch_kick and punt.next.clock == 0
+    assert kick.context.situation.clock == 0 and facts(kick.record, Kick)[0].kind == "fair_catch_kick"
+    assert kick.scores == ((punt.next.offense, 3, "field_goal"),) and sum(result.score.values()) == 3
+    result, (_, punt), kicks = play_out(False)  # the team lets the half end: no down is played
+    assert len(kicks) == 1 and punt.next.fair_catch_kick and sum(result.score.values()) == 0
 
 
 def test_disqualified_players_are_out_for_the_game():

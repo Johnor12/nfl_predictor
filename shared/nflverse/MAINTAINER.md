@@ -7,7 +7,7 @@
 - form.py: the tallies of what was done before a game: a player's stats and snaps by week (`SEASON_STATS`, `weekly_stats`, `weekly_snaps`), and `Forms`: the form of a season's teams, coaches, and referees game by game (`TEAM_STATS`), with every earlier season's totals discounted and added (`_totals`, cached per season in `.cache/form/`, and `_earlier`).
 - games.py: `real_games`, `RealGame`, `STAT_COLUMNS`, and `_actual` (a game's real outcome from the schedule and the player stats file). Uses contexts.py's `_Rosters`, `_players`, and `_game`, so a game and its plays get the same inputs.
 - test_form.py: a team's season builds up game by game; earlier seasons are discounted; coaches and referees; a game not played yet. Skipped if the cache is missing.
-- test_contexts.py: week 1 contexts are valid; conventions (kickoff orientation, try spots, clock inference); timeouts before plays; week 1 games (inputs, outcomes, stat lines); a season in the older formats (2014). Skipped if the cache is missing.
+- test_contexts.py: week 1 contexts are valid; conventions (kickoff orientation, try spots, clock inference); timeouts before plays; challenges and the down after a fair catch; week 1 games (inputs, outcomes, stat lines); a season in the older formats (2014). Skipped if the cache is missing.
 
 Notes:
 - nflverse lists the receiving team as `posteam` on kickoffs, so the kicking team is our offense there and `x = yardline_100`.
@@ -26,7 +26,8 @@ Notes:
 - `SNAP_WEEKS` (4) is how far back a player's snaps reach. Two to four weeks predicted 2025's lineups best (see `events/lineups/predictors/baseline/MAINTAINER.md`).
 - `_actual` and `simulators.play.summarize` must produce the same keys with the same meaning (the audit and `evaluators/play` compare them). Change them together.
 - `games._actual` and `simulators.game.summarize` must produce the same keys with the same meaning (`evaluators/game` compares them). Change them together.
-- Timeouts are their own pbp rows (`timeout == 1`, `timeout_team`). A play's own row has `timeout == 1` when its challenge was lost; that timeout is attributed to the next play. Only the first timeout between two plays is kept.
+- Timeouts are their own pbp rows (`timeout == 1`, `timeout_team`). The first between two plays is the next play's `timeout`, and a different team's after it `timeout_second`. A play's own row has `timeout == 1` when its challenge was lost, and its timeout columns are already one short: `real_plays` gives that timeout back to the challenged play's context.
+- A challenge is read from the play's description (`_challenge`): "Carolina challenged the pass completion ruling, and the play was REVERSED." `CITIES` maps the names descriptions use (San Diego, St. Louis, Oakland included) to team codes; every season from 2011 parses, with no name outside the two teams playing. The replay official's reviews (`replay_or_challenge == 1` without a team) aren't challenges.
 - The player stats file has a leftover row per team without a player id (penalties that weren't assigned). `games._actual` skips it, so team penalties are the players' only.
 - `real_plays` and `real_games` take 1 to 2 seconds for a season before the first play or game comes out, nearly all of it building the rosters (`_Rosters`, the same for one game as for the whole season); that is the fixed cost of every evaluator process. What is per game (`real_games`' stat lines and play counts) is only read for the games asked for.
 - A sample's rows are plain objects, not pandas Series: reading an attribute of a Series takes about 20 microseconds, and the priors builders and the play evaluator read dozens per play (the evaluator once per simulated run). The values are the Series' own (numpy numbers, `nan` where missing).

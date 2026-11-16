@@ -5,7 +5,7 @@
 - buckets.py: `role`, `group`, and the situation buckets.
 - players.py: `on_field`, `pick`, `pick_many`, `returner`, `fouler`, and `FOULERS` (hand-set: which positions commit each foul); `usage` and `USAGE_SNAPS` (hand-set).
 - files.py: `priors_of` (pooling what was played before a game, per key: the earlier seasons and its own season's earlier weeks, `DECAY`, the rules a key is tied to, `NFL_PRIORS_DECAY`), `save_priors`.
-- building.py: `Sample`, `Tally`, `present`, and the nflverse row readers more than one event needs (`flag` with the `FOULS` name map and `PRESNAP`, `flagrant`, `kickoff_result`, `nullified`, `timeout_case`, and the participation readers `personnel`, `package`, `played`).
+- building.py: `Sample`, `Tally`, `present`, and the nflverse row readers more than one event needs (`flag` with the `FOULS` name map and `PRESNAP`, `flagrant`, `kickoff_result`, `nullified`, `sent_out`, `timeout_case`, and the participation readers `personnel`, `package`, `played`).
 - test_priors.py: `blend` ordering, `Tally`, `usage`, and `priors_of`: pooling with decay, the season's earlier weeks, the first season of a key, the environment variable, and keys tied to rules.
 
 Notes:

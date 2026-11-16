@@ -25,7 +25,7 @@ Provided by the game scenario:
 - **game**: teams playing, game location, weather, time of day, stadium turf type, coaching staffs, referee crew, season (which selects the rulebook), whether it's a playoff game, the betting lines before the game (`spread`: the points the home team is favored by; `total`), and form: what each team, head coach, and the referee did before this game (`game.form("KC")`, `game.form(game.referee)`: a `Form` with `stats`, this season's totals, and `career`, the earlier seasons', older ones counting less). A team's stats are its offense's, and under `allowed_<stat>` what its defense allowed.
 - **players**: rosters (including injuries, depth charts, and disqualifications) and each player's information (position, jersey number, aggregate statistics for the season so far (`Player.stats`: his stat line, and how he has been used: offensive snaps, designed carries, dropbacks, scrambles, sacks taken), the same over earlier seasons (`Player.career`), years in the league, draft pick, and `snaps`: his snaps in his team's recent games by unit, as far as the season's data records them).
 - **warned**: the players who already have an unsportsmanlike conduct foul in this game (a second one disqualifies).
-- **situation**: kind of play (scrimmage down, try after a touchdown, or kickoff/safety kick), possession, field location, down and distance, score, quarter, game clock time, whether the game clock is running, play clock time, and team timeouts remaining.
+- **situation**: kind of play (scrimmage down, try after a touchdown, or kickoff/safety kick), possession, field location, down and distance, score, quarter, game clock time, whether the game clock is running, play clock time, team timeouts remaining, and whether the last play ended in a fair catch (`fair_catch_kick`: the offense may try a fair-catch kick).
 - **history**: all previous plays in the game (or a condensation of the relevant information, or just their outcomes).
 
 Each event's predictor is handed only the slice of these inputs (plus earlier events' outputs) that it plausibly needs.
@@ -71,6 +71,10 @@ scrimmage down or try:
     punt            -> punt kick -> punt result -> carry (return)
     field goal/PAT  -> kick attempt
     kneel, spike    -> (done)
+  a punt or field goal unit may run or pass instead: a fake
+
+fair-catch kick (the down after a fair catch, if the offense sends it out):
+  lineups -> kick attempt
 
 free kick (kickoff or safety kick):
   lineups -> kickoff alignment -> free kick -> kick result -> carry (return)
@@ -92,4 +96,4 @@ The rest of what happens after the ball is dead is this scenario's own code, wit
 - **accept/decline**: the non-offending team's choice, including how to accept a kicking team's foul on a kick (added to the end of the play, or a re-kick). A hardcoded rule (take whichever result is better in yards, downs, possession, and clock); it can become an event later if coaches turn out to deviate from it meaningfully.
 - **enforcement**: fully hardcoded (see [RULES.md](RULES.md#penalty-enforcement)).
 - **disqualification**: a player whose foul the fouls predictor marked flagrant, or who commits a second unsportsmanlike conduct foul in the game, is out for the rest of it.
-- **stat crediting** and the **new situation**: computed from the record (see [RULES.md](RULES.md#invariants)).
+- **stat crediting** and the **new situation**: computed from the record (see [RULES.md](RULES.md#invariants)). The new situation says whether a fair-catch kick may follow.

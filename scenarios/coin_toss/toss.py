@@ -5,10 +5,11 @@
 #   **overrides) loads each event's default implementation (events.predictor), or the ones named.
 # - allowed_choices(ctx) -> tuple[str, ...]: receive, kick, and (not in overtime) defer.
 # - run_coin_toss(ctx, predictors, rng) -> Toss: winner, choice, who kicks off now, and who kicks off the
-#   second half (None for an overtime toss).
+#   second half (after an overtime toss: the third overtime period of a postseason game).
 # Rules: the team that doesn't choose first chooses at the second half, and always takes the ball. So a
 #   winner that defers kicks first and receives the second half; one that receives kicks off the second half;
-#   one that chooses to kick kicks off both halves.
+#   one that chooses to kick kicks off both halves. In overtime the loser of the toss chooses first two
+#   periods later, so the winner kicks off then.
 # END
 import dataclasses
 from dataclasses import dataclass
@@ -31,7 +32,7 @@ class Toss:
     choice: str                    # receive, kick, or defer
     kicking: str                   # kicks off now
     receiving: str
-    second_half_kicking: str | None
+    second_half_kicking: str       # kicks off the second half (overtime: the third period after this toss)
     overtime: bool
 
 
@@ -64,5 +65,5 @@ def run_coin_toss(ctx, predictors, rng) -> Toss:
     if choice not in allowed:
         raise IllegalChoice(f"toss choice {choice} not in {allowed}")
     kicking, receiving = (loser, winner) if choice == "receive" else (winner, loser)
-    later = None if ctx.overtime else loser if choice == "defer" else winner
+    later = loser if choice == "defer" else winner
     return Toss(winner, choice, kicking, receiving, later, ctx.overtime)

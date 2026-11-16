@@ -24,7 +24,7 @@ def test_choices_decide_the_kickoffs():
     assert (toss("HOME", "receive").kicking, toss("HOME", "receive").second_half_kicking) == ("AWAY", "HOME")
     assert (toss("AWAY", "kick").kicking, toss("AWAY", "kick").second_half_kicking) == ("AWAY", "AWAY")
     overtime = toss("AWAY", "receive", overtime=True)
-    assert (overtime.receiving, overtime.kicking, overtime.second_half_kicking) == ("AWAY", "HOME", None)
+    assert (overtime.receiving, overtime.kicking, overtime.second_half_kicking) == ("AWAY", "HOME", "AWAY")
     assert "defer" not in allowed_choices(TossContext(GAME, (), True))
 
 

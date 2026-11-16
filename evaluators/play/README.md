@@ -21,7 +21,7 @@ API (`from evaluators.play import ...`):
 
 | event | outputs |
 |---|---|
-| lineups | unit (4th down, downs 1-3, try); in seasons with on-field data: personnel (the offense's group, the defense's package) and players missed, by unit |
+| lineups | unit (4th down, downs 1-3, try; a real fake punt or field goal is the kicking unit's); in seasons with on-field data: personnel (the offense's group, the defense's package) and players missed, by unit |
 | offensive_formation | shotgun |
 | defensive_formation | box |
 | pre_snap | foul (type and side, or none) |

@@ -3,13 +3,13 @@
 # - validate_game(result, plays=True) -> list[str]: what's broken (empty if the game is valid). With
 #   plays=False the plays themselves aren't re-checked with the play scenario's validate_play.
 # Internals: _timeline walks the record once, checking each play's situation against what came before it
-#   (score, possession and spot, clock, timeouts, the kickoffs that start a half or overtime, and players
-#   sidelined by an injury); _totals checks the result against the sum of its plays; _ending checks how the
+#   (score, possession and spot, clock, timeouts, challenges, the kickoffs that start a half or overtime, and
+#   players sidelined by an injury); _totals checks the result against the sum of its plays; _ending checks how the
 #   game ended.
 # END
 from scenarios.coin_toss import Toss
 from scenarios.game import clock
-from scenarios.game.record import Stoppage
+from scenarios.game.record import CHARGED, Stoppage
 from scenarios.game.roster import REST_OF_GAME
 from scenarios.play import validate_play
 from shared.rulebook import rules_for
@@ -39,23 +39,26 @@ def _timeline(result) -> list[str]:
     errors, sidelined = [], _sidelined(result)
     score = {game.home: 0, game.away: 0}
     timeouts = {game.home: clock.TIMEOUTS, game.away: clock.TIMEOUTS}
-    opening = kicker = prev = None
+    challenges = {game.home: [], game.away: []}
+    tossed = kicker = prev = None
     index, warned = 0, False
     for entry in result.record:
         if isinstance(entry, Toss):
-            kicker = entry.kicking
+            tossed, kicker = entry, entry.kicking
             if entry.overtime:
                 timeouts = dict.fromkeys(timeouts, clock.overtime_setup(game, rules)[2])
-            else:
-                opening = entry
         elif isinstance(entry, Stoppage):
-            if entry.kind == "timeout":
+            if entry.kind in ("challenge_won", "challenge_lost"):
+                if entry.team not in clock.challengers(game, rules, prev.context.situation, timeouts, challenges):
+                    errors.append(f"play {index - 1}: {entry.team} may not challenge")
+                challenges[entry.team].append(entry.kind == "challenge_won")
+            if entry.kind in CHARGED:
                 timeouts[entry.team] -= 1
             warned = entry.kind == "two_minute_warning" or (warned and entry.kind != "period_end")
-            if entry.kind == "period_end" and entry.quarter == 2:
-                if prev.next.kind == "try":
-                    errors.append("the first half ended before the try")
-                kicker = opening.second_half_kicking
+            if entry.kind == "period_end" and entry.quarter % 4 == 2 and (entry.quarter == 2 or game.playoff):
+                if prev.next.kind == "try":  # the second half, and the third period of every four in overtime
+                    errors.append("the half ended before the try")
+                kicker = tossed.second_half_kicking
                 timeouts = dict.fromkeys(timeouts, clock.TIMEOUTS)
         else:
             s, where = entry.context.situation, f"play {index}"

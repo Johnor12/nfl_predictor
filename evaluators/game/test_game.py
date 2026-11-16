@@ -2,8 +2,8 @@
 # Tests for the game evaluator.
 # - test_the_scenario_scores_against_itself: synthetic games whose "real" outcome is one more simulated run
 #   get every output scored, the lines' samples kept, and a full report (no data needed).
-# - test_week_one_evaluation: a real week scores games, teams, players, and the timeout predictor. Skipped
-#   unless the 2026 files are already in .cache/nflverse.
+# - test_week_one_evaluation: a real week scores games, teams, players, and the timeout and challenge
+#   predictors. Skipped unless the 2026 files are already in .cache/nflverse.
 # END
 import random
 from types import SimpleNamespace
@@ -49,5 +49,6 @@ def test_week_one_evaluation(tmp_path):
     assert 25 < rows["player: pass_yds (QB1)"]["n"] <= 32 and rows["player: fg_made (K)"]["n"] >= 32
     assert rows["timeout: caller (rest of the game)"]["n"] > 2000
     assert rows["timeout: caller (last 2:00 of a half)"]["skill"] > 0
+    assert rows["challenge: who and ruling"]["n"] > 2000
     report = write_report(evaluation, tmp_path / "game.md").read_text()
     assert "## Game scenario" in report and "## Betting lines" not in report

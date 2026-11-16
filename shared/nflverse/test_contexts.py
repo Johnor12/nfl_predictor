@@ -3,7 +3,9 @@
 # downloads in tests).
 # - test_week_one_contexts_are_valid: every real input passes validate_context.
 # - test_conventions: kickoffs are from the kicking team's side; tries use the two-point spot; clock inference.
-# - test_timeouts_before_plays: who called a timeout before a play, and the state before it.
+# - test_timeouts_before_plays: who called a timeout before a play, and the state before it; the other
+#   team's timeout after it.
+# - test_challenges_and_fair_catches: who challenged a play and whether he won; the down after a fair catch.
 # - test_week_one_games: every game's inputs are valid and match its plays'; its real outcome and stat lines.
 # - test_recent_snaps: players carry their recent snaps: per kicking unit where the season records who was on
 #   the field (2025), otherwise from the per-game snap counts (2026); nobody has any before week 1.
@@ -54,6 +56,22 @@ def test_timeouts_before_plays(plays):
     s, team = play.context.situation, play.actual["timeout"]
     assert caller == ("offense" if team == s.offense else "defense") and not s.clock_running
     assert before.situation.timeouts[team] == s.timeouts[team] + 1
+    both = [p for p in plays if p.actual["timeout_second"]]
+    assert 0 < len(both) < 10 and all(p.actual["timeout"] and p.actual["timeout_second"] != p.actual["timeout"] for p in both)
+    before, _ = timeout_case(both[0])
+    assert all(before.situation.timeouts[team] == left + 1 for team, left in both[0].context.situation.timeouts.items())
+
+
+def test_challenges_and_fair_catches(plays):
+    challenged = [p for p in plays if p.actual["challenge"]]
+    assert 3 <= len(challenged) < 20 and {p.actual["challenge"][1] for p in challenged} == {True, False}
+    assert all(p.actual["challenge"][0] in p.context.situation.timeouts for p in challenged)
+    lost = next(i for i, p in enumerate(plays) if p.actual["challenge"] and not p.actual["challenge"][1])
+    team, after = plays[lost].actual["challenge"][0], plays[lost + 1]
+    assert after.context.situation.timeouts[team] == plays[lost].context.situation.timeouts[team] - 1
+    assert after.actual["timeout"] is None  # the timeout it cost isn't one called before the next play
+    caught = [p.context.situation for p in plays if p.context.situation.fair_catch_kick]
+    assert 10 < len(caught) < 60 and all(s.kind == "scrimmage" and s.down == 1 for s in caught)
 
 
 def test_week_one_games(plays):

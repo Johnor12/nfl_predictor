@@ -5,10 +5,12 @@
 #   implementation can hand in its own `pass_rate` and keep the rest (events/snap/predictors/gbm).
 # - pass_rate(ctx, lineups, formation, defense) -> float: how often the offense drops back here (the
 #   script's rate backed off to the normal script's; the two-point play mix on a try).
-# Hand-set: the bad snap rate, kneels from the victory formation, and spikes late in a half with no timeouts.
+# A punt or field goal unit kicks, or fakes it (a run or a pass) at the real rate.
+# Hand-set: the bad snap rate, kneels from the victory formation, spikes late in a half with no timeouts, and
+# who runs with a fake (anyone in the backfield).
 # END
 from events.snap import Snap
-from shared.priors import blend, dist_bucket, priors_of, rate, script, usage
+from shared.priors import blend, choice, dist_bucket, priors_of, rate, script, usage
 
 load_priors = priors_of(__file__)  # (season, week) -> priors dict
 
@@ -29,7 +31,11 @@ def predict(ctx, lineups, formation, defense, allowed, rng, pass_rate=pass_rate)
     bad = rng.random() < 0.003
     unit = lineups.offense.unit
     if unit in ("punt", "field_goal"):
-        return Snap(unit, bad_snap=bad)
+        fakes = p.get("fake", {}).get(unit, {}) if s.kind == "scrimmage" else {}
+        action = choice({a: n for a, n in fakes.items() if a == "kick" or a in allowed}, rng) if fakes else "kick"
+        if action == "run":
+            return Snap("run", rng.choice(formation.backfield), bad)
+        return Snap(unit if action == "kick" else "pass", bad_snap=bad)
     if unit == "victory":
         return Snap("kneel")
     lead = s.score[s.offense] - s.score[s.defense]

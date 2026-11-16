@@ -1,5 +1,6 @@
 # START
-# Tests for rules_for: spot checks of rule changes by season, and same_rules on the kickoff and try fields.
+# Tests for rules_for: spot checks of rule changes by season (kickoffs, tries, overtime, challenges), and
+# same_rules on the kickoff and try fields.
 # END
 from shared.rulebook import KICKOFF, TRY, rules_for, same_rules
 
@@ -23,6 +24,10 @@ def test_overtime_eras():
     assert rules_for(2016).overtime_format == "modified" and rules_for(2016).overtime_seconds == 900
     assert rules_for(2024).overtime_seconds == 600 and rules_for(2024).playoff_overtime_format == "both_possess"
     assert rules_for(2026).overtime_format == "both_possess"
+
+
+def test_challenges():
+    assert rules_for(2023).third_challenge_wins == 2 and rules_for(2024).third_challenge_wins == 1
 
 
 def test_same_rules():

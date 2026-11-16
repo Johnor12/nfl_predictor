@@ -6,7 +6,8 @@
 # - clamp_x(x): keep a spot between the end lines.
 # - line_of_scrimmage(ctx, rules, lineups): the snap spot (a kicked try moves it to the kick line).
 # - eligible_receivers(ctx, formation): ends of the line and backs, minus a quarterback under center.
-# - field_goal_distance(rules, los): kick distance from a line of scrimmage (end zone + holder depth added).
+# - field_goal_distance(rules, los, free=False): kick distance from a line of scrimmage (end zone + holder
+#   depth added), or from the spot of a free kick (a fair-catch kick: no snap, so no holder depth).
 # - lineup_errors(ctx, lineups) / formation_errors(ctx, lineups, formation): legality problems.
 # END
 from scenarios.play.context import PlayContext
@@ -36,8 +37,8 @@ def line_of_scrimmage(ctx, rules, lineups) -> float:
     return s.x
 
 
-def field_goal_distance(rules, los) -> int:
-    return round(100 - los + rules.end_zone_depth + rules.field_goal_snap_depth)
+def field_goal_distance(rules, los, free: bool = False) -> int:
+    return round(100 - los + rules.end_zone_depth + (0 if free else rules.field_goal_snap_depth))
 
 
 def eligible_receivers(ctx, formation) -> tuple[str, ...]:
@@ -68,7 +69,8 @@ def formation_errors(ctx, lineups, f) -> list[str]:
     if f.qb not in f.backfield:
         errors.append("snap receiver must be in the backfield")
     if lineups.offense.unit in ("offense", "victory"):
-        jerseys = [ctx.by_id[p].jersey for p in f.line]
-        if None not in jerseys and sum(50 <= j <= 79 for j in jerseys) < 5:
-            errors.append("fewer than 5 players numbered 50-79 on the line")
+        linemen = [ctx.by_id[p] for p in f.line]  # a lineman with another number has reported as ineligible
+        numbered = None not in [p.jersey for p in linemen]
+        if numbered and sum(p.position == "OL" or 50 <= p.jersey <= 79 for p in linemen) < 5:
+            errors.append("fewer than 5 linemen (numbered 50-79, or reported as ineligible) on the line")
     return errors

@@ -15,6 +15,7 @@ from scenarios.play.context import FREE_KICKS, KINDS
 from scenarios.play.field import formation_errors, lineup_errors, other, rel
 from scenarios.play.record import Carry, Kick, LooseBall, Pass, facts
 
+SCRIMMAGE_KICKS = ("punt", "field_goal", "fair_catch_kick")  # kicks that hand a scrimmage down's ball over
 SCORE_VALUES = {"touchdown": 6, "field_goal": 3, "extra_point": 1, "two_point": 2, "defensive_two_point": 2}
 TEAM_SUMMED = ("pass_yds", "rec_yds", "rush_yds", "tackles", "sacks", "penalties", "punt_yds")
 
@@ -111,7 +112,7 @@ def _possession_errors(result):
         explained = (any(p.result == "intercepted" for p in facts(record, Pass))
                      or any(b.team == s.defense or (b.team is None and rel(ctx, s.offense, b.recovery_x) >= 100)
                             for b in facts(record, LooseBall))
-                     or any(k.kind in ("punt", "field_goal") and k.result != "blocked" for k in facts(record, Kick))
+                     or any(k.kind in SCRIMMAGE_KICKS and k.result != "blocked" for k in facts(record, Kick))
                      or (s.down == 4 and s.offense in (final.team, result.live and result.live.team)))
         if not explained:
             return ["possession changed without an interception, lost fumble, kick, or turnover on downs"]

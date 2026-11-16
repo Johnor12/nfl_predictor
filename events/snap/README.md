@@ -7,7 +7,7 @@ Predictor: `predict(ctx, lineups, formation, defense, allowed_actions, rng) -> S
 Inputs (besides the [common ones](../README.md)):
 
 - `formation` / `defense`: the offense's `Formation` and the `DefensiveFormation`.
-- `allowed_actions`: what the unit on the field can run (offense: run, pass, kneel, spike; victory: kneel; punt: punt, run, pass; field_goal: field_goal, run, pass; no field_goal without a kicker on the field).
+- `allowed_actions`: what the unit on the field can run (offense: run, pass, kneel, spike; victory: kneel; punt: punt, run, pass; field_goal: field_goal, run, pass; no field_goal without a kicker on the field). A run or a pass from a kicking unit is a fake. A fair-catch kick has no snap, so the event isn't asked.
 
 Output (`from events.snap import ...`):
 

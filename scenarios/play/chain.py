@@ -5,9 +5,9 @@
 # - allowed_units(ctx, rules): which units the offense may send out (where coaching decisions live).
 # - _Play: one play in progress. Methods in chain order:
 #   run (lineups, formations, pre-snap, action, fouls, enforcement, injuries, then outcome.finish),
-#   scrimmage (snap and action), dropback (rush, target, pass result), punt, place_kick, free_kick,
-#   after_kick (shared kick results), and the shared building blocks carry (which follows laterals) and
-#   loose_ball, which end in dead_at (end-zone rules: safety or touchback) or a touchdown.
+#   scrimmage (snap and action), dropback (rush, target, pass result), punt, place_kick, fair_catch_kick,
+#   free_kick, after_kick (shared kick results), and the shared building blocks carry (which follows
+#   laterals) and loose_ball, which end in dead_at (end-zone rules: safety or touchback) or a touchdown.
 # Live-ball methods return a Dead (how/where the ball died and who gets it). Penalty enforcement is in
 # penalties.py, the next situation and clock in outcome.py, stats in stats.py.
 # END
@@ -44,7 +44,7 @@ def _require(ok, message):
 def allowed_units(ctx, rules) -> tuple[str, ...]:
     s = ctx.situation
     if s.kind == "scrimmage":
-        return ("offense", "punt", "field_goal", "victory")
+        return ("offense", "punt", "field_goal", "victory") + (("fair_catch_kick",) if s.fair_catch_kick else ())
     if s.kind == "try":
         return ("offense", "field_goal")
     trailing = s.score[s.offense] < s.score[s.defense]
@@ -86,6 +86,8 @@ class _Play:
         fouls = []
         if ctx.situation.kind in FREE_KICKS:
             live = self.free_kick()
+        elif self.lineups.offense.unit == "fair_catch_kick":
+            live = self.fair_catch_kick()
         else:
             self.formation = self.add(p.offensive_formation(ctx, self.lineups, rng))
             errors = formation_errors(ctx, self.lineups, self.formation)
@@ -208,8 +210,25 @@ class _Play:
             return Dead(off, los, "kick_good")
         if kind == "pat":
             return Dead(off, los, "kick_missed")
-        line = min(99.0, max(rules.touchback_line, rel(ctx, de, spot)))  # spot of the kick, or the defense's 20
-        return Dead(de, to_x(ctx, de, line), "kick_missed", kick=True)
+        return self.missed_kick(spot)
+
+    def missed_kick(self, spot):
+        """The defense's ball at the spot of the kick, or at its 20 if that's farther out."""
+        line = min(99.0, max(self.rules.touchback_line, rel(self.ctx, self.de, spot)))
+        return Dead(self.de, to_x(self.ctx, self.de, line), "kick_missed", kick=True)
+
+    def fair_catch_kick(self):
+        """A free kick at the goal from the spot of a fair catch. There is no snap and the defense stands ten
+        yards off, so it can't be blocked: a kick the predictor has blocked is a miss."""
+        ctx, los = self.ctx, self.los
+        kicker = next((pid for pid in self.lineups.offense.players if ctx.by_id[pid].position == "K"), None)
+        _require(kicker, "a fair-catch kick without a kicker on the field")
+        distance = field_goal_distance(self.rules, los, free=True)
+        attempt = self.p.kick_attempt(ctx, self.lineups, kicker, distance, self.rng)
+        _require(attempt.result in KICK_ATTEMPT_RESULTS, f"kick attempt {attempt}")
+        good = attempt.result == "good"
+        self.add(Kick("fair_catch_kick", kicker, los, None, "good" if good else "no_good", None, attempt.seconds))
+        return Dead(self.off, los, "kick_good") if good else self.missed_kick(los)
 
     # --- free kicks ---
 

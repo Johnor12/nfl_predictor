@@ -42,6 +42,7 @@ The play scenario encodes the rulebook. This is a sketch of what it must cover, 
 - A punt into the end zone is a touchback.
 - A missed field goal gives the defense the ball at the spot of the kick, or at its own 20 if the spot of the kick was inside the 20. Blocked field goals, and ones that fall short in the field of play, are live.
 - Field goal distance = yards from the line of scrimmage to the goal line + 17 (10 yards of end zone and a 7-yard hold).
+- Fair-catch kick: on the down after a fair catch (one made, or awarded for interference with the catch), the offense may try a free kick at the goal from the spot. There is no snap and the defense stands ten yards off, so it can't be blocked. Good, it is a field goal (3 points, then a kickoff); missed, the defense takes over as after a missed field goal (the spot of the kick, or its 20). Its distance is the yards to the goal line + 10. It uses no game time. A down replayed after a penalty keeps the option.
 
 ### free kicks (rule-versioned)
 - Kickoffs are from the kicking team's 35 (2011+; the 30 before). Safety kicks are from the 20.
@@ -53,7 +54,7 @@ The play scenario encodes the rulebook. This is a sketch of what it must cover, 
 
 ### personnel and formation
 - Exactly 11 players per side at the snap (12 or more is too many men on the field, 5 yards on either team).
-- Offense: at least 7 players on the line of scrimmage, no more than 4 in the backfield, at least 5 players numbered 50–79 on the line. Eligible receivers are the two players on the ends of the line and the backs, plus anyone who reported as eligible. At most one player in motion at the snap, and not moving toward the line; after a shift, everyone is set for a full second.
+- Offense: at least 7 players on the line of scrimmage, no more than 4 in the backfield, at least 5 linemen on the line: players numbered 50–79, or an offensive lineman with another number, who has reported as ineligible (the game scenario's emergency replacements). Eligible receivers are the two players on the ends of the line and the backs, plus anyone who reported as eligible. At most one player in motion at the snap, and not moving toward the line; after a shift, everyone is set for a full second.
 - Defense: no one in the neutral zone at the snap.
 - A player injured on a play must sit out at least the next play.
 - Two unsportsmanlike conduct fouls in a game (2016+) or a flagrant foul disqualify a player for the rest of it, whether or not the penalties were accepted.
@@ -113,4 +114,5 @@ Everything above and in README.md is implemented except where listed here. Each 
 - **kickoffs**: 2026 uses the 2025 dynamic kickoff values (touchback to the 35, landing-zone touchback to the 20, short or out of bounds to the 40). These need checking against the 2026 rulebook. Safety kicks use the traditional rules (fair catch allowed, touchback to the 20). Before 2024 a kickoff out of bounds goes to the spot 25 yards from the kick (in practice the 40), and 2023's fair catch inside the 25 comes out to the 25.
 - **momentum rule**: applied to any return whose possession began inside the 5 and ended in the end zone, even if the carrier ran back on purpose.
 - **lineups**: always exactly 11 per side, so too-many-men is only possible as a foul.
+- **fair-catch kick**: a kick that falls short can't be returned, and the fouls predictor is asked as on any play, though little can happen on one.
 - **injuries**: reported in the result. The game scenario applies them.

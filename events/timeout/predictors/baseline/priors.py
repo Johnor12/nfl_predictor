@@ -5,6 +5,7 @@
 #   read from the situation before the timeout (shared.priors.timeout_case).
 #   snap_gap[how late|offense or defense]: histograms of the game seconds since the previous snap, for the
 #   timeouts called before a scrimmage down with the clock running (the last play, then the wait for the call).
+#   second[how late]: called or none, by whether the other team called a timeout after the first.
 # END
 from events.timeout.predictors.baseline import late, situation_key
 from shared.priors import present, timeout_case
@@ -14,5 +15,7 @@ def observe(t, sample):
     ctx, caller = timeout_case(sample)
     s, gap = ctx.situation, sample.actual["seconds_since_snap"]
     t.c[f"timeout|{situation_key(s)}"][caller] += 1
+    if caller != "none":
+        t.c[f"second|{late(s)}"]["called" if sample.actual["timeout_second"] else "none"] += 1
     if caller != "none" and s.kind == "scrimmage" and s.clock_running and present(gap):
         t.hist[f"snap_gap|{late(s)}|{caller}"].append(gap)

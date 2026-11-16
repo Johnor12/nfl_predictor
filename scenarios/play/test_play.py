@@ -3,7 +3,7 @@
 # - test_fuzz_invariants: thousands of plays from random legal predictors and situations; every invariant holds.
 # - Hand-built rule tests: scripted predictor outputs for specific rules (scoring, end zones, kicks, fouls,
 #   laterals, re-kicks, illegal touching, disqualifications, the clock after penalties, kickoffs under the
-#   rules of earlier seasons).
+#   rules of earlier seasons, the fair-catch kick, a lineman who reported as ineligible).
 # Helpers: situation(...) builds a HOME-offense context; base() is a quiet scripted predictor set
 # (fixed lineups/formation, no fouls); play(ctx, **outputs) runs one play with outputs scripted.
 # END
@@ -29,7 +29,7 @@ import dataclasses
 
 import pytest
 
-from scenarios.play import IllegalChoice, PlayContext, run_play, validate_play
+from scenarios.play import IllegalChoice, PlayContext, run_play, summarize, validate_play
 from scenarios.play.testing import chaos_predictors, scripted, synthetic_context
 
 H, A = "HOME", "AWAY"
@@ -54,7 +54,7 @@ RETURN = Lineup("kick_return", None, DEFENSE.players)
 
 def situation(kind="scrimmage", x=50.0, down=1, distance=10.0, **kw):
     fields = dict(kind=kind, offense=H, defense=A, x=x, down=down, distance=distance, score={H: 0, A: 0},
-                  quarter=1, clock=600.0, clock_running=True, timeouts={H: 3, A: 3})
+                  quarter=1, clock=600.0, clock_running=True, timeouts={H: 3, A: 3}, fair_catch_kick=False)
     fields.update(kw)
     return synthetic_context(random.Random(0), **fields)
 
@@ -172,6 +172,35 @@ def test_punt_return_and_fair_catch():
     r = play(situation(x=30, down=4), lineups=Lineups(PUNT, DEFENSE), offensive_formation=PUNT_FORMATION,
              snap=Snap("punt"), punt_kick=PuntKick(45), punt_result=PuntResult("fair_catch", "AWAY-DB4"))
     assert (r.next.offense, r.next.x) == (A, 25)
+
+
+def test_fair_catch_kick():
+    punt = dict(lineups=Lineups(PUNT, DEFENSE), offensive_formation=PUNT_FORMATION, snap=Snap("punt"), punt_kick=PuntKick(25))
+    caught = play(situation(x=30, down=4), **punt, punt_result=PuntResult("fair_catch", "AWAY-DB4"))
+    assert caught.next.fair_catch_kick and (caught.next.offense, caught.next.x) == (A, 45)
+    returned = play(situation(x=30, down=4), **punt, punt_result=PuntResult("return", "AWAY-DB4"), carry=CarryEnd(0, "tackled"))
+    assert not returned.next.fair_catch_kick and not play(situation(), **run(3)).next.fair_catch_kick
+    kick = dict(lineups=Lineups(dataclasses.replace(FIELD_GOAL, unit="fair_catch_kick"), DEFENSE))
+    r = play(situation(x=45, fair_catch_kick=True, clock_running=False), **kick, kick_attempt=KickAttempt("good", seconds=3.0))
+    assert r.scores == ((H, 3, "field_goal"),) and r.stats["HOME-K1"] == {"fg_att": 1, "fg_made": 1}
+    assert summarize(r)["kick_distance"] == 65 and summarize(r)["action"] == "field_goal"  # from the spot: no snap, no hold
+    assert (r.next.kind, r.next.offense, r.elapsed) == ("kickoff", H, 0)
+    r = play(situation(x=45, fair_catch_kick=True), **kick, kick_attempt=KickAttempt("blocked", "AWAY-DL1"))
+    assert not r.scores and (r.next.offense, r.next.x, r.next.fair_catch_kick) == (A, 55, False)  # nobody can block it: a miss
+    with pytest.raises(IllegalChoice):  # only after a fair catch
+        play(situation(x=45), **kick, kick_attempt=KickAttempt("good"))
+
+
+def test_a_lineman_with_a_receivers_number_has_reported_as_ineligible():
+    ctx = situation()
+    stand_in = dataclasses.replace(ctx.by_id["HOME-TE2"], position="OL")  # an emergency lineman, number 81
+    players = tuple(stand_in if p.id == "HOME-TE2" else p for p in ctx.players)
+    swap = lambda ids: tuple("HOME-TE2" if pid == "HOME-OL5" else pid for pid in ids)
+    lineups = Lineups(dataclasses.replace(OFFENSE, players=swap(OFFENSE.players)), DEFENSE)
+    formation = dataclasses.replace(FORMATION, line=swap(FORMATION.line))
+    with pytest.raises(IllegalChoice):  # as a tight end he is a sixth eligible number on the line
+        play(ctx, lineups=lineups, offensive_formation=formation, **run(3))
+    play(dataclasses.replace(ctx, players=players), lineups=lineups, offensive_formation=formation, **run(3))
 
 
 def test_missed_field_goal_spot_of_kick_or_the_20():

@@ -16,9 +16,14 @@
 #   (row -> PlaySummary history),
 #   _seconds_to_next (real snap-to-snap game time: actual["seconds_to_next"] for clock audits, and
 #   actual["seconds_since_snap"], the same gap on the play that follows, for the pre-snap priors).
-# Timeouts: actual["timeout"] is the team that called one before the play (None if nobody did; a lost
-#   challenge on the previous play counts), and actual["timeout_clock_running"] whether the clock would have
-#   been running at the snap without it. The context itself is the state after the timeout.
+# Timeouts: actual["timeout"] is the team that called one before the play (None if nobody did),
+#   actual["timeout_second"] the other team if it then called one too, and actual["timeout_clock_running"]
+#   whether the clock would have been running at the snap without them. The context itself is the state
+#   after the timeouts.
+# Challenges: actual["challenge"] is (team, won) for a coach's challenge of the play, else None (_challenge;
+#   the replay official's own reviews aren't challenges). The timeout a lost one costs is not a timeout
+#   before the next play, and the challenged play's own context still has it.
+# Fair catches: the receiving team's down after one has Situation.fair_catch_kick set.
 # Disqualification: a context's `warned` is the players already flagged for unsportsmanlike conduct in the game.
 # Conventions: nflverse lists the receiving team as posteam on kickoffs, so the kicking team is our offense
 #   there; a try's x is the two-point spot even when the row is a kick (see scenarios/play/context.py).
@@ -45,6 +50,17 @@ GROUPS = {  # the detailed roster positions of the seasons before 2016 -> the pl
     "CB": "DB", "SS": "DB", "FS": "DB", "S": "DB", "KR": "WR", "PR": "WR",
 }
 UNSPORTSMANLIKE = ("Unsportsmanlike Conduct", "Taunting")
+CITIES = {  # how a play's description names the team that challenged it -> its code
+    "Arizona": "ARI", "Atlanta": "ATL", "Baltimore": "BAL", "Buffalo": "BUF", "Carolina": "CAR", "Chicago": "CHI",
+    "Cincinnati": "CIN", "Cleveland": "CLE", "Dallas": "DAL", "Denver": "DEN", "Detroit": "DET", "Green Bay": "GB",
+    "Houston": "HOU", "Indianapolis": "IND", "Jacksonville": "JAX", "Kansas City": "KC", "Las Vegas": "LV",
+    "Oakland": "LV", "Los Angeles Chargers": "LAC", "San Diego": "LAC", "Los Angeles Rams": "LA", "Los Angeles": "LA",
+    "St. Louis": "LA", "Miami": "MIA", "Minnesota": "MIN", "New England": "NE", "New Orleans": "NO",
+    "New York Giants": "NYG", "New York Jets": "NYJ", "Philadelphia": "PHI", "Pittsburgh": "PIT",
+    "San Francisco": "SF", "Seattle": "SEA", "Tampa Bay": "TB", "Tennessee": "TEN", "Washington": "WAS",
+}
+CHALLENGED = re.compile(f"({'|'.join(sorted(CITIES, key=len, reverse=True))}) challenged "  # the longest name first
+                        ".*?play was (?i:(reversed|upheld))")
 WEATHER = (re.compile(r"Temp: (-?\d+)"), re.compile(r"Wind:[^,]*?(\d+)"))  # in a play-by-play weather report
 
 
@@ -250,6 +266,17 @@ def _actual(row, s, score_after) -> dict:
     }
 
 
+def _challenge(row):
+    """(team, won) for a coach's challenge of the play, or None. The description names the team by its city;
+    a lost challenge without one is the team charged the timeout on the play's own row."""
+    if row["replay_or_challenge"] != 1:
+        return None
+    found = CHALLENGED.search(str(row["desc"]))
+    if found:
+        return CITIES[found.group(1)], found.group(2).lower() == "reversed"
+    return (row["timeout_team"], False) if row["timeout"] == 1 and _num(row["timeout_team"]) else None
+
+
 def _summary(row, s) -> PlaySummary:
     tags = [tag for tag, col in (("touchdown", "touchdown"), ("interception", "interception"),
                                  ("fumble lost", "fumble_lost"), ("penalty", "penalty"),
@@ -274,23 +301,34 @@ def real_plays(season: int, weeks=None, games=None) -> list[RealPlay]:
         home, away = game.home, game.away
         score = {home: 0, away: 0}
         history, prev, prev_safety, warned = [], None, False, frozenset()
-        timeout, before = None, None  # the first timeout since the last play, and the row before it
+        timeout = second = before = None  # the timeouts since the last play, and the row before the first
+        caught = None  # the team that made a fair catch on the last play
         for index, row in zip(rows.index, rows.to_dict("records")):
             after = {home: int(_num(row["total_home_score"], score[home])), away: int(_num(row["total_away_score"], score[away]))}
             if _is_play(row):
                 kind = _kind(row, prev_safety)
                 s = _situation(row, prev, kind, score, rules)
+                if kind == "scrimmage" and s.offense == caught:
+                    s = dataclasses.replace(s, fair_catch_kick=True)
+                challenge = _challenge(row)
+                if challenge and not challenge[1] and row["timeout"] == 1 and challenge[0] in s.timeouts:
+                    back = min(3, s.timeouts[challenge[0]] + 1)  # the row's timeouts are after the one it cost
+                    s = dataclasses.replace(s, timeouts={**s.timeouts, challenge[0]: back})
                 actual = _actual(row, s, after)
-                actual["timeout"] = timeout
+                actual["timeout"], actual["timeout_second"], actual["challenge"] = timeout, second, challenge
                 actual["timeout_clock_running"] = _clock_state(row, before, kind, rules)[0] if timeout else None
                 plays.append(RealPlay(PlayContext(game, s, players, tuple(history), warned), actual, index))
                 history.append(_summary(row, s))
                 if row["penalty_type"] in UNSPORTSMANLIKE and _num(row["penalty_player_id"]):
                     warned |= {row["penalty_player_id"]}
                 prev_safety = row["safety"] == 1
-                timeout = None
-            if row["timeout"] == 1 and timeout is None:  # on a play's own row: a lost challenge, charged after it
-                timeout, before = _num(row["timeout_team"]), row if _is_play(row) else prev
+                caught = s.defense if 1 in (row["punt_fair_catch"], row["kickoff_fair_catch"]) else None
+                timeout = second = None
+            elif row["timeout"] == 1:  # a timeout on a play's own row is its lost challenge
+                if timeout is None:
+                    timeout, before = _num(row["timeout_team"]), prev
+                elif second is None and _num(row["timeout_team"]) != timeout:
+                    second = _num(row["timeout_team"])
             score, prev = after, row
         _seconds_to_next(plays[len(plays) - len(history):])
     return plays

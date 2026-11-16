@@ -13,7 +13,8 @@ from scenarios.play.field import field_goal_distance
 from scenarios.play.record import Kick, Pass, facts
 from shared.rulebook import rules_for
 
-KICK_ACTIONS = {"punt": "punt", "field_goal": "field_goal", "pat": "extra_point", "kickoff": "kickoff",
+KICK_ACTIONS = {"punt": "punt", "field_goal": "field_goal", "fair_catch_kick": "field_goal", "pat": "extra_point",
+                "kickoff": "kickoff",
                 "safety_kick": "kickoff", "onside_kickoff": "kickoff"}
 RUSH_ACTIONS = {"sack": "sack", "strip_sack": "sack", "scramble": "scramble"}
 FIELD_GOAL_RESULTS = {"good": "made", "no_good": "missed", "blocked": "blocked"}  # nflverse's names
@@ -33,9 +34,9 @@ def summarize(r) -> dict:
     s = r.context.situation
     offense, teams = r.team_stats[s.offense], r.team_stats.values()
     kick = next(iter(facts(r.record, Kick)), None)
-    place_kick = kick.kind if kick and kick.kind in ("field_goal", "pat") else None
+    place_kick = KICK_ACTIONS[kick.kind] if kick and kick.kind in ("field_goal", "fair_catch_kick", "pat") else None
     if place_kick:
-        kick_distance = field_goal_distance(rules_for(r.context.game.season), kick.x)
+        kick_distance = field_goal_distance(rules_for(r.context.game.season), kick.x, kick.kind == "fair_catch_kick")
     else:
         kick_distance = kick.land - kick.x if kick and kick.land is not None else None
     return {
@@ -50,7 +51,7 @@ def summarize(r) -> dict:
             or any(team == s.offense and how == "touchdown" for team, _, how in r.scores)),  # a touchdown counts
         "complete": any(p.result == "complete" for p in facts(r.record, Pass)),
         "field_goal_result": FIELD_GOAL_RESULTS.get(kick.result) if place_kick == "field_goal" else None,
-        "extra_point_result": EXTRA_POINT_RESULTS.get(kick.result) if place_kick == "pat" else None,
+        "extra_point_result": EXTRA_POINT_RESULTS.get(kick.result) if place_kick == "extra_point" else None,
         "kick_distance": kick_distance,
         "touchback": r.live is not None and r.live.how == "touchback",
         "return_yards": sum(t.get(key, 0) for t in teams for key in ("punt_ret_yds", "kick_ret_yds")),

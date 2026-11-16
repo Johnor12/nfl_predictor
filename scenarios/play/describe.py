@@ -74,7 +74,8 @@ def describe_play(result) -> str:
                    else f"out of bounds at {at(f.recovery_x)}")
             lines.append(f"  {f.cause.replace('_', ' ')} at {at(f.x)}, {got}")
         elif isinstance(f, Kick):
-            land = f" to {at(f.land)}" if f.land is not None else f" ({field_goal_distance(rules, f.x)} yards)"
+            yards = field_goal_distance(rules, f.x, f.kind == "fair_catch_kick")
+            land = f" to {at(f.land)}" if f.land is not None else f" ({yards} yards)"
             by = f" ({name(f.player)})" if f.player else ""
             lines.append(f"  {name(f.kicker)} {f.kind.replace('_', ' ')} from {at(f.x)}{land}: {f.result.replace('_', ' ')}{by}")
         elif isinstance(f, Foul):

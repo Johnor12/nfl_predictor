@@ -4,7 +4,8 @@
 # - validate_game(result, plays=True) -> list[str]: broken invariants (empty if valid).
 # - describe_game(result, plays=False) -> str: a box score, and the whole timeline with plays=True.
 # - validate_game_context(ctx) -> list[str]: problems with an input.
-# - Input: GameContext(game, players). Predictors: GamePredictors and load_game_predictors.
+# - Input: GameContext(game, players). Predictors: GamePredictors and load_game_predictors (the play's and
+#   the coin toss's, and the game's own events: timeout and challenge).
 # - Output: GameResult; the entries in its record besides PlayResults: Toss (from the coin toss scenario) and
 #   Stoppage.
 # END

@@ -61,13 +61,13 @@ class LooseBall:
 
 @dataclass(frozen=True)
 class Kick:
-    kind: str                      # punt, field_goal, pat, kickoff, safety_kick, onside_kickoff
+    kind: str                      # punt, field_goal, pat, fair_catch_kick, kickoff, safety_kick, onside_kickoff
     kicker: str
     x: float                       # spot of the kick (line of scrimmage, or free kick line)
     land: float | None             # where it was caught, downed, landed, or went out (None for place kicks)
     result: str                    # punt/free kick: the PuntResult / KickResult result, or out_of_bounds, short, blocked,
                                    # illegal_touch (the kicking team recovered a free kick short of 10 yards);
-                                   # place kick: good, no_good, blocked
+                                   # place kick: good, no_good, blocked (a fair-catch kick: good or no_good)
     player: str | None = None      # returner / blocker / recovering player
     seconds: float = 0.0
 

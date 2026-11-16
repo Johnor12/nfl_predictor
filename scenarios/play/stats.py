@@ -113,8 +113,8 @@ def credit(ctx, los, record, final, accepted) -> dict[str, dict[str, float]]:
                     add(f.kicker, "punt_yds", min(f.land, 100) - f.x)
                 if f.result == "fair_catch":
                     add(f.player, "fair_catches")
-            elif f.kind in ("field_goal", "pat"):
-                attempts, made = ("fg_att", "fg_made") if f.kind == "field_goal" else ("xp_att", "xp_made")
+            elif f.kind in ("field_goal", "fair_catch_kick", "pat"):
+                attempts, made = ("xp_att", "xp_made") if f.kind == "pat" else ("fg_att", "fg_made")
                 add(f.kicker, attempts)
                 add(f.kicker, made, f.result == "good")
             else:

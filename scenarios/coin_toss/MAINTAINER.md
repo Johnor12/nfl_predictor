@@ -6,5 +6,5 @@
 - test_coin_toss.py: each choice's kickoffs, illegal choices, and the baseline predictors.
 
 Notes:
-- The game scenario is the only caller: once before the opening kickoff, once more if the game goes to overtime.
+- The game scenario is the only caller: once before the opening kickoff, once more if the game goes to overtime, and again before every fourth overtime period of a postseason game after that.
 - The events' packages hold no output types (a team name and a choice are plain strings), so nothing here imports them except by name in `load_toss_predictors`.

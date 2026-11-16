@@ -104,7 +104,7 @@ def _features(record) -> set[str]:
             out.add("scrimmage_kick")
         if k.result in ("fair_catch", "return", "muff"):
             out.add("kick_catch")
-        if k.kind != "field_goal" and k.kind != "pat" and k.result != "blocked":
+        if k.kind not in ("field_goal", "pat", "fair_catch_kick") and k.result != "blocked":
             out.add("kick_downfield")
     return out
 

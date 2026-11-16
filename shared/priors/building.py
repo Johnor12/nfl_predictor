@@ -21,8 +21,10 @@
 #   zone: return, touchback, fair_catch, or muff.
 # - nullified(sample) -> run, pass, punt, field_goal, or kickoff: what a play wiped out by a penalty was
 #   (nflverse labels it no_play; its description still says).
+# - sent_out(sample) -> offense, punt, field_goal, or victory: the unit behind a real scrimmage down (None if
+#   a penalty wiped it out). A run or a pass out of a kicking formation was the kicking unit's: a fake.
 # - timeout_case(sample) -> (context, "offense" | "defense" | "none"): the play's context as it stood before
-#   any timeout was called (the clock as it was, the caller's timeout given back), and who called one. Only
+#   any timeout was called (the clock as it was, the callers' timeouts given back), and who called one. Only
 #   the context and actual are read, so a shared.nflverse RealPlay does as well as a Sample.
 # END
 import dataclasses
@@ -30,6 +32,8 @@ import re
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 
+KICK_UNITS = {"Punt": "punt", "Field Goal": "field_goal"}
+KICK_FORMATION = re.compile(r"\((Punt|Field Goal) formation\)")  # how a play's description names the unit
 FOULS = {
     "False Start": "false_start", "Delay of Game": "delay_of_game", "Encroachment": "encroachment",
     "Neutral Zone Infraction": "neutral_zone_infraction", "Defensive Offside": "defensive_offside",
@@ -176,11 +180,22 @@ def nullified(sample) -> str:
     return "run"
 
 
+def sent_out(sample):
+    action = sample.actual["action"]
+    if action in ("no_play", "punt", "field_goal"):
+        return None if action == "no_play" else action
+    if action == "kneel":
+        return "victory"
+    formation = KICK_FORMATION.search(str(sample.actual.get("desc")))
+    return KICK_UNITS[formation.group(1)] if formation else "offense"
+
+
 def timeout_case(sample):
     ctx, team = sample.context, sample.actual.get("timeout")
     s = ctx.situation
     if team not in s.timeouts:
         return ctx, "none"
+    called = (team, sample.actual.get("timeout_second"))  # the other team may have called one after it
     before = dataclasses.replace(s, clock_running=sample.actual["timeout_clock_running"],
-                                 timeouts={**s.timeouts, team: min(3, s.timeouts[team] + 1)})
+                                 timeouts={t: min(3, left + (t in called)) for t, left in s.timeouts.items()})
     return dataclasses.replace(ctx, situation=before), "offense" if team == s.offense else "defense"

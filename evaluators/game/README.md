@@ -4,7 +4,7 @@ Scores the game scenario against real games and against the betting lines. Every
 
 API (`from evaluators.game import ...`):
 
-- `evaluate(seasons=EVALUATED, weeks=None, games=None, sims=100, seed=0, predictors=None, workers=None, lines=()) -> Evaluation`: the played games of `seasons` (and `weeks`), or a fixed sample of `games` of them (see `evaluators/README.md`). `predictors` is a `game.GamePredictors` (each event's default implementation if omitted). Games run in parallel processes (`workers=1` to stay in this one). `lines` are `evaluators.lines.Line`s (from `lines.lines(sample_games(...))`); without them the lines section is left out. It costs about 0.17 core-seconds per game and sim: the CLI's default (160 games, 100 sims) is about 3 minutes on 16 cores and 11 on 4. Reading each season's games and scoring its timeouts run in the same worker processes.
+- `evaluate(seasons=EVALUATED, weeks=None, games=None, sims=100, seed=0, predictors=None, workers=None, lines=()) -> Evaluation`: the played games of `seasons` (and `weeks`), or a fixed sample of `games` of them (see `evaluators/README.md`). `predictors` is a `game.GamePredictors` (each event's default implementation if omitted). Games run in parallel processes (`workers=1` to stay in this one). `lines` are `evaluators.lines.Line`s (from `lines.lines(sample_games(...))`); without them the lines section is left out. It costs about 0.17 core-seconds per game and sim: the CLI's default (160 games, 100 sims) is about 3 minutes on 16 cores and 11 on 4. Reading each season's games and scoring its timeouts and challenges run in the same worker processes.
 - `Evaluation`: `seasons`, `sims`, `games`, `failures` (simulated games that raised or broke an invariant), `card` (a `scoring.Scorecard`), `lines`, and `samples` (`{line key: simulated values}`, what `lines.score_lines` takes).
 - `evaluate_games(games, sims, seed, predictors, workers, lines) -> (card, samples, failures)`: the same for a list of games (anything with `.context` and `.actual`).
 - `game_outputs(ctx, outcome) -> {(name, subject): value}`: the scored outputs, read the same way from a real outcome and a simulated one.
@@ -21,7 +21,11 @@ API (`from evaluators.game import ...`):
 
 **The betting lines** (when given): the market's probability and line scored against the result, and the simulator's share of samples over the same line, on the moneyline, spread, total, and every player prop (see `evaluators/lines/README.md`).
 
-**The timeout predictor alone** (`timeout: caller (...)`): sampled on every real play's situation as it stood before any timeout, and scored against who called one (offense, defense, none). The coin toss isn't in the data, so its two predictors aren't scored.
+**The timeout predictor alone** (`timeout: caller (...)`): sampled on every real play's situation as it stood before any timeout, and scored against who called one (offense, defense, none).
+
+**The challenge predictor alone** (`challenge: who and ruling`): sampled on every real play a coach could challenge, and scored against who challenged it and how the review came out (offense won, offense lost, defense won, defense lost, none).
+
+The coin toss isn't in the data, so its two predictors aren't scored.
 
 ## reading the results
 

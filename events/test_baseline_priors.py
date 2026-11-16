@@ -17,7 +17,7 @@ def test_week_one_build():
     from events.baseline_priors import _builders, build
     from shared.priors import priors_of
     built = {event: by_week[1] for event, by_week in build(2026, weeks=[1]).items()}
-    assert len(built) == 18
+    assert len(built) == 19
     for event, priors in built.items():
         assert priors and set(priors) <= set(priors_of(_builders()[event].__file__)(2026, 1)), event
 
@@ -38,7 +38,7 @@ def test_on_field_priors():
 def test_old_season_build():
     from events.baseline_priors import build
     built = {event: by_week.get(1, {}) for event, by_week in build(2016, weeks=[1]).items()}
-    assert len(built) == 18 and not built["defensive_formation"]  # no charting before 2022
+    assert len(built) == 19 and not built["defensive_formation"]  # no charting before 2022
     assert {"personnel", "package", "unit", "two_point"} <= set(built["lineups"])
     assert {"carry_rate", "pass_rate"} <= set(built["snap"]) and "target_rate" in built["target"]
     assert max(built["lineups"]["package"]["11"], key=built["lineups"]["package"]["11"].get) == "nickel"

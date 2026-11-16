@@ -6,9 +6,9 @@
 # - units(ctx) -> {unit: weight}: which unit a team sends out on a scrimmage down (the 4th-down decision):
 #   the unit priors by down, distance, and field position, backed off to down and field position when a
 #   cell is thin.
-# Internals: _unit (the two-point choice, the kneel and end-of-half rules, then `units`), _two_point_rate,
-# _kneel, _onside, _personnel (by game script, down, and distance, backed off to the normal script), _package
-# (by personnel group).
+# Internals: _unit (the two-point choice, the kneel, end-of-half, and fair-catch kick rules, then `units`),
+# _two_point_rate, _kneel, _fair_catch_kick, _onside, _personnel (by game script, down, and distance, backed
+# off to the normal script), _package (by personnel group).
 # Choosing the players is in depth_chart.py; priors.py builds the priors.
 # END
 from collections import Counter
@@ -20,7 +20,8 @@ from shared.priors import blend, choice, dist_bucket, field_bucket, priors_of, r
 from shared.rulebook import TRY, rules_for
 
 load_priors = priors_of(__file__, rules={"two_point": TRY})  # (season, week) -> priors dict
-DEFENSE_UNITS = {"punt": "punt_return", "field_goal": "field_goal_block", "victory": "defense"}
+DEFENSE_UNITS = {"punt": "punt_return", "field_goal": "field_goal_block", "fair_catch_kick": "field_goal_block",
+                 "victory": "defense"}
 
 
 def units(ctx) -> dict:
@@ -78,6 +79,11 @@ def _kneel(s):  # hand-set
     return s.quarter == 2 and s.clock <= 30 and s.x <= 50
 
 
+def _fair_catch_kick(s):  # hand-set: a free three points as a half runs out, from where a kick can get there
+    lead = s.score[s.offense] - s.score[s.defense]
+    return s.fair_catch_kick and s.clock <= 5 and s.x >= 42 and (s.quarter == 2 or (s.quarter >= 4 and -3 <= lead <= 0))
+
+
 def _personnel(s, p, rng):
     if s.kind == "try":
         return choice(p["personnel"]["try"], rng)
@@ -95,6 +101,8 @@ def _unit(ctx, p, rng, units):
     if s.kind == "try":
         return "offense" if rng.random() < _two_point_rate(s, p) else "field_goal"
     lead = s.score[s.offense] - s.score[s.defense]
+    if _fair_catch_kick(s):
+        return "fair_catch_kick"
     if _kneel(s):
         return "victory"
     if s.quarter in (2, 4) and s.clock <= 8 and s.x >= 60 and (s.quarter == 2 or -3 <= lead <= 0):

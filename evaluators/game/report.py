@@ -34,8 +34,9 @@ def write_report(evaluation, path=None) -> Path:
              "active player with that depth chart role and game (a 3 means third or lower), whether or not he "
              "played.", "", *score_table(scenario),
              "", "## Event predictors", "",
-             "The timeout predictor alone, sampled on every real play's situation as it stood before any timeout. "
-             "The coin toss isn't in the data, so its predictors aren't scored.", "", *score_table(events)]
+             "The timeout predictor alone, sampled on every real play's situation as it stood before any timeout, "
+             "and the challenge predictor alone, on every real play a coach could challenge (who challenged it, "
+             "and whether he won). The coin toss isn't in the data, so its predictors aren't scored.", "", *score_table(events)]
     if evaluation.lines:
         lines += ["", "## Betting lines", "",
                   "The market's lines scored against what happened, and the simulator on the same lines. Brier and "

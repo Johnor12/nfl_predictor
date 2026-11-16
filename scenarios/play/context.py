@@ -112,6 +112,7 @@ class Situation:
     clock_running: bool
     play_clock: int
     timeouts: dict[str, int]
+    fair_catch_kick: bool = False  # the last play ended in a fair catch: the offense may try a fair-catch kick
 
 
 @dataclass(frozen=True)

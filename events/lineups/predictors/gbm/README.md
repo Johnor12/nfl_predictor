@@ -5,7 +5,7 @@ The fourth-down decision (go for it, punt, or kick a field goal) from a trained 
 API (`from events.lineups.predictors.gbm import predict`, or `play.load_predictors()`: it is the lineups event's default):
 
 - `predict(ctx, rng) -> Lineups`
-- `units(ctx) -> {"offense": p, "punt": p, "field_goal": p}`: the model's probabilities on a fourth down.
+- `units(ctx) -> {"offense": p, "punt": p, "field_goal": p}`: the model's probabilities on a fourth down. A real fake punt or field goal was the kicking unit's (`shared.priors.sent_out`); the snap event decides to fake.
 
 What the model reads (`inputs.py`):
 

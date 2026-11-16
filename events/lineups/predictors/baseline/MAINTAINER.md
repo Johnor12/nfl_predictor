@@ -1,6 +1,6 @@
 # MAINTAINER
 
-- __init__.py: `predict`, the unit choice (`_unit`, `_kneel`, `_two_point_rate`, `_onside`), `_personnel`, and `_package`.
+- __init__.py: `predict`, the unit choice (`_unit`, `_kneel`, `_fair_catch_kick`, `_two_point_rate`, `_onside`), `_personnel`, and `_package`.
 - depth_chart.py: 11 players for any unit: position quotas for the personnel group or package, filled by recent snaps in the unit and then by depth chart rank, with position fallbacks.
 - test_lineups.py: spot checks (depth chart, kneel rule, 4th-and-long punts, recent snaps, a change of active players).
 - priors.py: `observe(tally, sample)`, which counts one real play into this predictor's priors.
