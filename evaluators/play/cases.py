@@ -14,13 +14,15 @@
 #   predictors read, and only some seasons record who was on the field. Those come from the first simulated
 #   run where the offense sent out the same unit as in the real play (and ran the same kind of play, for
 #   fouls). Every other input is real, the lineups included where the season has them (an event whose
-#   inputs also include a stand-in formation keeps the stand-in's lineups, so the two agree).
+#   inputs also include a stand-in formation keeps the stand-in's lineups, so the two agree). What the data
+#   does record of a stand-in is the real play's: the shotgun, the offense's personnel group, and the box.
 # Internals: one builder per group of events (_lineups ... _dead_ball, listed in BUILDERS; each takes the
 #   sample, the runs, and the real play's Lineups, or None) and one reader per event (READERS). _unit / _kind
-#   read the real play; _args / _on_field find a stand-in; _real_lineups builds the real play's Lineups.
+#   read the real play; _args / _on_field find a stand-in; _recorded puts the real play's shotgun, personnel
+#   group, and box into one; _real_lineups builds the real play's Lineups.
 # Carries stop at the goal line in real data, so a sample's yards are capped there and its end is a touchdown.
 # END
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from events.lineups import Lineup, Lineups
 from events.target import Target
@@ -93,6 +95,18 @@ def _args(runs, unit, event, where=None):
     return next((args for args in found if args is not None), None)
 
 
+def _recorded(sample, lineups, formation, defense=None):
+    """Stand-in inputs with what the data records of them put in: whether the offense was in the shotgun,
+    its personnel group (in the seasons with on-field data), and the charted defenders in the box."""
+    group, charting = personnel(sample), sample.charting
+    formation = replace(formation, under_center=sample.row.shotgun != 1)
+    if group:
+        lineups = replace(lineups, offense=replace(lineups.offense, personnel=group))
+    if defense is not None and charting is not None and charting.n_defense_box > 0:
+        defense = replace(defense, box=int(charting.n_defense_box))
+    return lineups, formation, defense
+
+
 def _real_lineups(sample):
     """The Lineups the real play had on the field (None where the data doesn't say)."""
     unit, players = _unit(sample), played(sample)
@@ -124,8 +138,8 @@ def _formations(sample, runs, real):
         yield Case("offensive_formation", (real,) if real else _args(runs, "offense", "offensive_formation"),
                    {"shotgun": bool(row.shotgun == 1)})
         if charting is not None and charting.n_defense_box > 0:
-            yield Case("defensive_formation", _args(runs, "offense", "defensive_formation"),
-                       {"box": float(charting.n_defense_box)})
+            args = _args(runs, "offense", "defensive_formation")
+            yield Case("defensive_formation", args and _recorded(sample, *args)[:2], {"box": float(charting.n_defense_box)})
 
 
 def _pre_snap(sample, runs, real):
@@ -141,6 +155,7 @@ def _snap(sample, runs, real):
     if ctx.situation.kind != "scrimmage" or action not in OFFENSE + ("spike",):
         return
     args = _args(runs, "offense", "snap")
+    args = args and _recorded(sample, *args[:3]) + args[3:]
     lineups, formation, defense = args[:3] if args else (None, None, None)
     actual = {"action": action if action in ("run", "spike") else "pass"}
     if action == "run" and row.rusher_player_id in ctx.by_id:

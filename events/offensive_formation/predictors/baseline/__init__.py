@@ -1,7 +1,9 @@
 # START
 # Baseline offensive formation predictor: a legal alignment for the unit, shotgun or under center by the priors
 # (by down and distance, sharpened by the personnel group on the field where a season's data has it).
-# - predict(ctx, lineups, rng) -> Formation.
+# - predict(ctx, lineups, rng, shotgun_rate=shotgun_rate) -> Formation. Another implementation can hand in
+#   its own `shotgun_rate` and keep the alignment (events/offensive_formation/predictors/gbm).
+# - shotgun_rate(ctx, lineups) -> float: how often the offense lines up in the shotgun here.
 # Internals: _formation (hand-set templates: punt, field goal, and an offense with linemen in the middle,
 # tight ends and receivers filling the line to 7, and at most 4 in the backfield).
 # END
@@ -11,17 +13,18 @@ from shared.priors import blend, dist_bucket, priors_of, rate
 load_priors = priors_of(__file__)  # (season, week) -> priors dict
 
 
-def predict(ctx, lineups, rng):
+def shotgun_rate(ctx, lineups) -> float:
     s = ctx.situation
-    if lineups.offense.unit == "victory":
-        shotgun = False
-    elif s.kind == "scrimmage":
-        p, key = load_priors(ctx.game.season, ctx.game.week), f"{s.down}|{dist_bucket(s.distance)}"
-        by_personnel = p["personnel_shotgun"].get(f"{lineups.offense.personnel}|{key}", {})
-        counts = blend(by_personnel, p["shotgun"].get(key, {}))
-        shotgun = rng.random() < (rate(counts, "shotgun") if counts else 0.6)
-    else:
-        shotgun = rng.random() < 0.5
+    if s.kind != "scrimmage":
+        return 0.5
+    p, key = load_priors(ctx.game.season, ctx.game.week), f"{s.down}|{dist_bucket(s.distance)}"
+    by_personnel = p["personnel_shotgun"].get(f"{lineups.offense.personnel}|{key}", {})
+    counts = blend(by_personnel, p["shotgun"].get(key, {}))
+    return rate(counts, "shotgun") if counts else 0.6
+
+
+def predict(ctx, lineups, rng, shotgun_rate=shotgun_rate):
+    shotgun = lineups.offense.unit != "victory" and rng.random() < shotgun_rate(ctx, lineups)
     return _formation(ctx, lineups.offense, shotgun)
 
 

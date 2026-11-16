@@ -67,15 +67,13 @@ not built: coach's challenges, multiple timeouts per dead ball, injury stoppage 
 
 current goals:
 
-1. pick a predictor which you think would be improved by a ML model and attempt it.
+1. follow up on our game scenario implementation, building out any remaining edge cases.
 
-2. follow up on our game scenario implementation, building out any remaining edge cases.
+2. no indicator of team or player strength anywhere in the model (represented by ML weights?). coaches, referees, weather, surface, neutral site, experience, and draft pick are read by nothing.
 
-3. no indicator of team or player strength anywhere in the model (represented by ML weights?). coaches, referees, weather, surface, neutral site, experience, and draft pick are read by nothing.
+3. formation, personnel, and box are not used in our snap predictor ML model. they were worth 5.8% in a test run, but there's no mechanism for play-specific inputs; they come from league averages, which makes the model worse than leaving them out. offensive formation (shotgun) predictors would enable them.
 
 notes:
 Do you want a priced source for player props? Without prices a prop can only be treated as a coin flip at the line, and priced history most likely means a paid odds API.
 
-formation, personnel, and box are not used in our snap predictor ML model. they were worth 5.8% in a test run, but there's no mechanism for play-specific inputs; they come from league averages, which makes the model worse than leaving them out. offensive formation (shotgun) predictors would enable them.
-
-team/coach tendency inputs would be high leverage
+a trained box predictor is the natural next ML model

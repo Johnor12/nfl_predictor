@@ -10,12 +10,13 @@ API (`from events.snap.predictors.gbm import predict`, or `play.load_predictors(
 What the model reads (`inputs.py`), all of it known before the snap:
 
 - the situation: down, distance, yards to the goal line, quarter and clock, the score, both teams' timeouts, whether the clock is running, home or away, and the season;
-- the game so far: the offense's dropbacks and runs, the length of its current drive, and what its last play was and gained.
+- the game so far: the offense's dropbacks and runs, the length of its current drive, and what its last play was and gained;
+- how the two teams lined up on this play: the offense's personnel group (`lineups.offense.personnel`: its backs, tight ends, and extra linemen), whether it is in the shotgun (`formation.under_center`), and the defenders in the box (`defense.box`).
 
-It doesn't read the formation, the personnel group, or the box yet, so like the baseline it ignores `lineups`, `formation`, and `defense`. It doesn't read the betting lines either, though they are in the game's inputs. `MAINTAINER.md` says why, and what each was worth.
+The first two groups are `events/situation.py`'s, shared with the trained offensive formation predictor, which is what makes the third usable: the formation the model is told has to fit the rest of what it knows about the play (`MAINTAINER.md`). It doesn't read the betting lines, though they are in the game's inputs.
 
 Models: `model_<season>.txt` is the model for that season's games, trained on the seasons from 2011 up to the one before it, so no game is predicted by a model that has seen its season. A later season uses the latest model; a season before the first model (2021) gets the baseline's pass rate.
 
-Training (`python -m events.snap.predictors.gbm.train`): retrains the models of the six most recent seasons (`2026` for one, `2021-2026` for a range). The first run turns every real play since 2011 into a row of the features above (about 10 minutes on 4 cores, cached in `.cache/training/`); a model then takes about 5 seconds. Retrain once a year, when a season is complete: `python -m events.snap.predictors.gbm.train <next season>`.
+Training (`python -m events.snap.predictors.gbm.train`): retrains the models of the six most recent seasons (`2026` for one, `2021-2026` for a range). The personnel group is only in the data from 2016 on and the box from 2022 on; before that they are unknown to the model (nan). The first run turns every real play since 2011 into a row of the features above (about 10 minutes on 4 cores, cached in `.cache/training/`); a model then takes about 5 seconds. Retrain once a year, when a season is complete: `python -m events.snap.predictors.gbm.train <next season>`.
 
 Scoring: `python -m evaluators.play` and `python -m evaluators.game`, against the same runs with `--swap snap=baseline`.

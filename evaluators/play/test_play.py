@@ -4,7 +4,8 @@
 #   run are calibrated by construction: no negative skill, a flat PIT (no data needed).
 # - test_runs_are_traced: every simulated run becomes one Run with its lineups and each call's arguments.
 # - test_event_cases_for_a_run / test_no_stand_in_no_score: a hand-built real run play gives each event its
-#   real inputs and output; without a matching simulated run the cases have no arguments and go unscored.
+#   real inputs and output (the snap's stand-in formation is in the shotgun, as the real play was); without a
+#   matching simulated run the cases have no arguments and go unscored.
 # - test_each_run_leads_once: stand_ins builds the cases once per run, each taking its stand-ins from that run on.
 # - test_week_one_evaluation: a real week scores every event, with skill where the baseline has information.
 #   Skipped unless the 2026 files are already in .cache/nflverse.
@@ -81,6 +82,9 @@ def test_event_cases_for_a_run():
     assert cases["snap", ""].actual == {"action": "run", "carrier": "RB1"}
     assert cases["lineups", "downs 1-3"].actual == {"unit": "offense"}
     assert cases["offensive_formation", ""].actual == {"shotgun": True}
+    snaps = [next(case for case in cases if case.event == "snap") for cases in stand_ins(sample, runs)]
+    assert not any(snap.args[1].under_center for snap in snaps)  # every stand-in, whatever its run lined up in
+    assert any(run.args("snap")[1].under_center for run in runs if run.args("snap"))
     assert cases["fouls", ""].actual == {"foul": "none"} and cases["injuries", ""].actual == {"injury": False}
     card = Scorecard()
     _score_events(card, load_predictors("baseline"), sample, runs, 40, random.Random(0))

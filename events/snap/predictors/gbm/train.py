@@ -3,38 +3,39 @@
 # - train(season) -> Path: the model for `season`'s games, fitted to every earlier season's real plays and
 #   written as model_<season>.txt next to this file.
 # - example(sample) -> row | None: a real run or dropback on a scrimmage down as the model's features
-#   (inputs.py) and whether the offense dropped back.
+#   (inputs.py) and whether the offense dropped back. The personnel group and the box are nan in the
+#   seasons whose data doesn't record them.
 # - COLUMNS: the row's names: the features, then "pass".
 # - CLI: `python -m events.snap.predictors.gbm.train 2026`, or `2021-2026` for a range (the default: the six
 #   most recent seasons).
 # The model's settings are shared.models' defaults: on 2019 and 2020, with models trained on 2011 to 2018,
 # nothing tried beat them by more than 0.2%.
 # END
-import sys
+import math
 
-from events.snap.predictors.gbm.inputs import DROPBACKS, NAMES, SNAPS, features
-from events.training import table
+from events.situation import DROPBACKS, SNAPS
+from events.snap.predictors.gbm.inputs import NAMES, features
+from events.training import table, train_cli
 from shared.models import fit, save_model
 from shared.nflverse import SEASONS
+from shared.priors import personnel
 
+TABLE = "snap_gbm"
 COLUMNS = NAMES + ("pass",)
 
 
 def example(sample):
-    action = sample.actual["action"]
+    action, charting = sample.actual["action"], sample.charting
     if sample.context.situation.kind != "scrimmage" or action not in SNAPS:
         return None
-    return features(sample.context) + [action in DROPBACKS]
+    box = charting.n_defense_box if charting is not None and charting.n_defense_box > 0 else math.nan
+    return features(sample.context, personnel(sample), sample.row.shotgun == 1, box) + [action in DROPBACKS]
 
 
 def train(season: int):
-    examples = table("snap_gbm", [s for s in SEASONS if s < season], example, COLUMNS)
+    examples = table(TABLE, [s for s in SEASONS if s < season], example, COLUMNS)
     return save_model(fit(examples, NAMES, "pass"), __file__, season)
 
 
 if __name__ == "__main__":
-    first, _, last = (sys.argv[1] if len(sys.argv) > 1 else f"{SEASONS[-6]}-{SEASONS[-1]}").partition("-")
-    seasons = range(int(first), int(last or first) + 1)
-    table("snap_gbm", [s for s in SEASONS if s < seasons[-1]], example, COLUMNS)  # every season's rows, built together
-    for season in seasons:
-        print(train(season).name)
+    train_cli(TABLE, example, COLUMNS, train)
