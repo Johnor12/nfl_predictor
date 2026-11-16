@@ -69,6 +69,8 @@ current goals:
 
 1. follow up on our game scenario implementation, building out any remaining edge cases.
 
+2. expand player props (and our system for predicting and measuring them) to prior years. let me know if you need more data sources. we should be predicting all relevant offensive statistics for all offensive skill players (QB, WR, TE, RB, Kicker).
+
 notes:
 Do you want a priced source for player props? Without prices a prop can only be treated as a coin flip at the line, and priced history most likely means a paid odds API.
 
