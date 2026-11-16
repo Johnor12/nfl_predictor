@@ -6,7 +6,7 @@ API (`from shared.priors import ...`):
 
 Sampling, for predictors:
 - `choice(weights, rng)`: a key of a `{key: weight}` dict.
-- `hist(histogram, rng) -> float`: a value from a `{"value": count}` histogram.
+- `hist(histogram, rng, low=None, high=None) -> float`: a value from a `{"value": count}` histogram; with bounds, one of its values in `[low, high)` (how a trained predictor fills in the yard once its model has said between which two cuts a number falls).
 - `rate(counts, key) -> float`: the key's share of the counts.
 - `blend(counts, fallback, k=10)`: counts backed off to a coarser distribution worth `k` samples.
 - `wait(gaps, rng) -> float`: how long a team let the clock go before a snap or a timeout, from a histogram of the game seconds between two snaps (what the data records), less what the first play itself took (`PLAY_SECONDS`).

@@ -1,7 +1,10 @@
 # START
 # Baseline carry predictor: yards from a histogram for the kind of carry (runs by the carrier's position
 # group, catches by pass depth and the receiver's), how it ended, and tacklers by group.
-# - predict(ctx, lineups, kind, carrier, yard_line, rng) -> CarryEnd.
+# - predict(ctx, lineups, kind, carrier, yard_line, rng, yards=yards) -> CarryEnd. Another implementation can
+#   hand in its own `yards` and keep the rest (events/carry/predictors/gbm).
+# - yards(ctx, kind, carrier, yard_line, rng) -> float: the carry's yards, drawn from histogram(...).
+# - histogram(ctx, kind, carrier, yard_line) -> {"yards": count}: the yards of carries of this kind.
 # Goal to go (inside the 10) uses separate, compressed histograms where the priors have them.
 # A run or a catch ends in a lateral at the real rate, to a back, receiver, or tight end on the field.
 # Hand-set: kneels, fumble recovery returns (RECOVERY_YARDS), how returns without data end (RETURN_ENDS),
@@ -20,12 +23,21 @@ SECONDS = {"run": 4.5, "catch": 0.0, "scramble": 3.0}  # before the yards start 
 #                                                         while, a catch none (the throw and the flight have)
 
 
-def predict(ctx, lineups, kind, carrier, yard_line, rng):
+def histogram(ctx, kind, carrier, yard_line) -> dict:
+    p = load_priors(ctx.game.season, ctx.game.week)
+    goal = p.get(f"{kind}_goal", {}).get(goal_bucket(100 - yard_line)) if yard_line >= 90 else None
+    return RECOVERY_YARDS if kind == "recovery" else goal or _yards(ctx, p, kind, carrier, yard_line)
+
+
+def yards(ctx, kind, carrier, yard_line, rng) -> float:
+    return hist(histogram(ctx, kind, carrier, yard_line), rng)
+
+
+def predict(ctx, lineups, kind, carrier, yard_line, rng, yards=yards):
     if kind == "kneel":
         return CarryEnd(-1.0 if yard_line > 2 else 0.0, "down", seconds=1.0)
     p = load_priors(ctx.game.season, ctx.game.week)
-    goal = p.get(f"{kind}_goal", {}).get(goal_bucket(100 - yard_line)) if yard_line >= 90 else None
-    yards = hist(RECOVERY_YARDS if kind == "recovery" else goal or _yards(ctx, p, kind, carrier, yard_line), rng)
+    yards = yards(ctx, kind, carrier, yard_line, rng)
     how = choice(p["carry_end"].get(kind, RETURN_ENDS), rng)
     if kind == "scramble" and how == "tackled" and rng.random() < 0.3:
         how = "down"  # slide

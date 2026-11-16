@@ -4,9 +4,10 @@
 #   fewer than 2 is counted as unscored). The output's kind comes from the type of `actual`.
 # - Scorecard.merge(other): fold another scorecard in (for evaluations split across processes).
 # - Scorecard.rows() -> list[dict], one per output: name, kind, n, unscored, sims (mean ensemble size),
-#   score (mean fair score), reference (climatology), skill (1 - score / reference), se (standard error of
-#   the mean score over cases), sim_se (the part of the error that comes from simulating a finite number of
-#   times), sims_needed (see below).
+#   score (mean fair score), reference (climatology), skill (1 - score / reference), mean and sim_mean (the
+#   average real outcome and the average simulated one, a yes/no output's rates; None for categories), se
+#   (standard error of the mean score over cases), sim_se (the part of the error that comes from simulating
+#   a finite number of times), sims_needed (see below).
 # - Scorecard.pit(name) -> [share per bin] for a numeric output; Scorecard.reliability(name) ->
 #   [(mean probability, observed rate, n)] for a binary or categorical one (each class the output ever took
 #   is one probability per case).
@@ -36,6 +37,8 @@ class _Output:
     actuals: Counter = field(default_factory=Counter)
     pits: list = field(default_factory=list)
     forecasts: list = field(default_factory=list)  # ({class: share of the samples}, actual)
+    real: float = 0.0       # the outcomes, summed (numbers, and yes/no as 1/0)...
+    simulated: float = 0.0  # ...and each case's mean sample
 
 
 class Scorecard:
@@ -53,6 +56,8 @@ class Scorecard:
         out.scores.append(score(out.kind, samples, actual))
         out.members += m
         out.actuals[actual] += 1
+        if out.kind != "categorical":
+            out.real, out.simulated = out.real + actual, out.simulated + sum(samples) / m
         if m >= 4:
             out.halves.append(score(out.kind, samples[0::2], actual) - score(out.kind, samples[1::2], actual))
         if out.kind == "numeric":
@@ -67,6 +72,7 @@ class Scorecard:
                 getattr(out, key).extend(getattr(theirs, key))
             out.members += theirs.members
             out.unscored += theirs.unscored
+            out.real, out.simulated = out.real + theirs.real, out.simulated + theirs.simulated
             out.actuals.update(theirs.actuals)
         return self
 
@@ -75,7 +81,9 @@ class Scorecard:
         for name, out in self.outputs.items():
             n = len(out.scores)
             row = dict(name=name, kind=out.kind, n=n, unscored=out.unscored, sims=None, score=None, reference=None,
-                       skill=None, se=None, sim_se=None, sims_needed=None)
+                       skill=None, mean=None, sim_mean=None, se=None, sim_se=None, sims_needed=None)
+            if n and out.kind != "categorical":
+                row.update(mean=out.real / n, sim_mean=out.simulated / n)
             if n:
                 mean = sum(out.scores) / n
                 reference = climatology(out.kind, out.actuals)

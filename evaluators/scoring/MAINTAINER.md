@@ -2,7 +2,7 @@
 
 - __init__.py: the public API (re-exports).
 - scores.py: the score functions (`fair_crps`, `fair_brier`, `score`, `kind_of`, `climatology`, `brier`, `log_loss`, `probability`) and diagnostics (`pit`, `histogram`, `reliability`). Pure functions of plain values.
-- scorecard.py: `Scorecard`, which keeps each output's per-case scores, half-ensemble differences, outcomes, PIT values, and forecasts, and summarizes them in `rows()`.
+- scorecard.py: `Scorecard`, which keeps each output's per-case scores, half-ensemble differences, outcomes, PIT values, forecasts, and the real and simulated totals, and summarizes them in `rows()`.
 - report.py: markdown for a scorecard (`OUT`, `GUIDE`, `score_table`, `pit_table`, `reliability_table`).
 - test_scoring.py: the scores' properties (fairness, the binary and multiclass identities, the reference), calibrated forecasts looking calibrated, and the scorecard.
 

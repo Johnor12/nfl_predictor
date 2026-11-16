@@ -1,10 +1,14 @@
 # START
 # Baseline lineups predictor: the unit from hand-set rules and 4th-down priors, the personnel group and the
 # defense's package from the priors, and 11 players who have been playing in the unit.
-# - predict(ctx, rng) -> Lineups.
-# Internals: _unit (kneel and end-of-half rules, then the unit priors by down, distance, and field position,
-# backed off to down and field position when a cell is thin), _two_point_rate, _kneel, _onside, _personnel
-# (by game script, down, and distance, backed off to the normal script), _package (by personnel group).
+# - predict(ctx, rng, units=units) -> Lineups. Another implementation can hand in its own `units` and keep
+#   the rest (events/lineups/predictors/gbm).
+# - units(ctx) -> {unit: weight}: which unit a team sends out on a scrimmage down (the 4th-down decision):
+#   the unit priors by down, distance, and field position, backed off to down and field position when a
+#   cell is thin.
+# Internals: _unit (the two-point choice, the kneel and end-of-half rules, then `units`), _two_point_rate,
+# _kneel, _onside, _personnel (by game script, down, and distance, backed off to the normal script), _package
+# (by personnel group).
 # Choosing the players is in depth_chart.py; priors.py builds the priors.
 # END
 from collections import Counter
@@ -19,14 +23,28 @@ load_priors = priors_of(__file__, rules={"two_point": TRY})  # (season, week) ->
 DEFENSE_UNITS = {"punt": "punt_return", "field_goal": "field_goal_block", "victory": "defense"}
 
 
-def predict(ctx, rng):
+def units(ctx) -> dict:
+    s, p = ctx.situation, load_priors(ctx.game.season, ctx.game.week)
+    field = field_bucket(s.x)
+    counts = p["unit"].get(f"{s.down}|{dist_bucket(s.distance)}|{field}", {})
+    if sum(counts.values()) < 20:
+        fallback = Counter()
+        for key, value in p["unit"].items():
+            down, _, bucket = key.split("|")
+            if down == str(s.down) and bucket == field:
+                fallback.update(value)
+        counts = blend(counts, fallback)
+    return counts
+
+
+def predict(ctx, rng, units=units):
     s = ctx.situation
     if s.kind in FREE_KICKS:
         unit = "onside_kickoff" if _onside(ctx, rng) else "kickoff"
         return Lineups(Lineup(unit, None, unit_lineup(ctx, s.offense, unit, rng)),
                        Lineup("kick_return", None, unit_lineup(ctx, s.defense, "kick_return", rng)))
     p = load_priors(ctx.game.season, ctx.game.week)
-    unit = _unit(ctx, p, rng)
+    unit = _unit(ctx, p, rng, units)
     if unit == "offense":
         group = _personnel(s, p, rng)
         package = _package(group, p, rng)
@@ -72,7 +90,7 @@ def _package(group, p, rng):
     return choice(p["package"].get(group) or p["package"]["11"], rng)
 
 
-def _unit(ctx, p, rng):
+def _unit(ctx, p, rng, units):
     s = ctx.situation
     if s.kind == "try":
         return "offense" if rng.random() < _two_point_rate(s, p) else "field_goal"
@@ -81,13 +99,4 @@ def _unit(ctx, p, rng):
         return "victory"
     if s.quarter in (2, 4) and s.clock <= 8 and s.x >= 60 and (s.quarter == 2 or -3 <= lead <= 0):
         return "field_goal"  # hand-set: kick at the end of a half
-    field = field_bucket(s.x)
-    counts = p["unit"].get(f"{s.down}|{dist_bucket(s.distance)}|{field}", {})
-    if sum(counts.values()) < 20:
-        fallback = Counter()
-        for key, value in p["unit"].items():
-            down, _, bucket = key.split("|")
-            if down == str(s.down) and bucket == field:
-                fallback.update(value)
-        counts = blend(counts, fallback)
-    return choice(counts or {"offense": 1}, rng)
+    return choice(units(ctx) or {"offense": 1}, rng)

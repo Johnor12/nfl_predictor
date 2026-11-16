@@ -3,7 +3,7 @@
 - README.md: the API, inputs/outputs, and the event chain.
 - RULES.md: the hardcoded NFL rules, the invariants, and what isn't built yet.
 - __init__.py: the public API (re-exports).
-- context.py: inputs (`Game`, `Player`, `Situation`, `PlaySummary`, `PlayContext`) and `validate_context`.
+- context.py: inputs (`Game`, `Form`, `Player`, `Situation`, `PlaySummary`, `PlayContext`) and `validate_context`.
 - predictors.py: the `Predictors` bundle (one function per event) and `load_predictors`, which imports each event's implementation by name from `events/<event>/predictors/<name>/`.
 - record.py: facts the chain records (`Sack`, `Pass`, `Carry`, `LooseBall`, `Kick`), `Dead` (how and where the ball died), and `PlayResult`.
 - field.py: coordinates (`rel`/`to_x`), line of scrimmage, field goal distance, eligible receivers, and lineup and formation legality.
@@ -14,7 +14,7 @@
 - validate.py: `validate_play`, the invariants.
 - describe.py: narration.
 - summary.py: `summarize` (a play's outcome with nflverse's names) and `play_summary` (its entry in the game's history).
-- testing.py: synthetic contexts, random legal ("chaos") predictors, and `scripted` predictors for rule tests.
+- testing.py: synthetic contexts, `with_history` (a past for a player or a team in one), random legal ("chaos") predictors, and `scripted` predictors for rule tests.
 - test_play.py: fuzzed invariants and hand-built rule tests.
 
 Notes:

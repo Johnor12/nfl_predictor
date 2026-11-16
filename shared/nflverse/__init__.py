@@ -8,10 +8,13 @@
 # - real_games(season, weeks=None) -> list[RealGame]: every game as a GameContext plus what happened (None
 #   if it hasn't been played).
 # - STAT_COLUMNS: the play scenario's stat names -> nflverse's player stats columns.
+# - TEAM_STATS: the stats in a team's, coach's, or referee's form (Game.forms).
 # - SEASONS: the seasons the system covers (2011 on).
 # END
 from shared.nflverse.contexts import RealPlay, real_plays, real_samples
 from shared.nflverse.download import SEASONS, load
+from shared.nflverse.form import TEAM_STATS
 from shared.nflverse.games import STAT_COLUMNS, RealGame, real_games
 
-__all__ = ["SEASONS", "load", "real_plays", "real_samples", "RealPlay", "real_games", "RealGame", "STAT_COLUMNS"]
+__all__ = ["SEASONS", "load", "real_plays", "real_samples", "RealPlay", "real_games", "RealGame", "STAT_COLUMNS",
+           "TEAM_STATS"]

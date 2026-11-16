@@ -69,11 +69,13 @@ current goals:
 
 1. follow up on our game scenario implementation, building out any remaining edge cases.
 
-2. no indicator of team or player strength anywhere in the model (represented by ML weights?). coaches, referees, weather, surface, neutral site, experience, and draft pick are read by nothing.
-
-3. formation, personnel, and box are not used in our snap predictor ML model. they were worth 5.8% in a test run, but there's no mechanism for play-specific inputs; they come from league averages, which makes the model worse than leaving them out. offensive formation (shotgun) predictors would enable them.
-
 notes:
 Do you want a priced source for player props? Without prices a prop can only be treated as a coin flip at the line, and priced history most likely means a paid odds API.
 
 a trained box predictor is the natural next ML model
+
+it feels like team strength is a proxy/approximation for the sum of all players' strengths + coaching staff strength. investigate a version of our system which tracks no single team strength and uses player + coach identities as the "skill" input. similarly, including "team 4-th down go rate" for example seems like a mistake to me; the "team" as an entity probably has only mild preferences ("team culture"). the coaching staff and available players seem much more relevant. that would also allow us to handle coaching staff changes cleanly without erroneous carry-over from their respective teams.
+
+I suspect the wider coaching staff has a decent impact on performance; at the least offensive and defensive coordinator seem relevant. for playcalling in particular, knowing who is calling plays seems like extremely relevant input to what play is called (not always the OC/DC). investigate adding more coaching staff depth to the model, and more intelligent play calling information.
+
+we've tested weather (improvements for punts, no where else. might be limited by not using it system-wide). surface, neutral site, draft pick, defensive form; no improvements. some intuitions which I think are worth testing: annecdotally, weather (high wind, rain) is generally thought to adversely affect passing, kicking, and fumble rates (higher). I saw a study once that surface (turf) can increase injury rates; if we ever get to an ML driven injury model, that could be worth testing. draft pick _should_ have some impact on usage, although it may not be homogenous across positions (the normal thought is: freshly drafted high-capital RBs are generally used within their first couple of years, WRs more like 2-3 years, QBs sometimes develop for even longer. I'm not sure the details for other positions, but my point is that the effect might differ between them).

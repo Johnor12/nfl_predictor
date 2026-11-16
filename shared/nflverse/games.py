@@ -64,7 +64,8 @@ def real_games(season: int, weeks=None, games=None) -> list[RealGame]:
     stats = dict(tuple(stats[stats.game_id.isin(schedule.game_id)].groupby("game_id")))  # only the games asked for
     games = []
     for sched in schedule.to_dict("records"):
-        game, played = _game(sched, sched), rows.get(sched["game_id"])
+        played = rows.get(sched["game_id"])
+        game = _game(sched, sched, rosters.forms, None if played is None else played["weather"].iloc[0])
         context = GameContext(game, _players(rosters, game, str(sched["gameday"])[:10], played))
         actual = None
         if played is not None and pd.notna(sched["result"]):

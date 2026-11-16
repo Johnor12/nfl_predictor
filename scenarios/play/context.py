@@ -1,6 +1,7 @@
 # START
 # Play scenario inputs ("the play context").
 # - Game, Player, Situation, PlaySummary, PlayContext: frozen dataclasses describing the world before the play.
+# - Form: what a team, a head coach, or a referee did before the game (Game.forms, read with Game.form(who)).
 # - KINDS / FREE_KICKS: the kinds of play a situation can call for.
 # - validate_context(ctx) -> list[str]: problems with an input (empty list if it's usable).
 # Coordinates: Situation.x is the ball's yard line measured from the offense's own goal line (0-100).
@@ -13,6 +14,23 @@ from functools import cached_property
 KINDS = ("scrimmage", "try", "kickoff", "safety_kick")
 FREE_KICKS = ("kickoff", "safety_kick")
 POSITIONS = ("QB", "RB", "FB", "WR", "TE", "OL", "DL", "LB", "DB", "K", "P", "LS")
+
+
+@dataclass(frozen=True)
+class Form:
+    """What a team, a head coach, or a referee did before this game, as (stat, total) pairs. A team's (and a
+    coach's) stats are its offense's, and under "allowed_<stat>" what its defense allowed; a referee's are
+    both offenses' in the games he worked. The stats are shared.nflverse's TEAM_STATS."""
+    season_stats: tuple[tuple[str, float], ...] = ()  # in this season's earlier games
+    career_stats: tuple[tuple[str, float], ...] = ()  # in earlier seasons, each counting half the one after it
+
+    @cached_property
+    def stats(self) -> dict[str, float]:
+        return dict(self.season_stats)
+
+    @cached_property
+    def career(self) -> dict[str, float]:
+        return dict(self.career_stats)
 
 
 @dataclass(frozen=True)
@@ -35,6 +53,18 @@ class Game:
     playoff: bool = False
     spread: float | None = None   # the betting line before the game: points the home team is favored by
     total: float | None = None    # ... and the points both teams are expected to score
+    forms: tuple[tuple[str, Form], ...] = ()  # (who, form): both teams (by code), their coaches, the referee
+
+    def form(self, who: str | None) -> Form:
+        """The form of a team (its code), a head coach, or the referee (his name); empty if there is none."""
+        return self._forms.get(who, NO_FORM)
+
+    @cached_property
+    def _forms(self) -> dict[str, Form]:
+        return dict(self.forms)
+
+
+NO_FORM = Form()
 
 
 @dataclass(frozen=True)
@@ -48,6 +78,8 @@ class Player:
     years_exp: int | None = None
     draft_pick: int | None = None              # overall pick; None if undrafted
     season_stats: tuple[tuple[str, float], ...] = ()  # this season's totals before this game (see `stats`)
+    career_stats: tuple[tuple[str, float], ...] = ()  # the same stats over earlier seasons, each counting half
+                                                      # the one after it (see `career`)
     snaps: tuple[tuple[str, float], ...] = ()  # (unit, snaps) in his team's recent games: offense, defense, and
                                                # special_teams or, where the data has them, each kicking unit
 
@@ -60,6 +92,10 @@ class Player:
         """season_stats by name: the play scenario's stat names, plus what a player's usage is read from:
         offense_snaps, carries (designed runs), dropbacks, scrambles, times_sacked."""
         return dict(self.season_stats)
+
+    @cached_property
+    def career(self) -> dict[str, float]:
+        return dict(self.career_stats)
 
 
 @dataclass(frozen=True)

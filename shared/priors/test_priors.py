@@ -1,6 +1,8 @@
 # START
 # Tests for the priors toolkit.
 # - test_blend_is_ordered: sampling a blend can't depend on set order (plays must be reproducible).
+# - test_hist_within_bounds: a draw between two bounds is one of the histogram's values there, and the lower
+#   bound where it has none; without bounds it draws as before.
 # - test_tally: counts, nested sub-keys, and histograms.
 # - test_priors_pool_what_was_played_before: a game's priors are the earlier seasons' counts, older ones
 #   discounted, plus its own season's earlier weeks; a key no earlier season has comes from the first that
@@ -13,7 +15,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from shared.priors import Tally, blend, choice, priors_of, save_priors, usage
+from shared.priors import Tally, blend, choice, hist, priors_of, save_priors, usage
 from shared.priors.players import USAGE_SNAPS
 from shared.rulebook import KICKOFF
 
@@ -23,6 +25,15 @@ def test_blend_is_ordered():
     assert list(blended) == ["field_goal", "offense", "punt"]
     assert blended == {"field_goal": 5.0, "offense": 6.0, "punt": 3.0}
     assert choice(blended, random.Random(0)) in blended
+
+
+def test_hist_within_bounds():
+    yards = {"-2": 1, "0": 5, "3": 10, "4": 10, "12": 2, "40": 1}
+    assert {hist(yards, random.Random(seed), 3, 5) for seed in range(50)} == {3.0, 4.0}
+    assert {hist(yards, random.Random(seed), 10, None) for seed in range(50)} == {12.0, 40.0}
+    assert hist(yards, random.Random(0), None, -1) == -2.0
+    assert hist(yards, random.Random(0), 5, 6) == 5.0 and hist(yards, random.Random(0), None, -5) == -6.0
+    assert hist(yards, random.Random(7)) == float(choice(yards, random.Random(7)))
 
 
 def test_tally():

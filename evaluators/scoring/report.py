@@ -2,8 +2,8 @@
 # Markdown for a scorecard, shared by the evaluators' reports.
 # - OUT: the folder reports are written to (evaluation_output/, gitignored).
 # - GUIDE: a few lines on how to read the tables.
-# - score_table(rows) -> list[str]: one line per output: n, sims, score, reference, skill, standard errors,
-#   and the sims needed to resolve a 1% change.
+# - score_table(rows) -> list[str]: one line per output: n, sims, score, reference, skill, the real and the
+#   simulated mean, standard errors, and the sims needed to resolve a 1% change.
 # - pit_table(card, names) -> list[str]: PIT histograms (share of outcomes per tenth of the forecast range).
 # - reliability_table(card, names) -> list[str]: forecast probability vs how often it happened, by bin.
 # END
@@ -16,6 +16,8 @@ GUIDE = [
     "for yes/no and categories). Lower is better.",
     "- reference: the score of forecasting every case with the overall distribution of real outcomes.",
     "- skill: 1 - score / reference. Above 0 beats the reference; 1 is perfect.",
+    "- mean, sim mean: the average real outcome and the average simulated one (for yes/no, how often). A gap "
+    "is a bias: the simulator makes too much or too little of it, whatever the score says.",
     "- se: standard error of the score over the cases. sim se: the part caused by simulating a finite number "
     "of times.",
     "- sims for 1%: sims per case for a 1% change in the score to stand clear of sim noise (capped at 10,000).",
@@ -27,13 +29,13 @@ def _num(value, digits=4) -> str:
 
 
 def score_table(rows) -> list[str]:
-    lines = ["| output | kind | n | unscored | sims | score | reference | skill | se | sim se | sims for 1% |",
-             "|---|---|---|---|---|---|---|---|---|---|---|"]
+    lines = ["| output | kind | n | unscored | sims | score | reference | skill | mean | sim mean | se | sim se "
+             "| sims for 1% |", "|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for r in rows:
         skill = "-" if r["skill"] is None else f"{100 * r['skill']:+.1f}%"
         lines.append(f"| {r['name']} | {r['kind']} | {r['n']} | {r['unscored']} | {_num(r['sims'], 0)} "
-                     f"| {_num(r['score'])} | {_num(r['reference'])} | {skill} | {_num(r['se'])} "
-                     f"| {_num(r['sim_se'])} | {r['sims_needed'] or '-'} |")
+                     f"| {_num(r['score'])} | {_num(r['reference'])} | {skill} | {_num(r['mean'], 3)} "
+                     f"| {_num(r['sim_mean'], 3)} | {_num(r['se'])} | {_num(r['sim_se'])} | {r['sims_needed'] or '-'} |")
     return lines
 
 

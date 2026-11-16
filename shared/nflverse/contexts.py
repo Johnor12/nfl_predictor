@@ -8,11 +8,12 @@
 #   that reads what an event's output was. A row is a plain object with the columns as attributes (_rows).
 # Pipeline: _Rosters (active players per team-week: weekly roster status ACT minus injury-report Outs, plus
 #   anyone who appears in the game's pbp; depth chart slots from the last snapshot before gameday, draft
-#   pick, season-to-date stats from earlier weeks, and recent snaps by unit from _weekly_snaps: the
-#   participation file where the season has one, else the per-game snap counts, else none), _players (both
-#   teams' for a game),
-#   _game (schedule row -> Game), _kind / _situation (pbp row -> Situation; clock state inferred from the
-#   previous row by _clock_state), _actual (pbp row -> outcome dict), _summary (row -> PlaySummary history),
+#   pick, season-to-date stats from earlier weeks, career stats from earlier seasons, and recent snaps by
+#   unit; the tallies themselves are form.py's), _players (both teams' for a game),
+#   _game (schedule row -> Game, with the form of its teams, coaches, and referee, and the weather: _weather
+#   fills what the schedule lacks from the play-by-play's report), _kind / _situation (pbp row -> Situation;
+#   clock state inferred from the previous row by _clock_state), _actual (pbp row -> outcome dict), _summary
+#   (row -> PlaySummary history),
 #   _seconds_to_next (real snap-to-snap game time: actual["seconds_to_next"] for clock audits, and
 #   actual["seconds_since_snap"], the same gap on the play that follows, for the pre-snap priors).
 # Timeouts: actual["timeout"] is the team that called one before the play (None if nobody did; a lost
@@ -24,6 +25,7 @@
 # END
 import bisect
 import dataclasses
+import re
 from dataclasses import dataclass
 from types import SimpleNamespace
 
@@ -31,45 +33,19 @@ import pandas as pd
 
 from shared.nflverse.depth import depth_charts
 from shared.nflverse.download import load
+from shared.nflverse.form import Forms, weekly_snaps, weekly_stats
 from scenarios.play import Game, PlayContext, PlaySummary, Player, Situation
 from shared.priors import Sample
 from shared.rulebook import rules_for
 
 SNAPPED = {"run", "pass", "punt", "field_goal", "extra_point", "qb_kneel", "qb_spike"}
 SNAP_WEEKS = 4  # a player's snaps cover his team's games in this many weeks before the game
-UNITS = {  # play type -> (the unit of the team nflverse lists in possession, the other team's)
-    "run": ("offense", "defense"), "pass": ("offense", "defense"), "qb_kneel": ("offense", "defense"),
-    "qb_spike": ("offense", "defense"), "punt": ("punt", "punt_return"),
-    "field_goal": ("field_goal", "field_goal_block"), "extra_point": ("field_goal", "field_goal_block"),
-    "kickoff": ("kick_return", "kickoff"),
-}
-SNAP_COUNTS = {"offense_snaps": "offense", "defense_snaps": "defense", "st_snaps": "special_teams"}
 GROUPS = {  # the detailed roster positions of the seasons before 2016 -> the play scenario's
     "T": "OL", "G": "OL", "C": "OL", "DE": "DL", "DT": "DL", "NT": "DL", "OLB": "LB", "ILB": "LB", "MLB": "LB",
     "CB": "DB", "SS": "DB", "FS": "DB", "S": "DB", "KR": "WR", "PR": "WR",
 }
 UNSPORTSMANLIKE = ("Unsportsmanlike Conduct", "Taunting")
-SEASON_STATS = [  # (stat, player id column, value column), summed over earlier weeks
-    ("pass_att", "passer_player_id", "attempt"),
-    ("pass_yds", "passer_player_id", "passing_yards"),
-    ("pass_td", "passer_player_id", "pass_touchdown"),
-    ("int_thrown", "passer_player_id", "interception"),
-    ("rush_att", "rusher_player_id", "rush_attempt"),
-    ("rush_yds", "rusher_player_id", "rushing_yards"),
-    ("rush_td", "rusher_player_id", "rush_touchdown"),
-    ("carries", "rusher_player_id", "carry"),          # designed runs: rush_att without scrambles and kneels
-    ("scrambles", "rusher_player_id", "qb_scramble"),
-    ("dropbacks", "passer_player_id", "qb_dropback"),  # passes and sacks...
-    ("dropbacks", "rusher_player_id", "qb_scramble"),  # ...and scrambles
-    ("times_sacked", "passer_player_id", "sack"),
-    ("targets", "receiver_player_id", "attempt"),
-    ("receptions", "receiver_player_id", "complete_pass"),
-    ("rec_yds", "receiver_player_id", "receiving_yards"),
-    ("rec_td", "receiver_player_id", "pass_touchdown"),
-    ("sacks", "sack_player_id", "sack"),
-    ("interceptions", "interception_player_id", "interception"),
-    ("fg_made", "kicker_player_id", "fg_made"),
-]
+WEATHER = (re.compile(r"Temp: (-?\d+)"), re.compile(r"Wind:[^,]*?(\d+)"))  # in a play-by-play weather report
 
 
 @dataclass(frozen=True)
@@ -83,34 +59,6 @@ def _num(value, default=None):
     return default if value is None or pd.isna(value) else value
 
 
-def _plain(name) -> str:
-    return "".join(c for c in str(name).lower() if c.isalpha()).removesuffix("jr").removesuffix("sr").rstrip("iv")
-
-
-def _weekly_snaps(season, pbp, rosters) -> pd.Series:
-    """Snaps by (player, week, unit). From who was on the field for each play, by the play scenario's units,
-    where the season has a participation file; else from the per-game snap counts (offense, defense,
-    special_teams), matched to players by their PFR id or their team and name. Empty for a season with neither."""
-    participation = load("participation", season)
-    if participation is not None:
-        plays = pbp[pbp.play_type.isin(list(UNITS))][["game_id", "play_id", "week", "play_type"]].merge(
-            participation, left_on=["game_id", "play_id"], right_on=["nflverse_game_id", "play_id"])
-        sides = [plays.assign(player=plays[column].str.split(";"), unit=plays.play_type.map(lambda kind: UNITS[kind][i]))
-                 for i, column in enumerate(("offense_players", "defense_players"))]
-        on_field = pd.concat(sides)[["player", "week", "unit"]].explode("player")
-        return on_field[on_field.player.str.len() > 0].groupby(["player", "week", "unit"]).size()
-    counts = load("snap_counts", season)
-    if counts is None or counts.empty:  # before 2013: nobody has snaps
-        return pd.Series(dtype=float, index=pd.MultiIndex.from_arrays([[], [], []], names=["player", "week", "unit"]))
-    known = rosters.dropna(subset=["gsis_id"])
-    by_pfr = known.dropna(subset=["pfr_id"]).drop_duplicates("pfr_id").set_index("pfr_id").gsis_id
-    by_name = dict(zip(zip(known.team, known.full_name.map(_plain)), known.gsis_id))
-    named = [by_name.get(key) for key in zip(counts.team, counts.player.map(_plain))]
-    counts = counts.assign(player=counts.pfr_player_id.map(by_pfr).fillna(pd.Series(named, index=counts.index)))
-    snaps = counts.dropna(subset=["player"]).melt(["player", "week"], list(SNAP_COUNTS), "unit", "snaps")
-    return snaps[snaps.snaps > 0].assign(unit=snaps.unit.map(SNAP_COUNTS)).groupby(["player", "week", "unit"]).snaps.sum()
-
-
 class _Rosters:
     def __init__(self, season, pbp):
         self.rosters = load("rosters", season)
@@ -120,9 +68,10 @@ class _Rosters:
         depth = depth_charts(season)
         self.depth = {key: frame for key, frame in depth.groupby(["team", "dt"])}
         self.snapshots = {team: sorted(dt for t, dt in self.depth if t == team) for team in depth.team.unique()}
-        weekly_snaps = _weekly_snaps(season, pbp, self.rosters)
-        self.stats = self._season_stats(pbp, weekly_snaps)
-        self.snaps = self._recent_snaps(weekly_snaps, pbp)
+        snaps = weekly_snaps(season, pbp, self.rosters)
+        self.stats = self._season_stats(pbp, snaps)
+        self.snaps = self._recent_snaps(snaps, pbp)
+        self.forms = Forms(season, pbp)
 
     @staticmethod
     def _recent_snaps(weekly, pbp):
@@ -137,16 +86,8 @@ class _Rosters:
         return by_week
 
     @staticmethod
-    def _season_stats(pbp, weekly_snaps):
-        plays = pbp[(pbp.play_type != "no_play") & (pbp.two_point_attempt != 1)].copy()
-        plays["attempt"] = plays.complete_pass + plays.incomplete_pass + plays.interception
-        plays["fg_made"] = (plays.field_goal_result == "made").astype(int)
-        plays["carry"] = ((plays.play_type == "run") & (plays.qb_scramble != 1)).astype(int)
-        parts = [plays[[pid, "week", value]].dropna(subset=[pid]).set_axis(["player", "week", "value"], axis=1)
-                 .assign(stat=stat) for stat, pid, value in SEASON_STATS]
-        snaps = weekly_snaps.rename("value").reset_index()
-        parts.append(snaps[snaps.unit == "offense"][["player", "week", "value"]].assign(stat="offense_snaps"))
-        weekly = pd.concat(parts).groupby(["player", "week", "stat"]).value.sum().reset_index()
+    def _season_stats(pbp, snaps):
+        weekly = weekly_stats(pbp, snaps)
         by_week = {}
         for week in [*sorted(pbp.week.unique()), pbp.week.max() + 1]:  # the last is for games not yet played
             before = weekly[weekly.week < week].groupby(["player", "stat"]).value.sum()
@@ -185,7 +126,8 @@ class _Rosters:
             players.append(Player(r.gsis_id, r.full_name, team, position, jersey,
                                   tuple(slots.get(r.gsis_id, ())), int(r.years_exp) if pd.notna(r.years_exp) else None,
                                   int(r.draft_number) if pd.notna(r.draft_number) else None,
-                                  stats.get(r.gsis_id, ()), snaps.get(r.gsis_id, ())))
+                                  stats.get(r.gsis_id, ()), self.forms.career(r.gsis_id),
+                                  snaps.get(r.gsis_id, ())))
         punters = [p for p in players if p.position == "P"]
         if len(punters) > 1 and not any(p.position == "K" for p in players):
             # the roster lists the kicker as a punter (the 2022 Chargers): he is the depth chart's kicker
@@ -194,14 +136,30 @@ class _Rosters:
         return tuple(players)
 
 
-def _game(schedule, row) -> Game:
-    """row names the game (a pbp row, or the schedule row itself); schedule is its schedule row, or {}."""
-    return Game(row["game_id"], int(row["season"]), int(row["week"]), row["home_team"], row["away_team"],
+def _weather(schedule, report) -> list:
+    """[temperature, wind]: the schedule's, and for an outdoor game it has none for, the play-by-play's
+    weather report ("Sunny Temp: 73° F, Humidity: 79%, Wind: W 3 mph"). Indoors there is none."""
+    weather = [_num(schedule.get("temp")), _num(schedule.get("wind"))]
+    if schedule.get("roof") in ("outdoors", "open") and isinstance(report, str):
+        for i, pattern in enumerate(WEATHER):
+            found = pattern.search(report)
+            if weather[i] is None and found:
+                weather[i] = float(found.group(1))
+    return weather
+
+
+def _game(schedule, row, forms, report=None) -> Game:
+    """row names the game (a pbp row, or the schedule row itself); schedule is its schedule row, or {};
+    forms is the season's Forms; report is the play-by-play's weather report, if the game has been played."""
+    home, away = row["home_team"], row["away_team"]
+    coaches = _num(schedule.get("home_coach")), _num(schedule.get("away_coach"))
+    referee = _num(schedule.get("referee"))
+    return Game(row["game_id"], int(row["season"]), int(row["week"]), home, away,
                 schedule.get("location") == "Neutral", _num(schedule.get("roof")), _num(schedule.get("surface")),
-                _num(schedule.get("temp")), _num(schedule.get("wind")), _num(schedule.get("stadium")),
-                _num(schedule.get("gametime")), _num(schedule.get("home_coach")), _num(schedule.get("away_coach")),
-                _num(schedule.get("referee")), schedule.get("game_type", "REG") != "REG",
-                _num(schedule.get("spread_line")), _num(schedule.get("total_line")))
+                *_weather(schedule, report), _num(schedule.get("stadium")),
+                _num(schedule.get("gametime")), *coaches, referee, schedule.get("game_type", "REG") != "REG",
+                _num(schedule.get("spread_line")), _num(schedule.get("total_line")),
+                forms.game(row["game_id"], home, away, *coaches, referee))
 
 
 def _players(rosters, game, gameday, rows) -> tuple[Player, ...]:
@@ -311,7 +269,7 @@ def real_plays(season: int, weeks=None, games=None) -> list[RealPlay]:
         rows = rows.sort_values("order_sequence")
         first = rows.iloc[0]
         sched = schedule.loc[game_id].to_dict() if game_id in schedule.index else {}
-        game = _game(sched, first)
+        game = _game(sched, first, rosters.forms, first["weather"])
         players = _players(rosters, game, str(first["game_date"])[:10], rows)
         home, away = game.home, game.away
         score = {home: 0, away: 0}

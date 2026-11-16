@@ -1,0 +1,21 @@
+# MAINTAINER
+
+- __init__.py: `predict` (the baseline's, with this package's `results`) and `results` (the season's model on a scrimmage down; the baseline's on a try, or when the season has no model).
+- inputs.py: `NAMES`, `WHO`, `RESULTS`, and `features(ctx, qb, receiver, air_yards)`, the one place the model's inputs are read, for training and for predicting.
+- train.py: `example` (a real targeted pass as a training row), `train(season)`, `TABLES`, and the CLI.
+- model_<season>.txt: the model for that season's games (LightGBM's text format, about 0.4 MB), trained on 2011 up to the season before.
+- test_gbm.py: the model reads the throw and the quarterback; synthetic plays stay valid; the fallback before the first model.
+
+Measured (2026-11-15, the evaluators' default 160 games of 2021 to 2026 at 100 sims, case by case, against the system before the trained predictors of that day, and against this model's blind twin: the same model trained with the inputs about who is playing blanked out; `events/MAINTAINER.md` has the whole system's game scores):
+- Play evaluator: `pass_result: result` 0.4136 -> 0.4016 against the baseline (-2.9%, 5.0 standard errors), and 0.4021 -> 0.4016 against the blind twin (-0.1%, 0.9 standard errors). Per pass, nearly all of it is the situation and the throw.
+- Game evaluator, where a quarterback's and a defense's rates add up over a game: the first quarterback's completions 4.224 -> 4.139 against the baseline (-2.0%, 1.3 standard errors) and 4.288 -> 4.139 against the blind twin (-3.5%, 2.3); his yards -2.1% and -3.0% (2.3); his touchdown passes -2.9% (2.2) and -2.6% (2.0); his interceptions no better (+0.8%, +1.5%). The twins differ in every trained predictor, so this is not this model's alone.
+
+Notes:
+- Out of sample: a season's model has seen nothing of that season, and the inputs and settings were chosen on seasons before the evaluated ones: first 2019 and 2020 with models trained on 2011 to 2018, then 2013 to 2020, each season scored by a model of the others.
+- What each input was worth on 2013 to 2020, per pass (three-class Brier) and per team and game (the summed probabilities against what happened, squared), on top of the situation, the air yards, and the receiver's position, read coarsely: the quarterback's completion and interception rates -0.16% and -3.4% (4.4 and 4.7 standard errors); the receiver's catches per target and his targets -0.12% and -2.9% (3.5 and 7.4); the weather nothing per pass and -1.6% per game (3.6); the defense's allowed rates nothing alone, and 0.9% per game once the rest is in. All together -0.26% and -5.6%. The quarterback's and the receiver's years in the league and draft picks, the surface, and a neutral site: nothing. None of it is much per pass: how often a pass is caught is mostly how far it was thrown and to whom, which the model already has. It shows over a game.
+- Of those, the quarterback's and the defense's rates are in the model. The receiver's catch rate and the weather were added and taken out again: on the evaluated seasons they did nothing per pass (`pass_result: result` 0.4016 -> 0.4017), nothing for the first quarterback's completions over a game (within 1%, twice), and whole games came out no better and the total a little worse (480 games at 50 sims, against the model without them: `game: total` +0.7% and +2.2% on two seeds, 1.1 and 2.1 standard errors). What eight earlier seasons promised per game didn't arrive.
+- Read exactly, the same inputs made a team's completions over a game worse on 2019 and 2020 (the quarterback's +3%, the defense's +6%) at the same score per pass. That is what `coarse` is for (`shared/models/README.md`).
+- 40 rounds, not the 150 of `shared.models`' defaults: on 2019 and 2020 the score was best there (0.4105 against 0.4114 at 150).
+- The quarterback is the one on the field (`strength.quarterback`): the event isn't handed the formation.
+- `arrives_to_goal` (the yards to the goal line less the air yards) says whether the pass is into the end zone. The two numbers it is made of were already inputs, but a tree can't read their difference off them (`shared/models/MAINTAINER.md`), and the baseline does treat the goal line apart (its goal-to-go counts).
+- After changing `inputs.py` or `example`, delete `.cache/training/pass_result_gbm_*.parquet` and retrain every model.

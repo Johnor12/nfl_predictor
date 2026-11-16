@@ -1,6 +1,6 @@
 # MAINTAINER
 
-- __init__.py: `predict` and `_dropback`.
+- __init__.py: `predict` and `dropback` (the result mix, which another implementation can replace).
 - test_pass_rush.py: a quarterback's season moves his dropback rates.
 - priors.py: `observe(tally, sample)`, which counts one real play into this predictor's priors.
 - priors_<season>.json: the built priors (raw counts and histograms), one file per season (2011 on), counted week by week.

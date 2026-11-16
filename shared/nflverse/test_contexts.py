@@ -9,6 +9,7 @@
 #   the field (2025), otherwise from the per-game snap counts (2026); nobody has any before week 1.
 # - test_usage_and_snap_gaps: a starter's season stats say how he has been used (snaps, carries, dropbacks),
 #   and a play knows the game time since the snap before it.
+# - test_weather_comes_from_the_report_where_the_schedule_has_none: outdoors only.
 # - test_old_seasons: a season in nflverse's older formats (2014: weekly depth charts, detailed positions,
 #   teams that have since moved, no charting or participation) gives valid inputs. Skipped unless cached.
 # END
@@ -119,3 +120,13 @@ def test_old_seasons():
     game = real_games(2014, games=["2014_02_STL_TB"])[0]  # the Rams have moved since: they are LA everywhere
     assert (game.context.game.home, game.context.game.away) == ("TB", "LA")
     assert set(game.actual["teams"]) == {"TB", "LA"} and {p.team for p in game.context.players} == {"TB", "LA"}
+
+
+def test_weather_comes_from_the_report_where_the_schedule_has_none():
+    from shared.nflverse.contexts import _weather
+    report = "Sunny Temp: 73° F, Humidity: 79%, Wind: W 3 mph"
+    assert _weather({"roof": "outdoors", "temp": float("nan"), "wind": float("nan")}, report) == [73.0, 3.0]
+    assert _weather({"roof": "outdoors", "temp": 70.0, "wind": float("nan")}, "Temp: 73° F, Wind: 10 WSW mph") == [70.0, 10.0]
+    assert _weather({"roof": "dome", "temp": float("nan"), "wind": float("nan")}, "Indoor Temp: 72° F, Wind: mph") == [None, None]
+    assert _weather({"roof": "outdoors", "temp": float("nan"), "wind": float("nan")}, "Temp: ° F, Wind: mph") == [None, None]
+    assert _weather({"roof": "outdoors", "temp": float("nan"), "wind": float("nan")}, None) == [None, None]

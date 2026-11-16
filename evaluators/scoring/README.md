@@ -16,7 +16,7 @@ API (`from evaluators.scoring import ...`):
 
 - `Scorecard`: scores many cases, grouped by output name.
   - `add(name, samples, actual)`: one case. `None` samples are dropped; a case left with fewer than 2 is counted as unscored.
-  - `rows() -> list[dict]`, one per output: `name`, `kind`, `n`, `unscored`, `sims` (mean ensemble size), `score` (mean), `reference`, `skill`, `se`, `sim_se`, `sims_needed`.
+  - `rows() -> list[dict]`, one per output: `name`, `kind`, `n`, `unscored`, `sims` (mean ensemble size), `score` (mean), `reference`, `skill`, `mean`, `sim_mean`, `se`, `sim_se`, `sims_needed`.
   - `pit(name)`: a numeric output's PIT histogram (10 shares; flat is calibrated).
   - `reliability(name)`: a binary or categorical output's `(mean forecast probability, observed rate, n)` by probability bin.
   - `merge(other)`: fold in a scorecard built in another process.
@@ -30,6 +30,7 @@ Reading a row:
 
 - **reference**: the score of forecasting every case with the overall distribution of real outcomes (each case forecast from all the others). A forecast that knows nothing about the case scores this.
 - **skill**: `1 - score / reference`. 0 is no better than the reference, 1 is perfect, negative is worse than knowing nothing.
+- **mean**, **sim mean**: the average real outcome and the average simulated one over the cases (for a yes/no output, how often it happened and how often it was simulated). A gap is a bias: the simulator makes too much or too little of something, which a score and a PIT histogram only hint at. Points per team at 21.0 against a real 23.7 says where to look.
 - **se**: the standard error of the mean score over the cases. Two evaluations of the same cases share most of this error, so a difference between them can be real well inside it.
 - **sim_se**: the part of the error that comes from simulating a finite number of times. Each case is also scored on the two halves of its ensemble (the same predictor with two seeds); the spread between the halves gives it.
 - **sims_needed**: the sims per case at which a 1% change in the score stands 2 standard errors clear of sim noise when two runs are compared (capped at 10,000).

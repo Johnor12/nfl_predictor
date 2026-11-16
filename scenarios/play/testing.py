@@ -2,6 +2,9 @@
 # Test support for the play scenario: synthetic inputs and cheap random ("chaos") predictors.
 # - synthetic_roster(team) -> tuple[Player]: a 46-man active roster with jerseys and depth chart slots.
 # - synthetic_context(rng, kind=None, **situation) -> PlayContext: a random legal situation (overridable).
+# - with_history(ctx, who, stats, career=None) -> PlayContext: the context with a past for one of its players
+#   (his id) or for a team, coach, or referee (the name `Game.form` knows it by): this season's totals, and
+#   the earlier seasons' (the same, unless given).
 # - chaos_predictors() -> Predictors: uniformly random legal choices, including rare branches (fumbles,
 #   blocks, muffs, laterals, every foul type, flagrant fouls), for fuzzing the invariants.
 # - scripted(base, **outputs) -> Predictors: replace events with fixed outputs (a value, or a list consumed
@@ -28,7 +31,7 @@ from events.punt_result import PuntResult
 from events.snap import Snap
 from events.target import Target
 from scenarios.play.chain import allowed_units
-from scenarios.play.context import Game, PlayContext, Player, Situation
+from scenarios.play.context import Form, Game, PlayContext, Player, Situation
 from scenarios.play.predictors import Predictors
 from shared.rulebook import rules_for
 
@@ -57,6 +60,16 @@ def synthetic_context(rng, kind=None, **situation):
     s = dataclasses.replace(s, **situation)
     game = Game("test", 2026, 1, "HOME", "AWAY")
     return PlayContext(game, s, synthetic_roster("HOME") + synthetic_roster("AWAY"))
+
+
+def with_history(ctx, who, stats, career=None):
+    season, career = tuple(stats.items()), tuple((stats if career is None else career).items())
+    if who in ctx.by_id:
+        players = tuple(dataclasses.replace(p, season_stats=season, career_stats=career) if p.id == who else p
+                        for p in ctx.players)
+        return dataclasses.replace(ctx, players=players)
+    forms = tuple(form for form in ctx.game.forms if form[0] != who) + ((who, Form(season, career)),)
+    return dataclasses.replace(ctx, game=dataclasses.replace(ctx.game, forms=forms))
 
 
 def _team_players(ctx, lineups, team):

@@ -6,7 +6,8 @@
 # - test_probability_scores: smoothing, Brier, and log loss for stated probabilities.
 # - test_calibrated_forecasts_look_calibrated: flat PIT and a diagonal reliability diagram.
 # - test_scorecard: skill is positive for an informative forecast and about zero for the pooled one; sim noise
-#   shrinks with more sims; merging two scorecards equals scoring everything on one.
+#   shrinks with more sims; the real and simulated means; merging two scorecards equals scoring everything on
+#   one.
 # END
 import random
 from collections import Counter
@@ -99,7 +100,11 @@ def test_scorecard():
     assert rows["yards"]["sim_se"] < rows["yards (few sims)"]["sim_se"] < rows["yards"]["se"]
     assert 40 < rows["yards"]["sims_needed"] <= 10_000
     assert rows["empty"]["n"] == 0 and rows["empty"]["unscored"] == 600 and rows["empty"]["score"] is None
+    assert rows["yards"]["mean"] == pytest.approx(sum(yards for _, yards, _ in cases) / 600)
+    assert abs(rows["yards"]["sim_mean"] - rows["yards"]["mean"]) < 0.3  # an unbiased forecast
+    assert abs(rows["big play"]["sim_mean"] - rows["big play"]["mean"]) < 0.05 and rows["action"]["mean"] is None
     assert abs(pooled.rows()[0]["skill"]) < 0.05
     assert len(informed.pit("yards")) == 10 and informed.reliability("big play") and informed.reliability("action")
     merged = second.merge(first).rows()[0]
     assert (merged["n"], merged["score"]) == (600, pytest.approx(rows["yards"]["score"]))
+    assert (merged["mean"], merged["sim_mean"]) == pytest.approx((rows["yards"]["mean"], rows["yards"]["sim_mean"]))
