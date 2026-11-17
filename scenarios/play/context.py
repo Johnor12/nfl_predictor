@@ -1,7 +1,8 @@
 # START
 # Play scenario inputs ("the play context").
 # - Game, Player, Situation, PlaySummary, PlayContext: frozen dataclasses describing the world before the play.
-# - Form: what a team, a head coach, or a referee did before the game (Game.forms, read with Game.form(who)).
+# - Form: what a team, a coach, or a referee did before the game (Game.forms, read with Game.form(who)).
+# - Staff: a team's coaches for the game, by name (Game.staff(team)).
 # - KINDS / FREE_KICKS: the kinds of play a situation can call for.
 # - validate_context(ctx) -> list[str]: problems with an input (empty list if it's usable).
 # Coordinates: Situation.x is the ball's yard line measured from the offense's own goal line (0-100).
@@ -18,9 +19,11 @@ POSITIONS = ("QB", "RB", "FB", "WR", "TE", "OL", "DL", "LB", "DB", "K", "P", "LS
 
 @dataclass(frozen=True)
 class Form:
-    """What a team, a head coach, or a referee did before this game, as (stat, total) pairs. A team's (and a
-    coach's) stats are its offense's, and under "allowed_<stat>" what its defense allowed; a referee's are
-    both offenses' in the games he worked. The stats are shared.nflverse's TEAM_STATS."""
+    """What a team, a coach, or a referee did before this game, as (stat, total) pairs. A team's stats are
+    its offense's, and under "allowed_<stat>" what its defense allowed. A coach's are those of the units he
+    ran, in the games he ran them: the offense's where he called its plays, the defense's ("allowed_<stat>")
+    where he called its plays, and as head coach the games, the points, and the fourth-down decisions. A
+    referee's are both offenses' in the games he worked. The stats are shared.nflverse's TEAM_STATS."""
     season_stats: tuple[tuple[str, float], ...] = ()  # in this season's earlier games
     career_stats: tuple[tuple[str, float], ...] = ()  # in earlier seasons, each counting half the one after it
 
@@ -31,6 +34,20 @@ class Form:
     @cached_property
     def career(self) -> dict[str, float]:
         return dict(self.career_stats)
+
+
+@dataclass(frozen=True)
+class Staff:
+    """A team's coaches for a game, by name; None where nobody holds the role or the data doesn't say. A
+    coordinator has the title; the play caller is who called the plays, often the head coach himself."""
+    head_coach: str | None = None
+    offensive_coordinator: str | None = None
+    defensive_coordinator: str | None = None
+    offensive_play_caller: str | None = None
+    defensive_play_caller: str | None = None
+
+
+NO_STAFF = Staff()
 
 
 @dataclass(frozen=True)
@@ -47,17 +64,21 @@ class Game:
     wind: float | None = None
     stadium: str | None = None
     start_time: str | None = None
-    home_coach: str | None = None
-    away_coach: str | None = None
+    home_staff: Staff = NO_STAFF
+    away_staff: Staff = NO_STAFF
     referee: str | None = None
     playoff: bool = False
     spread: float | None = None   # the betting line before the game: points the home team is favored by
     total: float | None = None    # ... and the points both teams are expected to score
-    forms: tuple[tuple[str, Form], ...] = ()  # (who, form): both teams (by code), their coaches, the referee
+    forms: tuple[tuple[str, Form], ...] = ()  # (who, form): both teams (by code), their head coaches and
+                                              # play callers, the referee
 
     def form(self, who: str | None) -> Form:
-        """The form of a team (its code), a head coach, or the referee (his name); empty if there is none."""
+        """The form of a team (its code), a coach, or the referee (his name); empty if there is none."""
         return self._forms.get(who, NO_FORM)
+
+    def staff(self, team: str) -> Staff:
+        return self.home_staff if team == self.home else self.away_staff
 
     @cached_property
     def _forms(self) -> dict[str, Form]:

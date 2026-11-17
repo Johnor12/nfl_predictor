@@ -1,18 +1,23 @@
 # START
-# Form: what teams, head coaches, referees, and players did before a game, from the play-by-play. These are
-# the inputs that say who is playing.
+# Form: what teams, coaches, referees, and players did before a game, from the play-by-play. These are the
+# inputs that say who is playing.
 # - Forms(season, pbp): one season's.
-#   .game(game_id, home, away, home_coach, away_coach, referee) -> ((who, Form), ...): `Game.forms`. Each one's
-#     totals in this season's earlier games and in earlier seasons (a season counting DECAY times the one
-#     after it). A game that hasn't been played gets everything the season has so far.
+#   .staff: {(game id, team): Staff}: who coached each team in each game (shared.nflverse.staff).
+#   .game(game_id, home, away, referee) -> ((who, Form), ...): `Game.forms`: both teams, their head coaches
+#     and play callers, and the referee. Each one's totals in this season's earlier games and in earlier
+#     seasons (a season counting DECAY times the one after it). A game that hasn't been played gets
+#     everything the season has so far.
 #   .career(player) -> ((stat, total), ...): `Player.career_stats`, a player's weekly_stats over earlier
 #     seasons, discounted the same way.
 # - TEAM_STATS: the stats of a team's offense, counted play by play (_counted): its plays (runs and dropbacks
 #   on scrimmage downs) and what came of them, its snaps with the flags on it and on the defense, and its
-#   fourth downs. A team's form holds
-#   them under these names, and what its defense allowed under "allowed_<stat>" (the same stats of its
-#   opponents' offenses), plus `games`, `points`, and `allowed_points`. A coach's form is his teams'; a
-#   referee's is both offenses' stats in his games.
+#   fourth downs. A team's form holds them under these names, and what its defense allowed under
+#   "allowed_<stat>" (the same stats of its opponents' offenses), plus `games`, `points`, and
+#   `allowed_points`. A referee's is both offenses' stats in his games.
+# - A coach's form holds each of those stats from the games he was the one deciding it: an offense's stats
+#   from the games he called its plays, a defense's (`allowed_<stat>`) from the games he called its plays, and
+#   HEAD_COACH's (the games, the points, and DECISIONS: the fourth downs) from the games he was head coach.
+#   It follows him from team to team and from job to job.
 # - weekly_stats(season, pbp, weekly_snaps) -> DataFrame, a row per (player, week) and a column per stat:
 #   everything recorded about a player, by week. Four sources, so a lineman or a defender has a history as a
 #   passer or a receiver does:
@@ -32,8 +37,9 @@
 # refreshing a past season's files.
 # Internals: _on_the_field (each counted play with who was on the field), _usage, _snap_totals, _on_field (the
 #   parts of weekly_stats), _counted (each play as its offense's stats), _team_games (a row per team and
-#   game), _subjects (the season's rows per team, coach, and referee), _totals (a season's totals per team, coach, referee, and
-#   player; cached on disk), _earlier (those of every earlier season, discounted and summed).
+#   game), _subjects (the season's rows per team, per coach in each of his jobs, and per referee), _totals (a
+#   season's totals per team, coach, referee, and player; cached on disk), _earlier (those of every earlier
+#   season, discounted and summed).
 # END
 import bisect
 import os
@@ -42,8 +48,9 @@ from pathlib import Path
 
 import pandas as pd
 
-from scenarios.play import Form
+from scenarios.play import Form, Staff
 from shared.nflverse.download import SEASONS, load
+from shared.nflverse.staff import staff
 from shared.nflverse.stat_lines import stat_lines
 
 CACHE = Path(__file__).resolve().parents[2] / ".cache" / "form"
@@ -82,6 +89,8 @@ USAGE_STATS = {stat for stat, _, _ in USAGE}
 TEAM_STATS = ("plays", "dropbacks", "runs", "shotgun", "pass_att", "pass_cmp", "pass_yds", "air_yds", "int_thrown",
               "sacked", "scrambles", "rush_yds", "dropback_yds", "first_downs", "touchdowns", "fumbles_lost", "snaps",
               "flags", "defense_flags", "fourth_downs", "fourth_down_goes")
+DECISIONS = ("fourth_downs", "fourth_down_goes")  # the head coach's, whoever calls the plays
+HEAD_COACH = ("games", "points", "allowed_points") + DECISIONS
 ON_FIELD = ("plays", "dropbacks", "runs", "pass_att", "pass_cmp", "pass_yds", "int_thrown", "sacked", "scrambles",
             "rush_yds", "dropback_yds", "first_downs", "touchdowns", "fumbles_lost", "pressures")
 
@@ -212,34 +221,38 @@ def _counted(pbp) -> pd.DataFrame:
 
 
 def _team_games(pbp) -> pd.DataFrame:
-    """A row per team and game, in the order the games were played: the team's coach, its TEAM_STATS, what
-    it allowed, and the points."""
+    """A row per team and game, in the order the games were played: its TEAM_STATS, what it allowed, and the
+    points."""
     counted, stats = _counted(pbp), list(TEAM_STATS)
     offense = counted.groupby(["game_id", "team"])[stats].sum()
     allowed = counted.groupby(["game_id", "opponent"])[stats].sum().add_prefix("allowed_").rename_axis(["game_id", "team"])
-    games = pbp.drop_duplicates("game_id")[["game_id", "game_date", "home_team", "away_team", "home_coach", "away_coach",
-                                           "home_score", "away_score"]]
-    sides = [games.rename(columns={f"{us}_team": "team", f"{us}_coach": "coach", f"{us}_score": "points",
-                                   f"{them}_score": "allowed_points"})
+    games = pbp.drop_duplicates("game_id")[["game_id", "game_date", "home_team", "away_team", "home_score", "away_score"]]
+    sides = [games.rename(columns={f"{us}_team": "team", f"{us}_score": "points", f"{them}_score": "allowed_points"})
              for us, them in (("home", "away"), ("away", "home"))]
-    rows = pd.concat(sides)[["game_id", "game_date", "team", "coach", "points", "allowed_points"]]
+    rows = pd.concat(sides)[["game_id", "game_date", "team", "points", "allowed_points"]]
     rows = rows.assign(games=1.0).join(offense, on=["game_id", "team"]).join(allowed, on=["game_id", "team"])
     return rows.fillna({column: 0.0 for column in offense.columns.union(allowed.columns)}).sort_values(
         ["game_date", "game_id"], ignore_index=True)
 
 
 def _subjects(season, pbp) -> list:
-    """[(who, rows)]: the season's rows for the teams, the head coaches, and the referees, each a frame of
-    stats per game in the order the games were played, with `who` naming each row's subject."""
-    games, stats = _team_games(pbp), list(TEAM_STATS)
-    both = ["games", "points", "allowed_points"] + stats + ["allowed_" + stat for stat in stats]
-    crew = games.groupby("game_id", sort=False)[stats].sum().assign(games=1.0).reset_index()  # both offenses
+    """[(who, rows)]: the season's rows for the teams, the coaches in each of their jobs, and the referees,
+    each a frame of stats per game in the order the games were played, with `who` naming each row's subject."""
+    games, stats = _team_games(pbp), [stat for stat in TEAM_STATS if stat not in DECISIONS]
+    both = ["games", "points", "allowed_points"] + list(TEAM_STATS) + ["allowed_" + stat for stat in TEAM_STATS]
+    crew = games.groupby("game_id", sort=False)[list(TEAM_STATS)].sum().assign(games=1.0).reset_index()  # both offenses
     referee = crew.game_id.map(load("games", season).set_index("game_id").referee)
-    return [(games.team, games[["game_id"] + both]), (games.coach, games[["game_id"] + both]), (referee, crew)]
+    coaches = [staff(season).get(key, Staff()) for key in zip(games.game_id, games.team)]
+    coach = lambda role: pd.Series([getattr(c, role) for c in coaches], index=games.index)  # noqa: E731
+    return [(games.team, games[["game_id"] + both]),
+            (coach("head_coach"), games[["game_id", *HEAD_COACH]]),
+            (coach("offensive_play_caller"), games[["game_id"] + stats]),
+            (coach("defensive_play_caller"), games[["game_id"] + ["allowed_" + stat for stat in stats]]),
+            (referee, crew)]
 
 
 def _totals(season) -> pd.DataFrame:
-    """The season's totals as (who, stat, value) rows: each team, head coach, referee, and player."""
+    """The season's totals as (who, stat, value) rows: each team, coach, referee, and player."""
     path = CACHE / f"{season}.parquet"
     if not path.exists():
         pbp = load("pbp", season)
@@ -271,21 +284,30 @@ def _earlier(season) -> dict:
 class Forms:
     def __init__(self, season, pbp):
         self.earlier = _earlier(season)
-        self.before = {}   # (who, game id) -> the season's totals before that game
-        self.so_far = {}   # who -> the season's totals so far, for a game that hasn't been played
+        self.staff = staff(season)
+        self.order = {game: place for place, game in enumerate(pbp.sort_values(["game_date", "game_id"]).game_id.unique())}
+        self.played = {}   # who -> [(stats, the places of his games, his running totals after each)], one per job
         for who, rows in _subjects(season, pbp):
             rows, who = rows[who.notna()], who[who.notna()]
             stats = rows.drop(columns="game_id")
-            groups = stats.groupby(who, sort=False)
-            before = (groups.cumsum() - stats).to_numpy().tolist()
-            for name, game, row in zip(who, rows.game_id, before):
-                self.before[name, game] = tuple((stat, value) for stat, value in zip(stats.columns, row) if value)
-            for name, row in groups.sum().iterrows():
-                self.so_far[name] = tuple((stat, value) for stat, value in row.items() if value)
+            totals, places = stats.groupby(who, sort=False).cumsum().to_numpy(), rows.game_id.map(self.order).to_numpy()
+            for name, index in stats.groupby(who, sort=False).indices.items():
+                self.played.setdefault(name, []).append((list(stats.columns), places[index].tolist(), totals[index]))
 
-    def game(self, game_id, *who) -> tuple:
-        return tuple((name, Form(self.before.get((name, game_id), self.so_far.get(name, ())), self.earlier.get(name, ())))
-                     for name in dict.fromkeys(who) if name)
+    def _before(self, who, game_id) -> tuple:
+        """His totals in the season's games before this one (all of them, for a game not played yet)."""
+        place, out = self.order.get(game_id, len(self.order)), ()
+        for stats, places, totals in self.played.get(who, ()):
+            games = bisect.bisect_left(places, place)
+            if games:
+                out += tuple((stat, float(value)) for stat, value in zip(stats, totals[games - 1]) if value)
+        return out
+
+    def game(self, game_id, home, away, referee) -> tuple:
+        coaches = [getattr(self.staff.get((game_id, team), Staff()), role) for team in (home, away)
+                   for role in ("head_coach", "offensive_play_caller", "defensive_play_caller")]
+        return tuple((name, Form(self._before(name, game_id), self.earlier.get(name, ())))
+                     for name in dict.fromkeys([home, away, *coaches, referee]) if name)
 
     def career(self, player) -> tuple:
         return self.earlier.get(player, ())

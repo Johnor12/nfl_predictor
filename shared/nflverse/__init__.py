@@ -1,7 +1,7 @@
 # START
 # nflverse: real NFL data, downloaded and cached locally, and converted into play scenario inputs.
 # - load(name, season) -> DataFrame: a cached nflverse file (pbp, ftn, participation, snap_counts, rosters,
-#   depth_charts, injuries, player_stats, pfr_def/pass/rush/rec, players, games); None for a file nflverse
+#   depth_charts, injuries, player_stats, pfr_def/pass/rush/rec, players, games, play_callers); None for a file nflverse
 #   hasn't published for the season.
 # - real_plays(season, weeks=None) -> list[RealPlay]: every real play as a PlayContext plus what happened.
 # - RealPlay: (context, actual, row) where actual is a dict of the real outcome.

@@ -5,8 +5,9 @@
 #   team's earlier games; what one team's offense did is what its opponent's defense allowed.
 # - test_earlier_seasons_are_discounted: a team's career totals are last season's plus half of what came
 #   before it, and a player's career is the same sum of his season stats.
-# - test_coaches_and_referees: a coach's form is his team's while he coaches it; a referee's counts each of
-#   his games once.
+# - test_coaches_and_referees: a coach's form is what the units he ran did: the head coach's games and fourth
+#   downs, the offense under its play caller, the defense under its; a referee's counts each of his games once.
+# - test_a_coach_s_form_follows_him: a play caller's career is with him at a new team, in a new job.
 # - test_a_game_not_played_yet_gets_the_season_so_far.
 # END
 import pytest
@@ -60,11 +61,28 @@ def test_earlier_seasons_are_discounted(games):
 
 def test_coaches_and_referees(games):
     game = next(g.context.game for g in games.values() if g.context.game.week == 3 and g.context.game.referee)
-    team, coach, referee = game.form(game.home).stats, game.form(game.home_coach).stats, game.form(game.referee)
-    assert coach == team  # two games in, he has coached every one of them
+    team, staff, referee = game.form(game.home).stats, game.staff(game.home), game.form(game.referee)
+    head, offense, defense = (game.form(coach).stats for coach in (staff.head_coach, staff.offensive_play_caller,
+                                                                   staff.defensive_play_caller))
+    # two games in, each has had his job in both of them
+    assert all(head[stat] == team[stat] for stat in ("games", "points", "fourth_downs"))
+    assert all(offense[stat] == team[stat] for stat in ("plays", "shotgun", "rush_yds"))
+    assert all(defense[stat] == team[stat] for stat in ("allowed_plays", "allowed_pass_att"))
+    if staff.head_coach != staff.offensive_play_caller:
+        assert "plays" not in head and "games" not in offense
     worked = [g for g in games.values() if g.context.game.referee == game.referee and g.context.game.week < 3]
     assert referee.stats["games"] == len(worked)
     assert 0.02 < (referee.stats["flags"] + referee.stats["defense_flags"]) / referee.stats["snaps"] < 0.15
+
+
+def test_a_coach_s_form_follows_him():
+    from shared.nflverse import real_games
+    game = next(g.context.game for g in real_games(2025, weeks=[1]) if "CHI" in (g.context.game.home, g.context.game.away))
+    johnson = game.staff("CHI")  # Ben Johnson: the Lions' play caller through 2024, the Bears' head coach from 2025
+    assert johnson.head_coach == johnson.offensive_play_caller == "Ben Johnson"
+    career = game.form("Ben Johnson").career
+    assert career["plays"] > 1000 and "games" not in career and "allowed_plays" not in career
+    assert career["plays"] != game.form("CHI").career["plays"]
 
 
 def test_a_game_not_played_yet_gets_the_season_so_far(games):

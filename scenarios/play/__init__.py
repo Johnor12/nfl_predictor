@@ -6,7 +6,7 @@
 # - summarize(result) -> dict / play_summary(result) -> PlaySummary: the outcome in a few values (the names
 #   nflverse uses for a real play), and as an entry in a later play's history.
 # - validate_context(ctx) -> list[str]: problems with an input.
-# - Inputs: PlayContext, Game, Form, Player, Situation, PlaySummary. Errors: IllegalChoice (a predictor broke the
+# - Inputs: PlayContext, Game, Form, Staff, Player, Situation, PlaySummary. Errors: IllegalChoice (a predictor broke the
 #   rules).
 # - Predictors: Predictors (one function per event) and load_predictors (each event's implementation by name).
 # - Output: PlayResult; the facts in its record: Sack, Pass, Carry, LooseBall, Kick, read with facts(record, type).
@@ -14,7 +14,8 @@
 #   FREE_KICKS, CATALOG (fouls).
 # END
 from scenarios.play.chain import IllegalChoice, allowed_units, run_play
-from scenarios.play.context import FREE_KICKS, Form, Game, PlayContext, PlaySummary, Player, Situation, validate_context
+from scenarios.play.context import (FREE_KICKS, Form, Game, PlayContext, PlaySummary, Player, Situation, Staff,
+                                    validate_context)
 from scenarios.play.describe import describe_play, describe_situation
 from scenarios.play.field import eligible_receivers, field_goal_distance, rel, to_x
 from scenarios.play.penalties import CATALOG
@@ -26,7 +27,7 @@ from scenarios.play.validate import validate_play
 __all__ = [
     "run_play", "validate_play", "describe_play", "describe_situation", "summarize", "play_summary",
     "validate_context", "IllegalChoice",
-    "PlayContext", "Game", "Form", "Player", "Situation", "PlaySummary", "Predictors", "load_predictors",
+    "PlayContext", "Game", "Form", "Staff", "Player", "Situation", "PlaySummary", "Predictors", "load_predictors",
     "PlayResult", "Sack", "Pass", "Carry", "LooseBall", "Kick", "facts",
     "rel", "to_x", "eligible_receivers", "field_goal_distance", "allowed_units", "FREE_KICKS", "CATALOG",
 ]

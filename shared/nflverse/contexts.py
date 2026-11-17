@@ -10,7 +10,7 @@
 #   anyone who appears in the game's pbp; depth chart slots from the last snapshot before gameday, draft
 #   pick, season-to-date stats from earlier weeks, career stats from earlier seasons, and recent snaps by
 #   unit; the tallies themselves are form.py's), _players (both teams' for a game),
-#   _game (schedule row -> Game, with the form of its teams, coaches, and referee, and the weather: _weather
+#   _game (schedule row -> Game, with both staffs, the form of its teams, coaches, and referee, and the weather: _weather
 #   fills what the schedule lacks from the play-by-play's report), _kind / _situation (pbp row -> Situation;
 #   clock state inferred from the previous row by _clock_state), _actual (pbp row -> outcome dict), _summary
 #   (row -> PlaySummary history),
@@ -39,7 +39,7 @@ import pandas as pd
 from shared.nflverse.depth import depth_charts
 from shared.nflverse.download import load
 from shared.nflverse.form import Forms, Totals, weekly_snaps, weekly_stats
-from scenarios.play import Game, PlayContext, PlaySummary, Player, Situation
+from scenarios.play import Game, PlayContext, PlaySummary, Player, Situation, Staff
 from shared.priors import Sample
 from shared.rulebook import rules_for
 
@@ -154,14 +154,14 @@ def _game(schedule, row, forms, report=None) -> Game:
     """row names the game (a pbp row, or the schedule row itself); schedule is its schedule row, or {};
     forms is the season's Forms; report is the play-by-play's weather report, if the game has been played."""
     home, away = row["home_team"], row["away_team"]
-    coaches = _num(schedule.get("home_coach")), _num(schedule.get("away_coach"))
+    coaches = [forms.staff.get((row["game_id"], team), Staff()) for team in (home, away)]
     referee = _num(schedule.get("referee"))
     return Game(row["game_id"], int(row["season"]), int(row["week"]), home, away,
                 schedule.get("location") == "Neutral", _num(schedule.get("roof")), _num(schedule.get("surface")),
                 *_weather(schedule, report), _num(schedule.get("stadium")),
                 _num(schedule.get("gametime")), *coaches, referee, schedule.get("game_type", "REG") != "REG",
                 _num(schedule.get("spread_line")), _num(schedule.get("total_line")),
-                forms.game(row["game_id"], home, away, *coaches, referee))
+                forms.game(row["game_id"], home, away, referee))
 
 
 def _players(rosters, game, gameday, rows) -> tuple[Player, ...]:

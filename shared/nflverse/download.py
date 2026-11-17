@@ -5,12 +5,14 @@
 #   .missing file next to the cache). Team codes are the current ones in every file and season (TEAMS: the
 #   2016 Raiders are LV, as in the play-by-play).
 #   Stale: a file that can still change (the current season's, or one covering every season: "games",
-#   "players") downloaded more than MAX_AGE ago, and its .missing marker the same. A past season's file is
+#   "players", "play_callers") downloaded more than MAX_AGE ago, and its .missing marker the same. A past season's file is
 #   only downloaded again with refresh=True. If a refresh fails (offline), the cached copy is used, and the
 #   next process tries again.
 # - SEASONS: the seasons the system covers.
 # - FILES: the nflverse release files we use, by name. "games" is the schedule (with referees, weather,
-#   coaches, and betting lines) from the nfldata repo and covers all seasons. "player_stats" is every
+#   coaches, and betting lines) from the nfldata repo and covers all seasons. "play_callers" is who called
+#   the offense's and the defense's plays for every team and game, with the head coach (Sam Hoppen's file,
+#   kept up during the season; all seasons). "player_stats" is every
 #   player's stat line per game. "participation" is who was on the field for each play, with the personnel
 #   groups and formation (2016 on, published after the season). "snap_counts" is each player's snaps per
 #   game (2013 on). "ftn" is charting (2022 on). "depth_charts" changed format in 2025 (see depth.py).
@@ -45,6 +47,7 @@ FILES = {
     "pfr_rec": RELEASES + "pfr_advstats/advstats_week_rec_{season}.parquet",
     "players": RELEASES + "players/players.parquet",
     "games": "https://github.com/nflverse/nfldata/raw/master/data/games.csv",
+    "play_callers": "https://raw.githubusercontent.com/samhoppen/NFL_public/main/data/all_playcallers.csv",
 }
 SEASONS = range(2011, 2027)  # the first season the rulebook covers through the current one
 OPTIONAL = ("participation", "ftn", "snap_counts", "pfr_def", "pfr_pass", "pfr_rush", "pfr_rec")
@@ -66,7 +69,7 @@ def load(name: str, season: int | None = None, refresh: bool = False) -> pd.Data
     if missing.exists():
         return None
     frame = pd.read_csv(path) if path.suffix == ".csv" else pd.read_parquet(path)
-    if name == "games" and season is not None:
+    if name in ("games", "play_callers") and season is not None:
         frame = frame[frame.season == season]
     columns = [column for column in TEAM_COLUMNS if column in frame.columns]
     return frame.assign(**{column: frame[column].replace(TEAMS) for column in columns})
