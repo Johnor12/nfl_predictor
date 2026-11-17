@@ -56,7 +56,7 @@ They point one way: evaluators -> simulators -> scenarios -> events (output type
 - Retrain the trained models: `uv run python -m events.training` (every trained predictor's models for the six most recent seasons, each from the seasons before it; `2026` for one season's). The first run builds every training table in one pass over the real plays (about 3 minutes on 6 cores, cached in `.cache/training/`), the 60 models then take about 10. One predictor alone: `uv run python -m events.snap.predictors.gbm.train`. Once a year, after a season ends: `uv run python -m events.training <next season>`.
 - `NFL_PRIORS_DECAY=0.5` in the environment tries another weight for older seasons. Any evaluator, the audit, and the simulators take it.
 - In this environment `UV_INDEX` points at an unauthenticated private registry. Run uv with it unset: `env -u UV_INDEX uv ...` in bash, or `$env:UV_INDEX=$null` first in PowerShell.
-- Under WSL the repo's `.venv` is the Windows one. Keep the Linux environment somewhere else (`export UV_PROJECT_ENVIRONMENT=~/.venvs/nfl_predictor`), and LightGBM needs the system's OpenMP library (`sudo apt install libgomp1`). An evaluator process takes about 1.5 GB, so 6 cores want 10 GB free.
+- Under WSL the repo's `.venv` is the Windows one, and any `uv run` or `uv sync` that reaches it deletes it and creates an empty Linux one. Keep the Linux environment somewhere else (`export UV_PROJECT_ENVIRONMENT=~/.venvs/nfl_predictor`), and give Claude Code the same in `.claude/settings.local.json` (`.claude/lsp/README.md`). LightGBM needs the system's OpenMP library and pyright's Node needs libatomic (`sudo apt install libgomp1 libatomic1`). An evaluator process takes about 1.5 GB, so 6 cores want 10 GB free.
 
 ## conventions
 

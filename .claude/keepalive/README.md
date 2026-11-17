@@ -11,7 +11,7 @@ Nothing to run: `.claude/settings.json` hooks it into Claude Code.
 - A prompt is submitted, or a tool call finishes: the session is marked busy, and a background daemon starts sending the codespace a heartbeat every minute.
 - Claude finishes its turn: the session is marked idle. The daemon stops at its next heartbeat, unless a shell command Claude started is still running (an evaluation in the background, say); then it waits for that.
 
-Outside a codespace it does nothing.
+Outside a codespace it does nothing, and where `node` isn't installed (WSL, say) the hooks skip it.
 
 ## commands
 

@@ -1,7 +1,7 @@
 # MAINTAINER
 
 - keepalive.js: everything: the hook commands (`busy`, `idle`), the daemon (`run`), and `status`. Plain Node, no dependencies.
-- `../settings.json`: the hooks that call it: `UserPromptSubmit` and `PostToolUse` run `busy`, `Stop` runs `idle`.
+- `../settings.json`: the hooks that call it: `UserPromptSubmit` and `PostToolUse` run `busy`, `Stop` runs `idle`. Each first exits quietly if `node` isn't on PATH, so a machine without it gets no hook errors.
 
 Notes:
 - State lives in `/tmp/claude-keepalive/`: `sessions/<session id>` holds `busy` or `idle` (its modification time is the session's last hook event), `daemon.pid`, and `log`.

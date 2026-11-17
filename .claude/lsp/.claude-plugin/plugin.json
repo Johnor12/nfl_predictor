@@ -3,8 +3,8 @@
   "description": "Pyright for this repo, run from its uv environment wherever uv keeps it",
   "lspServers": {
     "pyright": {
-      "command": "uv",
-      "args": ["run", "--project", "${CLAUDE_PROJECT_DIR}", "--no-sync", "pyright-langserver", "--stdio"],
+      "command": "python3",
+      "args": ["${CLAUDE_PROJECT_DIR}/.claude/lsp/langserver.py", "--stdio"],
       "extensionToLanguage": { ".py": "python", ".pyi": "python" }
     }
   }
