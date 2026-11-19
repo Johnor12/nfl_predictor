@@ -2,8 +2,9 @@
 # The game evaluation report.
 # - write_report(evaluation, path=None) -> Path: markdown at evaluation_output/game_<seasons>.md: the game
 #   scenario's scores for the game and each team, every player stat with its roles pooled, the timeout and
-#   challenge predictors', the betting lines scored for the market and for the simulator (when the
-#   evaluation was given lines), then every player stat by role, PIT histograms for the numeric outputs, and
+#   challenge predictors', the betting lines scored for the market and for the simulator and how far its
+#   expected margins and totals differ between games (when the evaluation was given lines), then every
+#   player stat by role, PIT histograms for the numeric outputs, and
 #   reliability for the yes/no and categorical ones.
 # - pooled(rows) -> list[dict]: one row per player stat ("player: tackles"): its roles' rows together, each
 #   weighted by its cases. The reference stays each role's own, so skill is what the forecast adds to
@@ -13,7 +14,7 @@ import math
 from pathlib import Path
 
 from evaluators.game.outputs import ROLES, STATS, parse
-from evaluators.lines import lines_table, score_lines
+from evaluators.lines import expectations, expectations_table, lines_table, score_lines
 from evaluators.sample import label
 from evaluators.scoring import GUIDE, OUT, pit_table, reliability_table, score_table
 
@@ -74,7 +75,14 @@ def write_report(evaluation, path=None) -> Path:
                   "log loss score the probability of going over (moneyline: the home team wins; a player prop's "
                   "market probability comes from its two prices, and is 50% where they aren't published); MAE is the line's (or the "
                   "simulated median's) error. Lower is better.", "",
-                  *lines_table(score_lines(evaluation.lines, evaluation.samples))]
+                  *lines_table(score_lines(evaluation.lines, evaluation.samples)),
+                  "", "## Telling the teams apart", "",
+                  "How far the simulator's expected margin and total differ from game to game, next to the line's, "
+                  "with the noise of simulating taken out. A simulator that tells the teams apart as well as the "
+                  "market has the line's spread, a correlation of 1, and 1 point of line and of result per simulated "
+                  "point; more than 1 per point means it knows who is better and makes too little of it. Each ± is a "
+                  "standard error.", "",
+                  *expectations_table(expectations(evaluation.lines, evaluation.samples))]
     lines += ["", BY_ROLE, "",
               "One case per active player with that role and game. A quarterback's, back's, receiver's, or tight "
               "end's role is his depth chart rank (a 3 means third or lower); a lineman or defender is a starter "

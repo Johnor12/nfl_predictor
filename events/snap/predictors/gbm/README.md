@@ -11,7 +11,8 @@ What the model reads (`inputs.py`), all of it known before the snap:
 
 - the situation: down, distance, yards to the goal line, quarter and clock, the score, both teams' timeouts, whether the clock is running, home or away, and the season;
 - the game so far: the offense's dropbacks and runs, the length of its current drive, and what its last play was and gained;
-- how the two teams lined up on this play: the offense's personnel group (`lineups.offense.personnel`: its backs, tight ends, and extra linemen), whether it is in the shotgun (`formation.under_center`), and the defenders in the box (`defense.box`).
+- how the two teams lined up on this play: the offense's personnel group (`lineups.offense.personnel`: its backs, tight ends, and extra linemen), whether it is in the shotgun (`formation.under_center`), and the defenders in the box (`defense.box`);
+- who is playing: the offense's pass rating (how much more it has dropped back than its situations called for, per play: `events.strength.rating`), and the same for the offenses that have faced this defense.
 
 The first two groups are `events/situation.py`'s, shared with the trained offensive formation predictor, which is what makes the third usable: the formation the model is told has to fit the rest of what it knows about the play (`MAINTAINER.md`). It doesn't read the betting lines, though they are in the game's inputs.
 

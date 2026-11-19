@@ -3,6 +3,7 @@
 # - test_the_model_reads_the_situation: it passes more on third and long than on second and short, and more
 #   when it trails late than when it leads.
 # - test_the_model_reads_the_formation: it passes more from the shotgun than from under center.
+# - test_the_model_reads_the_team: an offense that has passed more than its situations called for passes more.
 # - test_plays_are_valid: synthetic plays with the trained snap predictor pass the validator.
 # - test_a_season_before_the_first_model_gets_the_baseline.
 # - test_features_read_the_game_so_far: the offense's dropbacks, runs, drive, and last play, from the history.
@@ -15,7 +16,7 @@ import random
 from events.situation import NAMES, features, personnel
 from events.snap.predictors import baseline, gbm
 from scenarios.play import PlaySummary, load_predictors, run_play, validate_play
-from scenarios.play.testing import synthetic_context
+from scenarios.play.testing import synthetic_context, with_history
 
 PREDICTORS = load_predictors("baseline", snap="gbm")
 MIDFIELD = dict(kind="scrimmage", offense="HOME", defense="AWAY", x=50.0, quarter=2, clock=600.0,
@@ -45,6 +46,12 @@ def test_the_model_reads_the_formation():
     lineups, formation, defense = _lined_up(ctx)
     shotgun, under_center = (dataclasses.replace(formation, under_center=under) for under in (False, True))
     assert gbm.pass_rate(ctx, lineups, shotgun, defense) > gbm.pass_rate(ctx, lineups, under_center, defense) + 0.15
+
+
+def test_the_model_reads_the_team():
+    ctx = synthetic_context(random.Random(0), **MIDFIELD, down=1, distance=10.0)
+    rate = lambda over: gbm.pass_rate(with_history(ctx, "HOME", {"plays": 600.0, "dropbacks_over": over}), *_lined_up(ctx))  # noqa: E731
+    assert rate(45.0) > rate(-45.0) + 0.03
 
 
 def test_plays_are_valid():

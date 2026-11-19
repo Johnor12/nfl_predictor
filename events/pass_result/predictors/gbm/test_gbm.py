@@ -33,8 +33,8 @@ def test_the_model_reads_the_throw():
 
 
 def test_the_model_reads_the_quarterback():
-    accurate = gbm.results(*_results(qb={"pass_att": 500.0, "pass_cmp": 350.0, "int_thrown": 6.0}))
-    erratic = gbm.results(*_results(qb={"pass_att": 500.0, "pass_cmp": 280.0, "int_thrown": 18.0}))
+    accurate = gbm.results(*_results(qb={"pass_att": 500.0, "pass_cmp_over": 25.0, "int_thrown": 6.0}))
+    erratic = gbm.results(*_results(qb={"pass_att": 500.0, "pass_cmp_over": -40.0, "int_thrown": 18.0}))
     assert accurate["complete"] > erratic["complete"] + 0.01
 
 

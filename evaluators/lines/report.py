@@ -5,6 +5,7 @@
 #   simulator is aiming for), the moneyline's reliability, and, given a simulator's samples, its scores on
 #   the same lines.
 # - lines_table(rows) -> list[str]: score_lines' rows as a markdown table (the sim columns when they are there).
+# - expectations_table(rows) -> list[str]: expectations' rows as a markdown table.
 # END
 from pathlib import Path
 
@@ -27,6 +28,14 @@ def lines_table(rows) -> list[str]:
     columns = [(title, key) for title, key in COLUMNS if rows and key in rows[0]]
     return ["| " + " | ".join(title for title, _ in columns) + " |", "|---" * len(columns) + "|",
             *("| " + " | ".join(_cell(key, row[key]) for _, key in columns) + " |" for row in rows)]
+
+
+def expectations_table(rows) -> list[str]:
+    cell = lambda r, key: f"{r[key]:.2f} ± {r['se'][key]:.2f}"  # noqa: E731
+    return ["| number | n | spread of the simulator's expectation | spread of the line | correlation with the line "
+            "| line points per simulated point | result points per simulated point |", "|---" * 7 + "|",
+            *(f"| {r['number']} | {r['n']} | {cell(r, 'spread')} | {r['line_spread']:.2f} | {cell(r, 'correlation')} "
+              f"| {cell(r, 'line_per_point')} | {cell(r, 'result_per_point')} |" for r in rows)]
 
 
 def write_report(games, samples=None, path=None) -> Path:

@@ -101,7 +101,7 @@ class Player:
     season_stats: tuple[tuple[str, float], ...] = ()  # this season's totals before this game (see `stats`)
     career_stats: tuple[tuple[str, float], ...] = ()  # the same stats over earlier seasons, each counting half
                                                       # the one after it (see `career`)
-    snaps: tuple[tuple[str, float], ...] = ()  # (unit, snaps) in his team's recent games: offense, defense, and
+    snaps: tuple[tuple[str, float], ...] = ()  # (unit, snaps) in the recent games he played in: offense, defense, and
                                                # special_teams or, where the data has them, each kicking unit
 
     def rank(self, slot: str) -> int | None:

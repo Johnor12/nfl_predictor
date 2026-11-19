@@ -2,6 +2,7 @@
 # Tests of the inputs about who is playing (no network needed).
 # - test_rates_come_from_both_windows: this season's rate and the earlier seasons', nan with nothing to
 #   divide by, for a team's form and for a player.
+# - test_a_rating_is_shrunk: both windows together, the earlier seasons counting less; 0 with no past.
 # - test_conditions: the weather as numbers, nan where the game doesn't say.
 # - test_the_quarterback_is_the_one_on_the_field.
 # END
@@ -25,6 +26,14 @@ def test_rates_come_from_both_windows():
     passer = with_history(CTX, "HOME-QB1", {"pass_att": 100.0, "pass_cmp": 64.0}, {}).by_id["HOME-QB1"]
     season, career = strength.rates(passer, "pass_cmp", "pass_att")
     assert season == 0.64 and math.isnan(career) and strength.total(passer, "pass_att") == 100
+
+
+def test_a_rating_is_shrunk():
+    passer = with_history(CTX, "HOME-QB1", {"pass_att": 100.0, "pass_cmp_over": 6.0},
+                          {"pass_att": 400.0, "pass_cmp_over": -8.0}).by_id["HOME-QB1"]
+    assert strength.rating(passer, "pass_cmp_over", "pass_att", 150) == (6.0 - 4.0) / (100 + 200 + 150)
+    assert strength.rating(CTX.by_id["HOME-QB2"], "pass_cmp_over", "pass_att", 150) == 0.0
+    assert strength.rating(CTX.game.form("AWAY"), "allowed_pass_cmp_over", "allowed_pass_att", 300) == 0.0
 
 
 def test_conditions():

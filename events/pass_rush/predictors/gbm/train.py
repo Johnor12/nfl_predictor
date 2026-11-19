@@ -8,7 +8,8 @@
 # - CLI: `python -m events.pass_rush.predictors.gbm.train 2026`, or `2021-2026` for a range (the default: the
 #   six most recent seasons).
 # The model's settings are shared.models' defaults but for the rounds (ROUNDS: more of them scored worse on
-# the seasons before the evaluated ones), with the quarterback's inputs read coarsely.
+# the seasons before the evaluated ones), with the quarterback's inputs read coarsely and
+# the home input favored (FAVOR, shared.models: who is at home moves every play of a game by a little).
 # END
 from events.pass_rush.predictors.gbm.inputs import NAMES, RESULTS, WHO, features
 from events.situation import DROPBACKS
@@ -19,6 +20,7 @@ from shared.priors import present
 
 TABLE = "pass_rush_gbm"
 ROUNDS = 40  # chosen on 2019 and 2020, with models trained on 2011 to 2018
+FAVOR = ("home",)
 COLUMNS = NAMES + ("result",)
 
 
@@ -32,7 +34,8 @@ def example(sample):
 
 def train(season: int):
     examples = table(TABLE, [s for s in SEASONS if s < season], example, COLUMNS)
-    return save_model(fit(examples, NAMES, "result", classes=len(RESULTS), coarse=WHO, rounds=ROUNDS), __file__, season)
+    model = fit(examples, NAMES, "result", classes=len(RESULTS), coarse=WHO, favor=FAVOR, rounds=ROUNDS)
+    return save_model(model, __file__, season)
 
 
 TABLES = {TABLE: (example, COLUMNS)}

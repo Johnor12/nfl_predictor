@@ -7,7 +7,8 @@
 #   nflverse rows (the pbp row, the FTN charting row or None, and the participation row or None), for code
 #   that reads what an event's output was. A row is a plain object with the columns as attributes (_rows).
 # Pipeline: _Rosters (active players per team-week: weekly roster status ACT minus injury-report Outs, plus
-#   anyone who appears in the game's pbp; depth chart slots from the last snapshot before gameday, draft
+#   anyone who appears in the game's pbp; depth chart slots from the last snapshot before gameday, with the
+#   quarterback who started a played game first at his slot (_starters, _start), draft
 #   pick, season-to-date stats from earlier weeks, career stats from earlier seasons, and recent snaps by
 #   unit; the tallies themselves are form.py's), _players (both teams' for a game),
 #   _game (schedule row -> Game, with both staffs, the form of its teams, coaches, and referee, and the weather: _weather
@@ -44,7 +45,7 @@ from shared.priors import Sample
 from shared.rulebook import rules_for
 
 SNAPPED = {"run", "pass", "punt", "field_goal", "extra_point", "qb_kneel", "qb_spike"}
-SNAP_WEEKS = 4  # a player's snaps cover his team's games in this many weeks before the game
+SNAP_WEEKS = 4  # a player's snaps cover the most recent weeks he played in before the game, this many of them
 GROUPS = {  # the detailed roster positions of the seasons before 2016 -> the play scenario's
     "T": "OL", "G": "OL", "C": "OL", "DE": "DL", "DT": "DL", "NT": "DL", "OLB": "LB", "ILB": "LB", "MLB": "LB",
     "CB": "DB", "SS": "DB", "FS": "DB", "S": "DB", "KR": "WR", "PR": "WR",
@@ -91,10 +92,14 @@ class _Rosters:
 
     @staticmethod
     def _recent_snaps(weekly, pbp):
+        """{week: {player: ((unit, snaps), ...)}}: his snaps in the SNAP_WEEKS most recent weeks he played in
+        before the week (the weeks he missed don't count against him: a starter back from an injury has the
+        snaps of a starter)."""
         weekly = weekly.rename("snaps").reset_index()
         by_week = {}
         for week in [*sorted(pbp.week.unique()), pbp.week.max() + 1]:  # the last is for games not yet played
-            recent = weekly[(weekly.week < week) & (weekly.week >= week - SNAP_WEEKS)]
+            before = weekly[weekly.week < week]
+            recent = before[before.groupby("player").week.rank(method="dense", ascending=False) <= SNAP_WEEKS]
             snaps = {}
             for (player, unit), value in recent.groupby(["player", "unit"]).snaps.sum().items():
                 snaps.setdefault(player, []).append((unit, float(value)))
@@ -111,9 +116,10 @@ class _Rosters:
             slots.setdefault(gsis, []).append((slot, int(rank)))
         return slots
 
-    def players(self, team, week, gameday, appeared) -> tuple[Player, ...]:
+    def players(self, team, week, gameday, appeared, starter=None) -> tuple[Player, ...]:
         """Active players: roster status ACT minus injury-report Outs, plus anyone who appears in the game's pbp.
-        A week without a roster yet (a game not played) uses the team's latest one."""
+        A week without a roster yet (a game not played) uses the team's latest one. `starter` is the
+        quarterback who started the game, if it has been played: he is first on the depth chart."""
         team_rows = self.rosters[(self.rosters.team == team) & (self.rosters.week <= week)]
         rows = team_rows[team_rows.week == team_rows.week.max()].drop_duplicates("gsis_id")
         slots = self._depth_slots(team, gameday)
@@ -135,7 +141,25 @@ class _Rosters:
             # the roster lists the kicker as a punter (the 2022 Chargers): he is the depth chart's kicker
             kicker = min(punters, key=lambda p: p.rank("PK") or 99)
             players[players.index(kicker)] = dataclasses.replace(kicker, position="K")
-        return tuple(players)
+        return tuple(_start(players, starter))
+
+
+def _start(players, starter) -> list:
+    """The quarterback who started is first at QB, whatever the last depth chart said (the weekly charts
+    before 2025 run a week or two behind), and the quarterbacks it listed ahead of him move down one."""
+    first = next((p for p in players if p.id == starter and p.position == "QB"), None)
+    behind = first.rank("QB") or 99 if first else 1
+    if behind == 1:
+        return players
+    down = lambda p: tuple((slot, rank + (slot == "QB" and rank < behind)) for slot, rank in p.depth)  # noqa: E731
+    return [dataclasses.replace(p, depth=(("QB", 1), *(d for d in p.depth if d[0] != "QB")) if p is first else down(p))
+            for p in players]
+
+
+def _starters(rows) -> dict:
+    """{team: the quarterback who started}: the passer of each team's first pass or sack in the game's rows."""
+    passes = rows[rows.passer_player_id.notna() & rows.posteam.notna()].sort_values("order_sequence")
+    return passes.groupby("posteam").passer_player_id.first().to_dict()
 
 
 def _weather(schedule, report) -> list:
@@ -167,8 +191,9 @@ def _game(schedule, row, forms, report=None) -> Game:
 def _players(rosters, game, gameday, rows) -> tuple[Player, ...]:
     """Both teams' active players; rows are the game's pbp rows (None if it hasn't been played)."""
     appeared = set() if rows is None else set(rows[[c for c in rows.columns if c.endswith("_player_id")]].stack())
-    return (rosters.players(game.home, game.week, gameday, appeared)
-            + rosters.players(game.away, game.week, gameday, appeared))
+    starters = {} if rows is None else _starters(rows)
+    return (rosters.players(game.home, game.week, gameday, appeared, starters.get(game.home))
+            + rosters.players(game.away, game.week, gameday, appeared, starters.get(game.away)))
 
 
 def _is_play(row) -> bool:

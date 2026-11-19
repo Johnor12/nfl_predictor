@@ -17,5 +17,6 @@ Notes:
 - The model replaces the baseline's hand-set shrinking of a quarterback's season toward the league (`DROPBACKS`): it gets his season and his earlier seasons as two rates and the dropbacks behind this season's, and weighs them itself.
 - 40 rounds, not the 150 of `shared.models`' defaults: on 2019 and 2020 the score rose with every round after about 40 (0.1862 at 25 and 40, 0.1870 at 150).
 - A throwaway is a throw to the model, since the data only tells them apart from 2022. The baseline draws it afterwards from the charted rate.
+- The home input is favored (`FAVOR`, 2026-11-16): the model made -0.05 points of the home team's sack rate where the real dropbacks of 2021 to 2025 have -0.20, and makes -0.15 now, at the same score per dropback (106,664 of them, each season's by its own model: 0.0% either way) (`events/MAINTAINER.md`, "The home input"). A shrunk rating of the quarterback's sack rate was tried offline in place of his raw rates and scored the same (a team's sacks over a game 7.7% closer than the situation alone, either way), so the rates stay.
 - Not read: the pass rushers, the line, or the box. `defense.box` is there to be tried.
 - After changing `inputs.py` or `example`, delete `.cache/training/pass_rush_gbm_*.parquet` and retrain every model.

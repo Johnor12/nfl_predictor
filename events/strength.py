@@ -5,6 +5,10 @@
 # - rates(who, top, bottom) -> [float, float]: how often `who` did `top` per `bottom` in this season's earlier
 #   games, and over earlier seasons (nan where there is no `bottom` yet). `who` is anything with `stats` and
 #   `career`: a team's, coach's, or referee's `Form` (ctx.game.form(...)), or a `Player`.
+# - rating(who, over, per, shrink) -> float: how far above what was expected `who` has been per `per`, as
+#   one number: his `over` stat (what he did less what the situations called for: `pass_cmp_over`,
+#   `dropbacks_over`) of this season and of the earlier ones (which count EARLIER), over his `per` stat plus
+#   `shrink`. 0 is the league, and what somebody without a past gets. Read it exactly: it is already shrunk.
 # - total(who, stat) -> float: the stat's total in this season's earlier games: how much a season rate rests on.
 # - experience(player) -> float: his years in the league. position(player) -> float: his position group as a
 #   number a tree can split on (POSITIONS: receivers, tight ends, backs, quarterbacks, then everyone else).
@@ -12,15 +16,24 @@
 # - weather(game) -> [temperature, wind, outdoors] (nan where the game's data doesn't say).
 # Keep a model to a few of these. Many numbers about one team are a fingerprint of its season, and a model
 # given one learns the teams it was trained on instead of what a past rate says about the next game
-# (MAINTAINER.md).
+# (MAINTAINER.md). Prefer a rating to a pair of rates where the data has an expectation to measure against:
+# a raw rate is mostly the situations a team was in (how deep it threw, whether it was behind).
 # END
 import math
 
 POSITIONS = {"WR": 0, "TE": 1, "RB": 2, "FB": 2, "QB": 3}
+EARLIER = 0.5  # what the earlier seasons' totals count for in a rating, next to this season's
 
 
 def rates(who, top, bottom) -> list[float]:
     return [stats.get(top, 0.0) / stats[bottom] if stats.get(bottom) else math.nan for stats in (who.stats, who.career)]
+
+
+def rating(who, over, per, shrink) -> float:
+    """How far above what was expected `who` has been per `per`: this season's `over` and the earlier
+    seasons' together (those count EARLIER), shrunk toward 0 (the league) by `shrink` of `per`."""
+    top = who.stats.get(over, 0.0) + EARLIER * who.career.get(over, 0.0)
+    return top / (who.stats.get(per, 0.0) + EARLIER * who.career.get(per, 0.0) + shrink)
 
 
 def total(who, stat) -> float:

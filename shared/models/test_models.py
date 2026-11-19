@@ -10,6 +10,7 @@
 #   samples from it.
 # - test_a_number_s_model_knows_its_limit: with a limit, the model puts everything that would go past it on it.
 # - test_a_coarse_feature_is_read_in_steps: a feature named in `coarse` only splits at a few values.
+# - test_a_favored_feature_is_learned: a small effect next to a large one is picked up when its feature is in `favor`.
 # END
 import math
 import random
@@ -93,3 +94,15 @@ def test_a_coarse_feature_is_read_in_steps(tmp_path):
     coarse = fit(table, ["x"], "yes", rounds=20, min_data_in_leaf=20, coarse=["x"])
     thresholds = lambda model: set(model.trees_to_dataframe().threshold.dropna().round(6))  # noqa: E731
     assert len(thresholds(coarse)) <= 7 < len(thresholds(exact))
+
+
+def test_a_favored_feature_is_learned():
+    rng = random.Random(0)
+    rows = [(x, home, rng.random() < 0.2 + 0.5 * x + 0.03 * home) for x, home in
+            ((rng.random(), rng.random() < 0.5) for _ in range(20000))]
+    table = pd.DataFrame(rows, columns=["x", "home", "yes"]).astype(float)
+    effect = lambda model: (model.predict(table.assign(home=1.0)[["x", "home"]])  # noqa: E731
+                            - model.predict(table.assign(home=0.0)[["x", "home"]])).mean()
+    plain = fit(table, ["x", "home"], "yes", rounds=20)
+    favored = fit(table, ["x", "home"], "yes", rounds=20, favor=["home"])
+    assert effect(favored) > effect(plain) and abs(effect(favored) - 0.03) < 0.015

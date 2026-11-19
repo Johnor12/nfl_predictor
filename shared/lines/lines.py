@@ -13,7 +13,7 @@
 # - COMBINED: the props on a sum of stats: name -> {stat: weight} (tackles+assists, kick_pts, ...).
 # - value(stat, line) -> float: a stat's or a combined stat's value in a stat line ({stat: value}).
 # Internals: _props (one game's props, cached under .cache/lines/ once the game has been played, since the
-#   lines of an upcoming game still move), _books (the sportsbooks with pre-game props for a game), _fetch
+#   lines of an upcoming game still move; a cached file in an earlier version's row format is fetched again), _books (the sportsbooks with pre-game props for a game), _fetch
 #   (every page of one book's prop list), _parse (the list -> [ESPN athlete id, prop name, line, open, over
 #   price, under price] rows: a book lists each side of a prop on its own, and often other lines of the same
 #   prop without a price; the line kept is the priced one, or the one updated last, and never an unpriced
@@ -52,6 +52,7 @@ COMBINED = {
     "pass_yds+rush_yds": {"pass_yds": 1, "rush_yds": 1}, "rush_yds+rec_yds": {"rush_yds": 1, "rec_yds": 1},
     "tackles+assists": {"tackles": 1, "assists": 1}, "kick_pts": {"fg_made": 3, "xp_made": 1},
 }
+WIDTH = 7  # a cached prop row: book, ESPN athlete id, prop name, line, open, over price, under price
 COLUMNS = ["game_id", "week", "player_id", "player", "stat", "line", "open", "over_odds", "under_odds", "book"]
 
 
@@ -120,7 +121,9 @@ def _parse(items) -> list:
 def _props(event, played) -> list:
     path = CACHE / f"props_{event}.json"
     if path.exists():
-        return json.loads(path.read_text())
+        rows = json.loads(path.read_text())
+        if all(len(row) == WIDTH for row in rows):  # else it was cached by an earlier version of _parse
+            return rows
     rows = [[name, *row] for book, name in _books(event) for row in _parse(_fetch(event, book))]
     if played:
         CACHE.mkdir(parents=True, exist_ok=True)

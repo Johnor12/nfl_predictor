@@ -11,7 +11,10 @@
 #     seasons, discounted the same way.
 # - TEAM_STATS: the stats of a team's offense, counted play by play (_counted): its plays (runs and dropbacks
 #   on scrimmage downs) and what came of them, its snaps with the flags on it and on the defense, and its
-#   fourth downs. A team's form holds them under these names, and what its defense allowed under
+#   fourth downs. Two are measured against what the situation called for, with nflverse's own models as the
+#   expectation: `dropbacks_over` (its dropbacks less each play's `xpass`) and `pass_cmp_over` (its
+#   completions less each attempt's `cp`; a quarterback has the same in USAGE). They are what a rating is
+#   made of (events.strength.rating). A team's form holds them under these names, and what its defense allowed under
 #   "allowed_<stat>" (the same stats of its opponents' offenses), plus `games`, `points`, and
 #   `allowed_points`. A referee's is both offenses' stats in his games.
 # - A coach's form holds each of those stats from the games he was the one deciding it: an offense's stats
@@ -68,6 +71,7 @@ USAGE = [  # (stat, player id column, value column), counted from the play-by-pl
     ("pass_yds", "passer_player_id", "passing_yards"),
     ("pass_td", "passer_player_id", "pass_touchdown"),
     ("int_thrown", "passer_player_id", "interception"),
+    ("pass_cmp_over", "passer_player_id", "completion_over"),  # completions over expected (nflverse's `cp`)
     ("rush_att", "rusher_player_id", "rush_attempt"),
     ("rush_yds", "rusher_player_id", "rushing_yards"),
     ("rush_td", "rusher_player_id", "rush_touchdown"),
@@ -86,9 +90,9 @@ USAGE = [  # (stat, player id column, value column), counted from the play-by-pl
     ("punt_yds", "punter_player_id", "punt_yards"),
 ]
 USAGE_STATS = {stat for stat, _, _ in USAGE}
-TEAM_STATS = ("plays", "dropbacks", "runs", "shotgun", "pass_att", "pass_cmp", "pass_yds", "air_yds", "int_thrown",
-              "sacked", "scrambles", "rush_yds", "dropback_yds", "first_downs", "touchdowns", "fumbles_lost", "snaps",
-              "flags", "defense_flags", "fourth_downs", "fourth_down_goes")
+TEAM_STATS = ("plays", "dropbacks", "dropbacks_over", "runs", "shotgun", "pass_att", "pass_cmp", "pass_cmp_over",
+              "pass_yds", "air_yds", "int_thrown", "sacked", "scrambles", "rush_yds", "dropback_yds", "first_downs",
+              "touchdowns", "fumbles_lost", "snaps", "flags", "defense_flags", "fourth_downs", "fourth_down_goes")
 DECISIONS = ("fourth_downs", "fourth_down_goes")  # the head coach's, whoever calls the plays
 HEAD_COACH = ("games", "points", "allowed_points") + DECISIONS
 ON_FIELD = ("plays", "dropbacks", "runs", "pass_att", "pass_cmp", "pass_yds", "int_thrown", "sacked", "scrambles",
@@ -123,6 +127,7 @@ def weekly_snaps(season, pbp, rosters) -> pd.Series:
 def _usage(pbp) -> pd.DataFrame:
     plays = pbp[(pbp.play_type != "no_play") & (pbp.two_point_attempt != 1)].copy()
     plays["attempt"] = plays.complete_pass + plays.incomplete_pass + plays.interception
+    plays["completion_over"] = (plays.attempt * (plays.complete_pass - plays.cp)).fillna(0.0)  # 0 where nflverse has no cp
     plays["carry"] = ((plays.play_type == "run") & (plays.qb_scramble != 1)).astype(int)
     plays["punt"] = ((plays.play_type == "punt") & (plays.punt_blocked != 1)).astype(int)
     plays["punt_yards"] = plays.kick_distance.where(plays.punt == 1)
@@ -205,8 +210,11 @@ def _counted(pbp) -> pd.DataFrame:
     fourth = (pbp.down == 4) & pbp.play_type.isin(["run", "pass", "punt", "field_goal"])
     out = pd.DataFrame({
         "game_id": pbp.game_id, "team": pbp.posteam, "opponent": pbp.defteam,
-        "plays": play, "dropbacks": dropback, "runs": run, "shotgun": play & (n("shotgun") == 1),
+        "plays": play, "dropbacks": dropback, "runs": run,
+        "dropbacks_over": (play * (dropback.astype(float) - pbp.xpass)).fillna(0.0),  # over nflverse's xpass
+        "shotgun": play & (n("shotgun") == 1),
         "pass_att": attempt, "pass_cmp": attempt & (n("complete_pass") == 1), "pass_yds": attempt * n("passing_yards"),
+        "pass_cmp_over": (attempt * (n("complete_pass") - pbp.cp)).fillna(0.0),
         "air_yds": attempt * n("air_yards"), "int_thrown": attempt & (n("interception") == 1),
         "sacked": play & (n("sack") == 1), "scrambles": play & (n("qb_scramble") == 1),
         "rush_yds": run * n("yards_gained"), "dropback_yds": dropback * n("yards_gained"),

@@ -34,6 +34,8 @@ API (`from evaluators.game import ...`):
 
 **The betting lines** (when given): the market's probability and line scored against the result, and the simulator's share of samples over the same line, on the moneyline, spread, total, and every player prop (see `evaluators/lines/README.md`).
 
+**Telling the teams apart** (when given the lines): how far the simulator's expected margin and total differ from game to game, next to the line's, and how many points the line and the result move per simulated point (`evaluators.lines.expectations`).
+
 **The timeout predictor alone** (`timeout: caller (...)`): sampled on every real play's situation as it stood before any timeout, and scored against who called one (offense, defense, none).
 
 **The challenge predictor alone** (`challenge: who and ruling`): sampled on every real play a coach could challenge, and scored against who challenged it and how the review came out (offense won, offense lost, defense won, defense lost, none).
@@ -47,8 +49,9 @@ The coin toss isn't in the data, so its two predictors aren't scored.
 - **Rare stats** (a safety, a return touchdown, a blocked kick) score at their reference whatever the simulator does; their `mean` and `sim mean` are the check that it makes them about as often as they happen.
 - **Charted stats** are scored against Pro Football Reference's charting, whose totals the simulator reproduces at league rates (who is hurried, who misses a tackle): they say less about a game than the box score does, and their skill is mostly who is on the field.
 - **Out of sample**: a game is predicted from what was played before it (the exceptions are listed in `evaluators/README.md`).
-- **Inputs at kickoff**: the active players include everyone who appeared in the real game, which is the inactive list announced before kickoff, not hindsight about who got hurt.
+- **Inputs at kickoff**: the active players include everyone who appeared in the real game, which is the inactive list announced before kickoff, not hindsight about who got hurt. The quarterback who started is first on the depth chart, as he is announced before kickoff too (`shared/nflverse/MAINTAINER.md`); how long he lasted is not an input.
 - The market is the benchmark: the simulator's Brier, log loss, and MAE on a market are directly comparable with the market's own columns. A player prop's market probability comes from its two prices (2022 to 2025), and is 50% where they aren't published (2026). 2024 on has props for every kind of player, defenders and kickers included; 2022 and 2023 have a few per game, and earlier seasons none (`shared/lines/README.md`).
+- **Telling the teams apart**: read this table for a change to who is playing next to the scores. It asks directly what the game rows' scores answer slowly: the line is a far less noisy stand-in for how good the teams are than one result. More than 1 point of line per simulated point means the simulator knows who is better and makes too little of it (1.8 ± 0.2 on 2026-11-17, with the expected margin's spread at 2.3 points against the line's 5.8). Each number has its standard error beside it: at 480 games and 50 sims a spread is good to about 0.13 points, so a single input rarely shows here either, and several together do.
 - **Lines as inputs**: a game's inputs include the spread and total before it (`Game.spread`, `Game.total`), and a predictor may read them (none does yet). For such a predictor the market columns compare the simulator with a benchmark it has partly been told: beating the market on a line still means something, matching it means less. The scores against what really happened aren't affected.
 - A simulated probability is the smoothed share of samples over the line, so with few sims it is coarse; `sim CRPS` doesn't depend on the number of sims.
 - `game: plays` is where the clock gets scored (the play evaluator can't): too many plays means the simulated game uses too little clock per play.

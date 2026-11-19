@@ -3,13 +3,14 @@
 # - test_no_vig: the bookmaker's margin is removed.
 # - test_score_lines: the market's scores, pushes and unplayed lines left out, and a simulator's scores on the
 #   same lines (no data needed).
+# - test_expectations: a simulator whose expected margins are half the size they should be.
 # - test_season_lines: the cached 2026 lines score against the results. Skipped unless the files are in .cache.
 # END
 import random
 
 import pytest
 
-from evaluators.lines import Line, no_vig, score_lines
+from evaluators.lines import Line, expectations, no_vig, score_lines
 from shared.lines.lines import CACHE
 from shared.nflverse.download import CACHE as NFLVERSE
 
@@ -41,6 +42,22 @@ def test_score_lines():
     assert both["spread"]["sim_crps"] < both["spread"]["sim_mae"]
     del samples[("margin", 0)]
     assert score_lines(lines, samples)[0]["n"] == market["moneyline"]["n"] - (lines[1].actual != 0)
+
+
+def test_expectations():
+    rng = random.Random(0)
+    lines, samples = [], {}
+    for i in range(1500):
+        truth = rng.gauss(0, 6)
+        lines.append(Line("spread", ("margin", i), truth, 0.5, truth + rng.gauss(0, 13)))
+        samples[("margin", i)] = [truth / 2 + rng.gauss(0, 13) for _ in range(50)]  # knows who is better, by half
+    margin, = expectations(lines, samples)
+    assert margin["number"] == "margin" and margin["n"] == 1500
+    assert margin["spread"] == pytest.approx(3, abs=0.4) and margin["line_spread"] == pytest.approx(6, abs=0.3)
+    assert margin["correlation"] == pytest.approx(1, abs=0.12) and margin["line_per_point"] == pytest.approx(2, abs=0.3)
+    assert margin["result_per_point"] == pytest.approx(2, abs=0.6)
+    assert 0.05 < margin["se"]["spread"] < 0.3 and margin["se"]["line_per_point"] > margin["se"]["correlation"] > 0
+    assert expectations(lines[:2], samples) == []
 
 
 @pytest.mark.skipif(not any(CACHE.glob("props_*.json")) or not (NFLVERSE / "stats_player_week_2026.parquet").exists(),

@@ -2,8 +2,8 @@
 
 - __init__.py: the public API (re-exports).
 - files.py: `models_of` (the model for a season: the latest one trained for that season or an earlier one), `save_model`, `draw`, `choose`, and `_probability` (a model file read once, as a function of one row, or of several, that remembers its recent answers).
-- training.py: `fit`, `fit_number`, and their default settings (`PARAMS`, `ROUNDS`, `COARSE`).
-- test_models.py: a fitted model predicts what it was shown; `models_of` picks the model for a season; a model of classes; a model of a number and drawing from it; a number's limit; a coarse feature.
+- training.py: `fit`, `fit_number`, and their default settings (`PARAMS`, `ROUNDS`, `COARSE`, `FAVOR`).
+- test_models.py: a fitted model predicts what it was shown; `models_of` picks the model for a season; a model of classes; a model of a number and drawing from it; a number's limit; a coarse feature; a favored feature.
 
 Notes:
 - Imports nothing from the rest of the project (LightGBM and numpy only), like `shared/priors`.
@@ -15,5 +15,7 @@ Notes:
 - Why `limit`: without it the yards models put too little on the goal line. Whether a run from the 3 reaches a cut depends on the cut being 3 or 4, and to a tree that is two features (the cut, the yards to go) whose difference matters; it can only cut each one at a few values, so the touchdown, which sits exactly where they are equal, got smeared over its neighbours. Simulated games had the right yards and 80% of the real rushing touchdowns. With the difference as a feature of its own (`ROOM`) it is one split. The same goes for anything that piles up at a boundary: give the model the distance to it.
 - A drawn number between two wide cuts is filled in by the predictor from a histogram (`shared.priors.hist`). If the limit lies between them, everything past it belongs there too: the carry predictor draws from the histogram's whole tail and lets the play scenario stop the carry at the goal line.
 - A choice among players (who is thrown to) is a yes/no model asked once per candidate, not a model with a class per player: the candidates change from play to play. One call scores them all (`several=True`: about the cost of one row), and `choose` draws in proportion to the answers, so they needn't add up to 1. `events/target/predictors/gbm_receiver/` is the pattern; its training table has a row per candidate (`events.training`: an example may return several rows).
+- `favor` is LightGBM's `feature_contri`: a feature's split gain times `FAVOR` when a tree picks its split. Measured on the pass result model (trained on 2011 to 2018, scored on 2019 and 2020): the home team's completion rate was 1.4 points above the visitors' in the training plays, and the model's answer moved 0.7 points with `home` as it was, 1.2 at 3 times, 1.4 at 10, 1.3 at 30, 1.1 with 150 rounds instead of 40, and 1.2 fitted in two stages (a model of `home` alone first, the trees on top of it), all within 0.15% of each other per pass. 3 is the smallest that gets most of it. Two stages is the cleaner way if more than one such input is wanted, and needs a second file per model.
+- Bigger or slower models were tried again on 2026-11-16 (learning rates of 0.02 to 0.05 with 2 to 6 times the trees, 15 and 63 leaves, larger leaves, feature subsampling with an L2 penalty): the pass result model within 0.2% per pass and the dropback model within 0.05%. The models are short of inputs, not of size.
 - `coarse` exists because of what was found adding inputs about who is playing (`events/MAINTAINER.md`). 8 steps was the only number tried besides exact.
 
